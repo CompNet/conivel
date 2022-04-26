@@ -16,6 +16,7 @@ matplotlib = "^3.5.1"
 hypothesis = "^6.36.1"
 seqeval = "^1.2.2"
 sacred = "^0.8.2"
+nltk = "^3.7"
 
 [tool.poetry.dev-dependencies]
 
