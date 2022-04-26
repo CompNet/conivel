@@ -235,15 +235,15 @@ class RandomContextSelector(ContextSelector):
     def __call__(
         self, sent_idx: int, document: List[NERSentence]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
-        """
-        .. note::
+        """ """
+        selected_sents_idx = random.sample(
+            [i for i in range(len(document)) if not i == sent_idx],
+            k=min(len(document) - 1, self.sents_nb),
+        )
 
-            always puts context left
-        """
-        document_without_sent = document[:sent_idx] + document[sent_idx + 1 :]
         return (
-            random.choices(document_without_sent, k=self.sents_nb),
-            [],
+            [document[i] for i in selected_sents_idx if i < sent_idx],
+            [document[i] for i in selected_sents_idx if i > sent_idx],
         )
 
 
@@ -259,22 +259,28 @@ class SameWordSelector(ContextSelector):
     def __call__(
         self, sent_idx: int, document: List[NERSentence]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
-        """
-        .. note::
-
-            always puts context left
-        """
+        """ """
         sent = document[sent_idx]
         tagged = nltk.pos_tag(sent.tokens)
         name_tokens = set([t[0] for t in tagged if t[1].startswith("NN")])
 
-        # sentences from the document with at least one token from sent
-        other_sents = document[:sent_idx] + document[sent_idx + 1 :]
-        doc_sent_with_common_tokens = [
-            s for s in other_sents if len(name_tokens.union(set(s.tokens))) > 0
+        # other sentences from the document with at least one token
+        # from sent
+        selected_sents_idx = [
+            i
+            for i, s in enumerate(document)
+            if not i == sent_idx and len(name_tokens.intersection(set(s.tokens))) > 0
         ]
 
-        return (random.choices(doc_sent_with_common_tokens, k=self.sents_nb), [])
+        # keep at most k sentences
+        selected_sents_idx = random.sample(
+            selected_sents_idx, k=min(self.sents_nb, len(selected_sents_idx))
+        )
+
+        return (
+            [document[i] for i in selected_sents_idx if i < sent_idx],
+            [document[i] for i in selected_sents_idx if i > sent_idx],
+        )
 
 
 class NeighborsContextSelector(ContextSelector):
