@@ -132,7 +132,7 @@ def truncate_batch(
         )
     else:
         batch = BatchEncoding(
-            {k: v[:1] + v[-(max_length - 1) :] for k, v in batch.items()},
+            {k: v[:1] + v[1:][-(max_length - 1) :] for k, v in batch.items()},
             encoding=batch.encodings,
         )
 
