@@ -255,6 +255,8 @@ class SameWordSelector(ContextSelector):
 
     def __init__(self, sents_nb: int):
         self.sents_nb = sents_nb
+        # nltk pos tagging dependency
+        nltk.download("averaged_perceptron_tagger")
 
     def __call__(
         self, sent_idx: int, document: List[NERSentence]
