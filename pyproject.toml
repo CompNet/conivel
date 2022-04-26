@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "CONIVEL"
+version = "0.1.0"
+description = ""
+authors = ["Aethor <oow.autre@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+torch = "^1.10.1"
+transformers = "^4.15.0"
+tqdm = "^4.62.3"
+rich = "^11.0.0"
+nameparser = "^1.1.0"
+more-itertools = "^8.12.0"
+matplotlib = "^3.5.1"
+hypothesis = "^6.36.1"
+seqeval = "^1.2.2"
+sacred = "^0.8.2"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
