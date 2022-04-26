@@ -449,6 +449,15 @@ class NERDataset(Dataset):
             sents[index].tags
         )
 
+        # align tokens labels with wordpiece
+        batch = align_tokens_labels_(
+            batch,
+            flattened([s.tags for s in sent.left_context])
+            + sent.tags
+            + flattened([s.tags for s in sent.right_context]),
+            self.tag_to_id,
+        )
+
         # manual truncation : this can deal with the case where we
         # need to truncate left
         truncation_direction = (
@@ -458,14 +467,7 @@ class NERDataset(Dataset):
         )
         batch = truncate_batch(batch, truncation_direction)
 
-        # align tokens labels with wordpiece
-        return align_tokens_labels_(
-            batch,
-            flattened([s.tags for s in sent.left_context])
-            + sent.tags
-            + flattened([s.tags for s in sent.right_context]),
-            self.tag_to_id,
-        )
+        return batch
 
     def __len__(self) -> int:
         return len(self.sents())
