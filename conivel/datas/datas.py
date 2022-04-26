@@ -432,9 +432,17 @@ class NERDataset(Dataset):
         flattened_right_context = flattened([s.tokens for s in sent.right_context])
 
         # create a BatchEncoding using huggingface tokenizer
+        truncation_side = (
+            "right"
+            if len(flattened_left_context) < len(flattened_right_context)
+            else "left"
+        )
+        self.tokenizer.truncation_side = truncation_side
         batch = self.tokenizer(
             flattened_left_context + sent.tokens + flattened_right_context,
             is_split_into_words=True,
+            truncation=True,
+            max_length=512,
         )  # type: ignore
 
         # create tokens_labels_mask
@@ -445,9 +453,6 @@ class NERDataset(Dataset):
         batch["tokens_labels_mask"] += [0] * len(
             flattened([s.tags for s in sent.right_context])
         )
-        assert len([i for i in batch["tokens_labels_mask"] if i == 1]) == len(
-            sents[index].tags
-        )
 
         # align tokens labels with wordpiece
         batch = align_tokens_labels_(
@@ -457,15 +462,6 @@ class NERDataset(Dataset):
             + flattened([s.tags for s in sent.right_context]),
             self.tag_to_id,
         )
-
-        # manual truncation : this can deal with the case where we
-        # need to truncate left
-        truncation_direction = (
-            "right"
-            if len(flattened_left_context) < len(flattened_right_context)
-            else "left"
-        )
-        batch = truncate_batch(batch, truncation_direction)
 
         return batch
 
