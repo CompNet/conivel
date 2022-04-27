@@ -2,7 +2,7 @@ from typing import Optional, List, Set, cast
 import copy, json
 from sacred.run import Run
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from transformers import BertTokenizerFast
 from tqdm import tqdm
 from transformers import BertForTokenClassification
@@ -48,10 +48,12 @@ def train_ner_model(
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
     data_collator = DataCollatorForTokenClassificationWithBatchEncoding(tokenizer)
+    sorted_sents_idx = sorted(
+        range(len(train_dataset)), key=lambda i: -len(train_dataset[i]["input_ids"])
+    )
     dataloader = DataLoader(
-        train_dataset,
+        Subset(train_dataset, indices=sorted_sents_idx),
         batch_size=batch_size,
-        shuffle=True,
         collate_fn=data_collator,
     )
 
