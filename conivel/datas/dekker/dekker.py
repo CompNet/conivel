@@ -74,8 +74,9 @@ class DekkerDataset(NERDataset):
                         in_quote = True
                     elif splitted[0] == "''":
                         in_quote = False
-
-                    if splitted[0] in {".", "?", "!"} and not in_quote:
+                        cur_doc.append(sent)
+                        sent = NERSentence([], [])
+                    elif splitted[0] in {".", "?", "!"} and not in_quote:
                         cur_doc.append(sent)
                         sent = NERSentence([], [])
 
