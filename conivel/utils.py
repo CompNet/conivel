@@ -24,6 +24,9 @@ class NEREntity:
     #: token end index, inclusive
     end_idx: int
 
+    def __hash__(self) -> int:
+        return hash(tuple(self.tokens) + (self.tag, self.start_idx, self.end_idx))
+
 
 T = TypeVar("T")
 
