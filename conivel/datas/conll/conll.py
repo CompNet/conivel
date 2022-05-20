@@ -1,7 +1,8 @@
 from __future__ import annotations
 from typing import Optional, Set
 import os
-from conivel.datas import NERDataset, NERSentence
+from conivel.datas import NERSentence
+from conivel.datas.dataset import NERDataset
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 

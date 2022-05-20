@@ -1,19 +1,20 @@
 from typing import Optional, List, Set, cast
 import copy, json
+
 from sacred.run import Run
 import torch
 from torch.utils.data import DataLoader, Subset
-from transformers import BertTokenizerFast
 from tqdm import tqdm
 from transformers import BertForTokenClassification
+
 from conivel.datas import (
-    NERDataset,
     batch_to_device,
     DataCollatorForTokenClassificationWithBatchEncoding,
 )
+from conivel.datas.dataset import NERDataset
 from conivel.predict import predict
 from conivel.score import score_ner
-from conivel.utils import flattened, get_tokenizer
+from conivel.utils import get_tokenizer
 
 
 def train_ner_model(

@@ -7,9 +7,9 @@ from transformers import BertForTokenClassification
 
 from conivel.datas import (
     batch_to_device,
-    NERDataset,
     DataCollatorForTokenClassificationWithBatchEncoding,
 )
+from conivel.datas.dataset import NERDataset
 
 
 def predict(

@@ -1,1 +1,1 @@
-from conivel.datas.dekker import *
+from conivel.datas.dekker.dekker import *

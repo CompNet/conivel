@@ -1,20 +1,19 @@
 import os
-from typing import Dict, List, Literal, Optional, Type, cast
+from typing import Dict, List, Optional, Type, cast
 import shutil
 from sacred import Experiment
-from sacred.commands import print_config
 from sacred.run import Run
 from sacred.observers import FileStorageObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 from transformers import BertForTokenClassification
 from conivel.datas.conll import CoNLLDataset
-from conivel.datas.datas import (
+from conivel.datas.context import (
     ContextSelector,
     NeighborsContextSelector,
     RandomContextSelector,
     SameWordSelector,
 )
-from conivel.datas.dekker.dekker import DekkerDataset
+from conivel.datas.dekker import DekkerDataset
 from conivel.predict import predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
