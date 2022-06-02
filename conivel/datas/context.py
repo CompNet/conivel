@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple
 import random
 
 import nltk
+from sacred.run import Run
 
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
@@ -169,6 +170,9 @@ class ContextSelectionDataset(Dataset):
 
         return batch
 
+    def to_jsonifiable(self) -> List[dict]:
+        return [vars(example) for example in self.examples]
+
 
 class NeuralContextSelector(ContextSelector):
     """A context selector powered by BERT"""
@@ -259,6 +263,7 @@ class NeuralContextSelector(ContextSelector):
         batch_size: int,
         samples_per_sent: int,
         max_examples_nb: Optional[int] = None,
+        _run: Optional[Run] = None,
     ) -> ContextSelectionDataset:
         """Generate a context selection training dataset.
 
@@ -287,6 +292,10 @@ class NeuralContextSelector(ContextSelector):
         :param batch_size: batch size used for NER inference
         :param samples_per_sent: number of context selection samples
             to generate per wrongly predicted sentence
+        :param max_examples_nb: max number of examples in the
+            generated dataset.  If ``None``, no limit is applied.
+        :param _run: The current sacred run.  If not ``None``, will be
+            used to record generation metrics.
 
         :return: a ``ContextSelectionDataset`` that can be used to
                  train a context selector.
@@ -346,6 +355,21 @@ class NeuralContextSelector(ContextSelector):
                 )
                 ctx_selection_examples.append(example)
 
+        if not _run is None:
+            _run.log_scalar(
+                "context_dataset_generation.examples_nb", len(ctx_selection_examples)
+            )
+
+            pos_examples_nb = sum([ex.label for ex in ctx_selection_examples])
+            neg_examples_nb = len(ctx_selection_examples) - pos_examples_nb
+            try:
+                _run.log_scalar(
+                    "context_dataset_generation.pos_neg_ratio",
+                    pos_examples_nb / neg_examples_nb,
+                )
+            except ZeroDivisionError:
+                pass
+
         return ContextSelectionDataset(ctx_selection_examples)
 
     @staticmethod
@@ -354,6 +378,7 @@ class NeuralContextSelector(ContextSelector):
         epochs_nb: int,
         batch_size: int,
         learning_rate: float,
+        _run: Optional[Run] = None,
     ) -> BertForSequenceClassification:
         """Instantiate and train a context classifier.
 
@@ -363,6 +388,8 @@ class NeuralContextSelector(ContextSelector):
             selection dataset.
         :param epochs_nb: number of training epochs.
         :param batch_size:
+        :param _run: current sacred run.  If not ``None``, will be
+            used to record training metrics.
 
         :return: a trained ``BertForSequenceClassification``
         """
@@ -396,10 +423,15 @@ class NeuralContextSelector(ContextSelector):
                 out.loss.backward()
                 optimizer.step()
 
+                if not _run is None:
+                    _run.log_scalar("training.loss", out.loss.item())
+
                 data_tqdm.set_description(f"loss : {out.loss.item():.3f}")
                 epoch_losses.append(out.loss.item())
 
             mean_epoch_loss = sum(epoch_losses) / len(epoch_losses)
             tqdm.write(f"epoch mean loss : {mean_epoch_loss:.3f}")
+            if not _run is None:
+                _run.log_scalar("training.mean_epoch_loss", mean_epoch_loss)
 
         return ctx_classifier
