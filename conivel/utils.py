@@ -1,9 +1,10 @@
 from __future__ import annotations
-from typing import Tuple, TypeVar, List, Optional
-import copy, time, os
+from typing import Any, Tuple, TypeVar, List, Optional
+import copy, time, os, uuid, shutil, json
 from types import MethodType
 from dataclasses import dataclass
 from more_itertools import windowed
+from transformers import PreTrainedModel  # type: ignore
 from sacred.run import Run
 
 
@@ -240,3 +241,66 @@ class RunLogScope:
     def __exit__(self, type, value, traceback):
         self.unpatch_log_scalar()
         self.unpatch_add_artifact()
+
+
+def sacred_archive_jsonifiable_as_file(run: Run, jsonifiable: Any, name: str):
+    """Archive a jsonifiable object as a file
+
+    :param run: current sacred run
+    :param jsonifiable: jsonifiable object
+    :param name: name of the archived file
+    """
+    # shhh, it's too unlikely to fail to design something more complex
+    tmp_name = str(uuid.uuid4())
+    with open(tmp_name, "w") as f:
+        json.dump(jsonifiable, f)
+
+    run.add_artifact(tmp_name, name)
+
+    os.remove(tmp_name)
+
+
+def sacred_archive_dir(
+    run: Run, dir: str, dir_archive_name: Optional[str] = None, and_delete: bool = False
+):
+    """Archive a directory as a tar.gz archive
+
+    :param run: current sacred run
+    :param dir: directory to save
+    :param dir_archive_name: name of the archive (format :
+        ``f"{dir_archive_name}.tar.gz"``).  If ``None``, default to
+        ``dir``.
+    :param and_delete: if ``True``, ``dir`` will be deleted after
+        archival.
+    """
+    if dir_archive_name is None:
+        dir_archive_name = dir
+
+    # archiving with shutil.make_archive somehow (somehow !) crashes
+    # the sacred FileObserver. Maybe they monkeypatched something ?
+    # anyway, here is an os.system hack. Interestingly, calling the
+    # command directly is _way_ easier to figure out than using
+    # shutil.make_archive. WTF python docs ?
+    # /rant off
+    os.system(f"tar -czvf {dir_archive_name}.tar.gz {dir}")
+    run.add_artifact(f"{dir_archive_name}.tar.gz")
+
+    # cleaning
+    os.remove(f"./{dir_archive_name}.tar.gz")
+    if and_delete:
+        shutil.rmtree(dir)
+
+
+def sacred_archive_huggingface_model(run: Run, model: PreTrainedModel, model_name: str):
+    """Naive implementation of a huggingface model artifact saver
+
+    :param run: current sacred run
+    :param model: hugginface model to save
+    :param model_name: name of the saved model
+    """
+    # surely no one will have a generated UUID as a filename... right ?
+    tmp_model_name = str(uuid.uuid4())
+    model.save_pretrained(f"./{tmp_model_name}")
+    sacred_archive_dir(
+        run, tmp_model_name, dir_archive_name=model_name, and_delete=True
+    )
