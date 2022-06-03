@@ -247,14 +247,14 @@ def sacred_archive_jsonifiable_as_file(run: Run, jsonifiable: Any, name: str):
 
     :param run: current sacred run
     :param jsonifiable: jsonifiable object
-    :param name: name of the archived file
+    :param name: name of the archived file, without the extension
     """
     # shhh, it's too unlikely to fail to design something more complex
     tmp_name = str(uuid.uuid4())
     with open(tmp_name, "w") as f:
         json.dump(jsonifiable, f)
 
-    run.add_artifact(tmp_name, name)
+    run.add_artifact(tmp_name, f"{name}.json")
 
     os.remove(tmp_name)
 
