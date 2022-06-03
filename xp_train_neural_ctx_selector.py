@@ -1,4 +1,5 @@
 from typing import Optional
+from logging import Logger
 from sacred.commands import print_config
 from transformers import BertForTokenClassification  # type: ignore
 from sacred import Experiment
@@ -38,6 +39,7 @@ def config():
 @ex.automain
 def main(
     _run: Run,
+    _log: Logger,
     ner_model_path: str,
     ner_train_dataset_name: str,
     epochs_nb: int,
@@ -47,7 +49,12 @@ def main(
     max_examples_nb: Optional[int],
 ):
     print_config(_run)
+
     assert ner_train_dataset_name in dataset_to_constructor.keys()
+    if ner_train_dataset_name == "dekker":
+        _log.warning(
+            "you are trying to use the 'dekker' NER dataset to train a context selector. This has not been tested and may fail due to its usage of only PER tags."
+        )
 
     ner_train_dataset: NERDataset = dataset_to_constructor[ner_train_dataset_name]()
     ner_model = BertForTokenClassification.from_pretrained(
