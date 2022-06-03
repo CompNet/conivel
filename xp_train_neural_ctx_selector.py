@@ -47,7 +47,6 @@ def main(
     max_examples_nb: Optional[int],
 ):
     print_config(_run)
-    _run.log_scalar("test", 0)
     assert ner_train_dataset_name in dataset_to_constructor.keys()
 
     ner_train_dataset: NERDataset = dataset_to_constructor[ner_train_dataset_name]()
@@ -65,6 +64,7 @@ def main(
         batch_size,
         samples_per_sent,
         max_examples_nb=max_examples_nb,
+        _run=_run,
     )
     sacred_archive_jsonifiable_as_file(
         _run, ctx_dataset.to_jsonifiable(), "ctx_dataset"
