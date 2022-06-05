@@ -186,9 +186,7 @@ class NeuralContextSelector(ContextSelector):
         """
         :param batch_size: batch size used at inference
         """
-        self.ctx_classifier = BertForSequenceClassification.from_pretrained(
-            pretrained_model_name
-        )  # type: ignore
+        self.ctx_classifier: BertForSequenceClassification = BertForSequenceClassification.from_pretrained(pretrained_model_name) # type: ignore  
 
         self.heuristic_retrieval_sents_nb = heuristic_retrieval_sents_nb
         self.same_word_selector = SameWordSelector(heuristic_retrieval_sents_nb)
@@ -206,6 +204,10 @@ class NeuralContextSelector(ContextSelector):
         left_ctx, right_ctx = self.heuristic_retrieve_ctx(sent_idx, document)
         ctx_sents = left_ctx + right_ctx
 
+        # no context retrieved by heuristic : nothing to do
+        if len(ctx_sents) == 0:
+            return ([], [])
+
         # prepare datas for inference
         dataset = ContextSelectionDataset(
             [
@@ -219,7 +221,7 @@ class NeuralContextSelector(ContextSelector):
         )
 
         # inference using self.ctx_classifier
-        self.ctx_classifier = self.ctx_classifier.test()
+        self.ctx_classifier = self.ctx_classifier.eval()
         scores = torch.zeros((0,))
         with torch.no_grad():
             for X in dataloader:
@@ -229,7 +231,7 @@ class NeuralContextSelector(ContextSelector):
                     token_type_ids=X["token_type_ids"],
                     attention_mask=X["attention_mask"],
                 )
-                scores = torch.cat([scores, out.logits[:, 1].squeeze()], dim=0)
+                scores = torch.cat([scores, out.logits[:, 1]], dim=0)
 
         # now scores should be of shape
         # (self.heuristic_retrieval_sents_nb). We keep the context
