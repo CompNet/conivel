@@ -49,9 +49,22 @@ def train_ner_model(
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
     data_collator = DataCollatorForTokenClassificationWithBatchEncoding(tokenizer)
-    sorted_sents_idx = sorted(
-        range(len(train_dataset)), key=lambda i: -len(train_dataset[i]["input_ids"])
-    )
+
+    # TODO: perf
+    # 
+    # The idea here is to sort sentences to group sentence with the
+    # same size in order to avoid padding. However, train_dataset[i]
+    # calls to context selectors. For some selectors, such as a neural
+    # context selector, this can be expensive ! Therefore, the
+    # following commented expression is replaced by one that is less
+    # costly, but less effective at avoiding padding.
+    #
+    # sorted_sents_idx = sorted(
+    #     range(len(train_dataset)), key=lambda i: -len(train_dataset[i]["input_ids"])
+    # )
+    sents = train_dataset.sents()
+    sorted_sents_idx = sorted(range(len(train_dataset)), key=lambda i: len(sents[i]))
+
     dataloader = DataLoader(
         Subset(train_dataset, indices=sorted_sents_idx),
         batch_size=batch_size,
