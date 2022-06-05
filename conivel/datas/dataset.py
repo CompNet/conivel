@@ -132,7 +132,7 @@ class NERDataset(Dataset):
         sent = sents[index]
 
         # retrieve context using context selectors
-        if len(self.context_selectors) > 1:
+        if len(self.context_selectors) > 0:
             document = self.document_for_sent(index)
             lcontexts = []
             rcontexts = []
