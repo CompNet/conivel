@@ -39,16 +39,17 @@ def flattened(lst: List[List[T]]) -> List[T]:
     return out_lst
 
 
-def get_tokenizer():
+def get_tokenizer(retries_nb: int = 10):
     """resiliently try to get a tokenizer from the transformers library"""
     from transformers import BertTokenizerFast
 
     tokenizer = None
-    for i in range(10):
+    for i in range(retries_nb):
         try:
             tokenizer = BertTokenizerFast.from_pretrained("bert-base-cased")
-        except ValueError:
-            print(f"could not load tokenizer (try {i}). ")
+        except Exception as e:
+            print(f"could not load tokenizer (try {i}).")
+            print(e)
             time.sleep(10)
             continue
         break
