@@ -182,16 +182,24 @@ class NeuralContextSelector(ContextSelector):
         pretrained_model_name: str,
         heuristic_retrieval_sents_nb: int,
         batch_size: int,
+        sents_nb: int,
     ) -> None:
         """
+        :param pretrained_model_name: pretrained model name, used to
+            load a :class:`transformers.BertForSequenceClassification`
+        :param heuristic_retrieval_sents_nb: number of sents to
+            retrieve using the heuristic before neural selection.
         :param batch_size: batch size used at inference
+        :param sents_nb: max number of sents to retrieve
         """
-        self.ctx_classifier: BertForSequenceClassification = BertForSequenceClassification.from_pretrained(pretrained_model_name) # type: ignore  
+        self.ctx_classifier: BertForSequenceClassification = BertForSequenceClassification.from_pretrained(pretrained_model_name)  # type: ignore
 
         self.heuristic_retrieval_sents_nb = heuristic_retrieval_sents_nb
         self.same_word_selector = SameWordSelector(heuristic_retrieval_sents_nb)
 
         self.batch_size = batch_size
+
+        self.sents_nb = sents_nb
 
     def __call__(
         self, sent_idx: int, document: List[NERSentence]
@@ -234,15 +242,17 @@ class NeuralContextSelector(ContextSelector):
                 scores = torch.cat([scores, out.logits[:, 1]], dim=0)
 
         # now scores should be of shape
-        # (self.heuristic_retrieval_sents_nb). We keep the context
-        # sentence with the max score.
-        best_ctx_idx: int = torch.argmax(scores, dim=0).item()  # type: ignore
+        # (self.heuristic_retrieval_sents_nb). We keep the top
+        # `self.sents_nb` sentences.
+        best_ctx_idxs = torch.topk(
+            scores, min(self.sents_nb, scores.shape[0]), dim=0
+        ).indices
+        left_ctx_idxs_mask = best_ctx_idxs < len(left_ctx)
 
-        # best_ctx_idx is from left context
-        if best_ctx_idx < len(left_ctx):
-            return ([ctx_sents[best_ctx_idx]], [])
-        # best_ctx_idx is from right context
-        return ([], [ctx_sents[best_ctx_idx]])
+        return (
+            [ctx_sents[ctx_idx] for ctx_idx in best_ctx_idxs[left_ctx_idxs_mask]],
+            [ctx_sents[ctx_idx] for ctx_idx in best_ctx_idxs[~left_ctx_idxs_mask]],
+        )
 
     def heuristic_retrieve_ctx(
         self, sent_idx: int, document: List[NERSentence]
