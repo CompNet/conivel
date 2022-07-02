@@ -137,7 +137,9 @@ class NERDataset(Dataset):
             lcontexts = []
             rcontexts = []
             for selector in self.context_selectors:
-                lcontext, rcontext = selector(self.sent_document_index(index), document)
+                lcontext, rcontext = selector(
+                    self.sent_document_index(index), tuple(document)
+                )
                 lcontexts += lcontext
                 rcontexts += rcontext
         else:

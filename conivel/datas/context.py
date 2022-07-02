@@ -15,7 +15,7 @@ class ContextSelector:
         raise NotImplemented
 
     def __call__(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, document: Tuple[NERSentence]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """Select context for a sentence in a document
 
@@ -38,7 +38,7 @@ class RandomContextSelector(ContextSelector):
         self.sents_nb = sents_nb
 
     def __call__(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, document: Tuple[NERSentence]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """ """
         selected_sents_idx = random.sample(
@@ -64,7 +64,7 @@ class SameWordSelector(ContextSelector):
         nltk.download("averaged_perceptron_tagger")
 
     def __call__(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, document: Tuple[NERSentence]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """ """
         sent = document[sent_idx]
@@ -102,16 +102,17 @@ class NeighborsContextSelector(ContextSelector):
         self.right_sents_nb = right_sents_nb
 
     def __call__(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, document: Tuple[NERSentence]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """ """
         return (
-            document[max(0, sent_idx - self.left_sents_nb) : sent_idx],
-            document[sent_idx + 1 : sent_idx + 1 + self.right_sents_nb],
+            list(document[max(0, sent_idx - self.left_sents_nb) : sent_idx]),
+            list(document[sent_idx + 1 : sent_idx + 1 + self.right_sents_nb]),
         )
 
 
 from typing import Literal, cast
+from functools import lru_cache
 from dataclasses import dataclass
 import torch
 from torch.utils.data import Dataset, DataLoader, dataloader
@@ -201,14 +202,16 @@ class NeuralContextSelector(ContextSelector):
 
         self.sents_nb = sents_nb
 
+    @lru_cache(maxsize=None)
     def __call__(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, document: Tuple[NERSentence]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """"""
         sent = document[sent_idx]
 
         # get self.heuristic_retrieval_sents_nb potentially important
         # context sentences
+        # TODO: perf : is list cast necessary ?
         left_ctx, right_ctx = self.heuristic_retrieve_ctx(sent_idx, document)
         ctx_sents = left_ctx + right_ctx
 
@@ -255,7 +258,7 @@ class NeuralContextSelector(ContextSelector):
         )
 
     def heuristic_retrieve_ctx(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, document: Tuple[NERSentence]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """Retrieve potentially useful context sentences to help
         predict sent at index ``sent_idx``.
