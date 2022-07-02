@@ -6,7 +6,6 @@ from transformers import BertTokenizerFast
 from transformers.tokenization_utils_base import BatchEncoding
 
 from conivel.datas import NERSentence, align_tokens_labels_
-from conivel.datas.context import ContextSelector
 from conivel.utils import flattened, get_tokenizer
 
 
@@ -23,7 +22,7 @@ class NERDataset(Dataset):
         self,
         documents: List[List[NERSentence]],
         tags: Optional[Set[str]] = None,
-        context_selectors: List[ContextSelector] = None,
+        context_selectors: Optional[List["ContextSelector"]] = None,
     ) -> None:
         """
         :param documents:
@@ -83,8 +82,22 @@ class NERDataset(Dataset):
                 return document
         raise ValueError
 
+    def sent_document_index(self, sent_index: int) -> int:
+        """Get the index of a sent in its document
+
+        :param sent_index: the global index of the sent in the dataset
+        :return: the index of the given sent in its document
+        """
+        index_in_doc = sent_index
+        for document in self.documents:
+            if index_in_doc < len(document):
+                return index_in_doc
+            index_in_doc -= len(document)
+        raise ValueError
+
     def __getitem__(self, index: int) -> BatchEncoding:
-        """Get a BatchEncoding representing sentence at index, with its context
+        """Get a BatchEncoding representing sentence at index, with
+        its context
 
         .. note::
 
@@ -106,20 +119,32 @@ class NERDataset(Dataset):
             tokenizer, and therefore corresponds to *tokens* and not to
             *wordpieces*.
 
+        .. note::
+
+            if ``len(self.context_selectors) == 0``, sentences left and right
+            contexts are used as context.
+
         :param index:
+
         :return:
         """
         sents = self.sents()
         sent = sents[index]
 
         # retrieve context using context selectors
-        document = self.document_for_sent(index)
-        lcontexts = []
-        rcontexts = []
-        for selector in self.context_selectors:
-            lcontext, rcontext = selector(document.index(sent), document)
-            lcontexts += lcontext
-            rcontexts += rcontext
+        if len(self.context_selectors) > 0:
+            document = self.document_for_sent(index)
+            lcontexts = []
+            rcontexts = []
+            for selector in self.context_selectors:
+                lcontext, rcontext = selector(
+                    self.sent_document_index(index), tuple(document)
+                )
+                lcontexts += lcontext
+                rcontexts += rcontext
+        else:
+            lcontexts = sent.left_context
+            rcontexts = sent.right_context
 
         # add a dummy sentence with a separator if needed to inform
         # the model that sentences on the left and right are
