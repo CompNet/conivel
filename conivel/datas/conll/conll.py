@@ -11,9 +11,18 @@ class CoNLLDataset(NERDataset):
     """A class representing a CoNLL-2003 dataset"""
 
     def __init__(
-        self, path: str, keep_only_classes: Optional[Set[str]] = None, **kwargs
+        self,
+        path: str,
+        keep_only_classes: Optional[Set[str]] = None,
+        separator: str = " ",
+        **kwargs,
     ) -> None:
-        """ """
+        """
+        :param path: dataset file path
+        :param keep_only_classes: if not ``None``, keep only NER
+            classes from this set
+        :param separator: separator between tokens and tags
+        """
         # Dataset loading
         with open(path) as f:
             raw_datas = f.read().strip()
@@ -37,10 +46,10 @@ class CoNLLDataset(NERDataset):
                 for line in sent.split("\n"):
 
                     # tokens parsing
-                    self.documents[-1][-1].tokens.append(line.split(" ")[0])
+                    self.documents[-1][-1].tokens.append(line.split(separator)[0])
 
                     # tags parsing
-                    tag = line.split(" ")[1]
+                    tag = line.split(separator)[1]
                     if keep_only_classes:
                         self.documents[-1][-1].tags.append(
                             tag if tag[2:] in keep_only_classes else "O"
