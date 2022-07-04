@@ -15,7 +15,7 @@ class ContextSelector:
         raise NotImplemented
 
     def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence]
+        self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """Select context for a sentence in a document
 
@@ -38,7 +38,7 @@ class RandomContextSelector(ContextSelector):
         self.sents_nb = sents_nb
 
     def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence]
+        self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """ """
         selected_sents_idx = random.sample(
@@ -64,7 +64,7 @@ class SameWordSelector(ContextSelector):
         nltk.download("averaged_perceptron_tagger")
 
     def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence]
+        self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """ """
         sent = document[sent_idx]
@@ -102,7 +102,7 @@ class NeighborsContextSelector(ContextSelector):
         self.right_sents_nb = right_sents_nb
 
     def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence]
+        self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """ """
         return (
@@ -204,7 +204,7 @@ class NeuralContextSelector(ContextSelector):
 
     @lru_cache(maxsize=None)
     def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence]
+        self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """"""
         sent = document[sent_idx]
@@ -258,7 +258,7 @@ class NeuralContextSelector(ContextSelector):
         )
 
     def heuristic_retrieve_ctx(
-        self, sent_idx: int, document: Tuple[NERSentence]
+        self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """Retrieve potentially useful context sentences to help
         predict sent at index ``sent_idx``.
@@ -341,7 +341,7 @@ class NeuralContextSelector(ContextSelector):
             # retrieve n context sentences
             index_in_doc = train_dataset.sent_document_index(sent_i)
             left_ctx_sents, right_ctx_sents = preliminary_ctx_selector(
-                index_in_doc, document
+                index_in_doc, tuple(document)
             )
             sent_and_ctx = [
                 NERSentence(sent.tokens, sent.tags, left_context=[ctx_sent])
