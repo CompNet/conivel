@@ -32,6 +32,17 @@ class NERSentence:
     def __str__(self) -> str:
         return repr(self)
 
+    def __hash__(self) -> int:
+        assert len(self.tokens) == len(self.tags)
+        return hash(
+            tuple(self.tokens)
+            + tuple(self.tags)
+            + ("l",)
+            + tuple(self.left_context)
+            + ("r",)
+            + tuple(self.right_context)
+        )
+
     @staticmethod
     def sents_with_surrounding_context(
         sents: List[NERSentence], context_size: int = 1

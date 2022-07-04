@@ -12,6 +12,7 @@ from conivel.datas.context import (
     NeighborsContextSelector,
     RandomContextSelector,
     SameWordSelector,
+    NeuralContextSelector,
 )
 from conivel.datas.dekker import DekkerDataset
 from conivel.predict import predict
@@ -21,7 +22,7 @@ from conivel.utils import RunLogScope
 
 
 ex = Experiment()
-ex.captured_out_filter = apply_backspaces_and_linefeeds
+ex.captured_out_filter = apply_backspaces_and_linefeeds  # type: ignore
 ex.observers.append(FileStorageObserver("runs"))
 
 
@@ -29,6 +30,7 @@ context_selectors_name_to_class: Dict[str, Type[ContextSelector]] = {
     "neighbors": NeighborsContextSelector,
     "random": RandomContextSelector,
     "sameword": SameWordSelector,
+    "neural": NeuralContextSelector,
 }
 
 
