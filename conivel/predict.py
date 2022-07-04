@@ -19,14 +19,16 @@ class PredictionOutput:
     #: a list of tags per sentence
     tags: List[List[str]] = field(default_factory=lambda: [])
 
-    #: embedding of each tokens (one tensor per sentence). When a token
+    #: embedding of each tokens one tensor per sentence. When a token
     #: is composed of several wordpieces, its embedding is the mean of
     #: the embedding of the composing wordpieces. Each tensor is of
     #: shape ``(sentence_size, hidden_size)``.
     embeddings: List[torch.Tensor] = field(default_factory=lambda: [])
 
-    #: attention
-    attention: List[torch.Tensor] = field(default_factory=lambda: [])
+    #: attention between tokens, one tensor per sentence. Each tensor
+    #: is of shape ``(layers_nb, heads_nb, sentence_size, sentence_size)``
+    #: . When a token is composed of several wordpieces
+    attentions: List[torch.Tensor] = field(default_factory=lambda: [])
 
     #: prediction scores, one tensor per sentence. Each tensor is
     #: of shape ``(sentence_size)``. When a token is composed of
@@ -44,6 +46,8 @@ def predict(
 ) -> PredictionOutput:
     """Predict NER labels for a dataset
 
+    :todo: optim
+
     :param model: the model to use for prediction
     :param dataset: the dataset on which to do predictions
     :param batch_size:
@@ -52,6 +56,9 @@ def predict(
     :return: a ``PredictionOutput`` object.
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    layers_nb = model.config.num_hidden_layers
+    heads_nb = model.config.num_attention_heads
 
     model = model.eval()
     model = model.to(device)
@@ -91,6 +98,10 @@ def predict(
             tags_indexs = torch.argmax(out.logits, dim=2)
             assert tags_indexs.shape == (local_batch_size, seq_size)
 
+            # (layers_nb, heads_nb, batch_size, sentence_size, sentence_size)
+            batch_attentions = torch.stack(out.attentions)
+
+            # for each sentence of a batch
             for i in range(local_batch_size):
 
                 # tokens_labels_mask doesn't take into account special tokens such
@@ -104,24 +115,27 @@ def predict(
                 tags_nb = len([k for k in data["tokens_labels_mask"][i] if k == 1])  # type: ignore
                 predict_out.tags.append(["O"] * tags_nb)
 
-                # if return_embeddings
                 tokens_embeddings = [None] * tags_nb
+                # (tags_nb, tags_nb)
+                attentions = [[None] * tags_nb] * tags_nb
 
                 # for each token
                 for j in range(seq_size):
 
                     t_j = data.token_to_word(i, token_index=j)
 
+                    # special token not corresponding to any word
                     if t_j is None:
                         continue
 
+                    # word excluded by tokens_labels_mask
                     if data["tokens_labels_mask"][i][t_j] == 0:  # type: ignore
                         continue
 
                     word_index = t_j - prefix_tokens_nb
                     tag_index = tags_indexs[i][j].item()
 
-                    predict_out.tags[-1][word_index] = model.config.id2label[tag_index]
+                    predict_out.tags[-1][word_index] = model.config.id2label[tag_index]  # type: ignore
 
                     # embeddings
                     if tokens_embeddings[word_index] is None:
@@ -141,9 +155,21 @@ def predict(
                             dim=0,
                         )
 
-                # add sentence embedding
+                    # attention
+                    for k in range(tags_nb):
+                        if attentions[word_index][k] is None:
+                            for l in range(seq_size):
+                                pass
+                            # (layers_nb, heads_nb, sentence_size)
+                            attentions[word_index][k] = out.attentions[:, :, i, j, :]
+                        else:
+                            pass
+
+                # add sentence embedding to predict_out
                 tokens_embeddings = cast(List[torch.Tensor], tokens_embeddings)  # type: ignore
                 tokens_embeddings = [torch.mean(t, dim=0) for t in tokens_embeddings]
                 predict_out.embeddings.append(torch.stack(tokens_embeddings, dim=0))
+
+                # TODO: attention
 
     return predict_out

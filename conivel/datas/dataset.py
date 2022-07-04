@@ -115,9 +115,9 @@ class NERDataset(Dataset):
 
             ``[0, 0, 0, ...] + [1, 1, 1, ...] + [0, 0, 0, ...]``
 
-            This mask is produced *before* tokenization by a huggingface
-            tokenizer, and therefore corresponds to *tokens* and not to
-            *wordpieces*.
+            This mask is produced *after* tokenization by a huggingface
+            tokenizer, and therefore corresponds to *wordpieces* and not to
+            *original tokens*.
 
         .. note::
 
@@ -168,29 +168,40 @@ class NERDataset(Dataset):
         )
         self.tokenizer.truncation_side = truncation_side
         batch = self.tokenizer(
-            flattened_left_context + sent.tokens + flattened_right_context,
+            ["[CLS]"]
+            + flattened_left_context
+            + sent.tokens
+            + flattened_right_context
+            + ["[SEP]"],
             is_split_into_words=True,
             truncation=True,
             max_length=512,
+            add_special_tokens=False,  # no hidden magic please
         )  # type: ignore
 
         # create tokens_labels_mask
-        batch["tokens_labels_mask"] = [0] * len(
-            flattened([s.tags for s in sent.left_context])
+        # [CLS]
+        words_labels_mask = (
+            # [CLS]
+            [0]
+            # left context
+            + [0] * len(flattened([s.tags for s in sent.left_context]))
+            # sentence
+            + [1] * len(sent.tags)
+            # right context
+            + [0] * len(flattened([s.tags for s in sent.right_context]))
+            # [SEP]
+            + [0]
         )
-        batch["tokens_labels_mask"] += [1] * len(sent.tags)
-        batch["tokens_labels_mask"] += [0] * len(
-            flattened([s.tags for s in sent.right_context])
+
+        labels = (
+            flattened([s.tags for s in sent.left_context])
+            + sent.tags
+            + flattened([s.tags for s in sent.right_context])
         )
 
         # align tokens labels with wordpiece
-        batch = align_tokens_labels_(
-            batch,
-            flattened([s.tags for s in sent.left_context])
-            + sent.tags
-            + flattened([s.tags for s in sent.right_context]),
-            self.tag_to_id,
-        )
+        batch = align_tokens_labels_(batch, labels, self.tag_to_id, words_labels_mask)
 
         return batch
 

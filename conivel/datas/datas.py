@@ -96,31 +96,49 @@ def batch_to_device(batch: BatchEncoding, device: torch.device) -> BatchEncoding
 
 
 def align_tokens_labels_(
-    batch_encoding: BatchEncoding, labels: List[str], all_labels: Dict[str, int]
+    batch_encoding: BatchEncoding,
+    labels: List[str],
+    all_labels: Dict[str, int],
+    words_labels_mask: List[int],
 ) -> BatchEncoding:
-    """Modify a huggingface single batch encoding by adding tokens labels, taking wordpiece into account
+    """Modify a huggingface single batch encoding by adding tokens
+    labels, taking wordpiece into account
 
     .. note::
 
         Adapted from https://huggingface.co/docs/transformers/custom_datasets#tok_ner
 
-    :param batch_encoding: a ``'labels'`` key will be added. It must be a single batch.
-    :param labels: list of per-token labels. ``None`` labels will be given -100 label,
-        in order to be ignored by torch loss functions.
+    :param batch_encoding: ``'labels'`` and ``tokens_labels_mask``
+        keys will be added to the batch encoding.  It must be a single
+        batch.
+    :param labels: list of per-word labels.  ``None`` labels will be
+        given -100 label, in order to be ignored by torch loss
+        functions.
     :param all_labels: mapping of a label to its index
+    :param word_labels_mask: per-word labels mask, used to ignore
+        context at inference time.
+
     :return: the modified batch encoding
     """
     labels_ids: List[int] = []
+    tokens_labels_mask: List[int] = []
+
     word_ids = batch_encoding.word_ids(batch_index=0)
     for word_idx in word_ids:
         if word_idx is None:
             labels_ids.append(-100)
+            tokens_labels_mask.append(0)
             continue
         if labels[word_idx] is None:
             labels_ids.append(-100)
+            tokens_labels_mask.append(0)
             continue
         labels_ids.append(all_labels[labels[word_idx]])
+        tokens_labels_mask.append(words_labels_mask[word_idx])
+
     batch_encoding["labels"] = labels_ids
+    batch_encoding["tokens_labels_mask"] = tokens_labels_mask
+
     return batch_encoding
 
 
