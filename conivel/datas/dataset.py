@@ -195,9 +195,13 @@ class NERDataset(Dataset):
         )
 
         labels = (
-            flattened([s.tags for s in sent.left_context])
+            # [CLS]
+            ["O"]
+            + flattened([s.tags for s in sent.left_context])
             + sent.tags
             + flattened([s.tags for s in sent.right_context])
+            # [SEP]
+            + ["O"]
         )
 
         # align tokens labels with wordpiece
