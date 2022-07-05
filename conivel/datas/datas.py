@@ -207,18 +207,26 @@ class DataCollatorForTokenClassificationWithBatchEncoding:
                 list(label) + [self.label_pad_token_id] * (sequence_length - len(label))
                 for label in labels
             ]
+            batch["tokens_labels_mask"] = [
+                mask + [0] * (sequence_length - len(mask))
+                for mask in batch["tokens_labels_mask"]
+            ]
         else:
             batch[label_name] = [
                 [self.label_pad_token_id] * (sequence_length - len(label)) + list(label)
                 for label in labels
+            ]
+            batch["tokens_labels_mask"] = [
+                [0] * (sequence_length - len(mask)) + mask
+                for mask in batch["tokens_labels_mask"]
             ]
 
         # ignore "tokens_labels_mask"
         return BatchEncoding(
             {
                 k: torch.tensor(v, dtype=torch.int64)
-                if not k in {"tokens_labels_mask"}
-                else v
+                if not k == "tokens_labels_mask"
+                else torch.tensor(v, dtype=torch.bool)
                 for k, v in batch.items()
             },
             encoding=batch.encodings,
