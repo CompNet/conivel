@@ -5,8 +5,7 @@ from dataclasses import dataclass, field
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import BertForTokenClassification
-from transformers import tokenization_utils_base
+from transformers import BertForTokenClassification  # type: ignore
 from transformers.tokenization_utils_base import BatchEncoding
 
 from conivel.datas import (
@@ -69,13 +68,21 @@ def _get_batch_tags(
     for i in range(batch_size):
 
         token_to_word = [batch.token_to_word(i, token_index=j) for j in range(seq_size)]
-        tags_nb = len([k for k in token_to_word if not k is None])
+        tags_nb = len(
+            {
+                k
+                for k in token_to_word
+                if not k is None and batch["tokens_labels_mask"][i][k].item()  # type: ignore
+            }
+        )
 
-        batch_tags.append(["O"] * tags_nb)
+        sent_tags = ["O"] * tags_nb
+        ignored_words_count: int = 0
 
         for j in range(seq_size):
 
             if not batch["tokens_labels_mask"][i][j].item():  # type: ignore
+                ignored_words_count += 1
                 continue
 
             word_index = token_to_word[j]
@@ -83,7 +90,11 @@ def _get_batch_tags(
                 continue
 
             tag_index = int(tags_indexs[i][j].item())
-            batch_tags[-1][word_index] = id2label[tag_index]
+            sent_index = word_index - ignored_words_count
+
+            sent_tags[sent_index] = id2label[tag_index]
+
+        batch_tags.append(sent_tags)
 
     return batch_tags
 

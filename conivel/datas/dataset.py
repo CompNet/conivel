@@ -1,8 +1,8 @@
-from typing import Set, List, Optional, Dict
+from typing import Set, List, Optional, Dict, cast
 from collections import defaultdict
 
 from torch.utils.data import Dataset
-from transformers import BertTokenizerFast
+from transformers import BertTokenizerFast  # type: ignore
 from transformers.tokenization_utils_base import BatchEncoding
 
 from conivel.datas import NERSentence, align_tokens_labels_
@@ -23,6 +23,7 @@ class NERDataset(Dataset):
         documents: List[List[NERSentence]],
         tags: Optional[Set[str]] = None,
         context_selectors: Optional[List["ContextSelector"]] = None,
+        tokenizer: Optional[BertTokenizerFast] = None,
     ) -> None:
         """
         :param documents:
@@ -37,14 +38,18 @@ class NERDataset(Dataset):
             }
         else:
             self.tags = tags
+        self.tags.add("O")
         self.tags_nb = len(self.tags)
         self.tag_to_id: Dict[str, int] = {
             tag: i for i, tag in enumerate(sorted(list(self.tags)))
         }
+        self.id_to_tag = {v: k for k, v in self.tag_to_id.items()}
 
         self.context_selectors = [] if context_selectors is None else context_selectors
 
-        self.tokenizer: BertTokenizerFast = get_tokenizer()
+        if tokenizer is None:
+            tokenizer = get_tokenizer()
+        self.tokenizer = cast(BertTokenizerFast, tokenizer)
 
     def tag_frequencies(self) -> Dict[str, float]:
         """

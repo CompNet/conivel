@@ -3,6 +3,7 @@ import unittest, copy
 from transformers import BertTokenizerFast  # type: ignore
 from hypothesis import assume, given
 from conivel.datas import NERSentence, align_tokens_labels_
+from conivel.utils import get_tokenizer
 from strategies import ner_sentence
 
 
@@ -26,7 +27,7 @@ class TestAlignTokensLabels(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.tokenizer = BertTokenizerFast.from_pretrained("bert-base-cased")
+        cls.tokenizer = get_tokenizer()
 
     def test_align_tokens_labels_when_no_tokens_are_decomposed_into_wordpieces(self):
         sent = ["[CLS]", "context", "[SEP]", "hello", "[SEP]", "context", "[SEP]"]
