@@ -119,30 +119,41 @@ def _get_batch_embeddings(
     """
     batch_size, seq_size = batch["input_ids"].shape  # type: ignore
 
-    batch_embeddings = []
+    batch_embeddings: List[torch.Tensor] = []
 
     for i in range(batch_size):
 
         token_to_word = [batch.token_to_word(i, token_index=j) for j in range(seq_size)]
-        words_nb = len([k for k in token_to_word if not k is None])
+        words_nb = len(
+            [
+                k
+                for k in token_to_word
+                if not k is None and batch["tokens_labels_mask"][i][k].item()  # type: ignore
+            ]
+        )
 
         sent_embeddings = [[] for _ in range(words_nb)]
+        ignored_words_count = 0
 
         for j in range(seq_size):
 
             if not batch["tokens_labels_mask"][i][j].item():  # type: ignore
+                ignored_words_count += 1
                 continue
 
             word_index = token_to_word[j]
             if word_index is None:
                 continue
 
-            sent_embeddings[word_index].append(embeddings[i][j])
+            sent_index = word_index - ignored_words_count
+            sent_embeddings[sent_index].append(embeddings[i][j])
 
         # reduce word embeddings to be the mean of the embeddings of
         # the subtokens composing them
         sent_embeddings = [torch.stack(embs, dim=0) for embs in sent_embeddings]
         sent_embeddings = [torch.mean(embs, dim=0) for embs in sent_embeddings]
+        # (words_nb, hidden_size)
+        sent_embeddings = torch.stack(sent_embeddings)
         batch_embeddings.append(sent_embeddings)
 
     return batch_embeddings
@@ -165,7 +176,7 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
     batch_size, seq_size = batch["input_ids"].shape  # type: ignore
 
     scores = torch.softmax(logits, dim=2)
-    scores = cast(torch.Tensor, torch.max(scores, dim=2))
+    scores, _ = torch.max(scores, dim=2)
     assert scores.shape == (batch_size, seq_size)
 
     batch_scores = []
@@ -173,20 +184,29 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
     for i in range(batch_size):
 
         token_to_word = [batch.token_to_word(i, token_index=j) for j in range(seq_size)]
-        words_nb = len([k for k in token_to_word if not k is None])
+        words_nb = len(
+            [
+                k
+                for k in token_to_word
+                if not k is None and batch["tokens_labels_mask"][i][k].item()  # type: ignore
+            ]
+        )
 
         sent_scores = [[] for _ in range(words_nb)]
+        ignored_words_count = 0
 
         for j in range(seq_size):
 
             if not batch["tokens_labels_mask"][i][j].item():  # type: ignore
+                ignored_words_count += 1
                 continue
 
             word_index = token_to_word[j]
             if word_index is None:
                 continue
 
-            sent_scores[word_index].append(scores[i][word_index].item())
+            sent_index = word_index - ignored_words_count
+            sent_scores[sent_index].append(scores[i][j].item())
 
         # reduce word scores to be the mean of the scores of the
         # subtokens composing them
@@ -218,7 +238,7 @@ def _get_batch_attentions(
     """
     batch_size, seq_size = batch["input_ids"].shape  # type: ignore
 
-    batch_attentions = []
+    batch_attentions: List[torch.Tensor] = []
 
     for i in range(batch_size):
 
