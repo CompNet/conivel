@@ -51,7 +51,7 @@ def train_ner_model(
     data_collator = DataCollatorForTokenClassificationWithBatchEncoding(tokenizer)
 
     # TODO: perf
-    # 
+    #
     # The idea here is to sort sentences to group sentence with the
     # same size in order to avoid padding. However, train_dataset[i]
     # calls to context selectors. For some selectors, such as a neural
@@ -112,8 +112,7 @@ def train_ner_model(
         # compute, record and print validation metrics
         predicted_tags = predict(
             model, valid_dataset, batch_size=batch_size, quiet=quiet
-        )
-        predicted_tags = cast(List[List[str]], predicted_tags)
+        ).tags
         precision, recall, f1 = score_ner(
             valid_dataset.sents(), predicted_tags, ignored_classes=ignored_valid_classes
         )

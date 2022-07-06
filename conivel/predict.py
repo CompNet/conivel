@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, Optional, Union, Tuple, cast
+from typing import Dict, List, Literal, Optional, Set, Union, Tuple, cast
 from statistics import mean
 from dataclasses import dataclass, field
 
@@ -27,18 +27,18 @@ class PredictionOutput:
     #: the embedding of the composing wordpieces. Each tensor is of
     #: shape ``(sentence_size, hidden_size)``. Only last layer
     #: embeddings are considered
-    embeddings: List[torch.Tensor] = field(default_factory=lambda: [])
+    embeddings: Optional[List[torch.Tensor]] = None
 
     #: attention between tokens, one tensor per sentence. Each tensor
     #: is of shape ``(layers_nb, heads_nb, sentence_size, sentence_size)``
     #: . When a token is composed of several wordpieces
-    attentions: List[torch.Tensor] = field(default_factory=lambda: [])
+    attentions: Optional[List[torch.Tensor]] = None
 
     #: prediction scores, one tensor per sentence. Each tensor is
     #: of shape ``(sentence_size)``. When a token is composed of
     #: several wordpieces, its prediction score is the mean of the
     #: prediction scores.
-    scores: List[torch.Tensor] = field(default_factory=lambda: [])
+    scores: Optional[List[torch.Tensor]] = None
 
 
 def _get_batch_tags(
@@ -291,15 +291,46 @@ def predict(
     batch_size: int = 4,
     quiet: bool = False,
     device_str: Literal["cuda", "cpu", "auto"] = "auto",
+    additional_returns: Optional[
+        Set[Literal["embeddings", "scores", "attentions"]]
+    ] = None,
 ) -> PredictionOutput:
+    """perform prediction for a dataset
+
+    :param model: a trained NER model
+    :param dataset: a ``NERDataset``
+    :param batch_size: batch size to use for prediction
+    :param quiet: if ``True``, tqdm wont display a progress bar
+    :param device_str: torch device to use for prediction
+
+    :param additional_returns: a set of possible additional returns,
+        between :
+
+            - ``'embeddings'`` : a list of tensors of shape
+              ``(sentence_size, hidden_size)``, one per sentence.
+
+            - ``'scores'`` : a list of prediction score tensors of
+              shape ``(sentence_size)``, one per sentence.
+
+            - ``'attentions'`` : a list of attentions tensors of shape
+              ``(layers_nb, heads_nb, sentence+context_size,
+              sentence+context_size)``
+    """
     if device_str == "auto":
         device_str = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device_str)
 
+    if additional_returns is None:
+        additional_returns = set()
+
     model = model.eval()
     model = model.to(device)
 
-    prediction = PredictionOutput()
+    prediction = PredictionOutput(
+        embeddings=[] if "embeddgins" in additional_returns else None,
+        scores=[] if "scores" in additional_returns else None,
+        attentions=[] if "attentions" in additional_returns else None,
+    )
 
     with torch.no_grad():
 
@@ -319,10 +350,18 @@ def predict(
             assert out.logits.shape == (lb, s, len(model.config.id2label))
 
             prediction.tags += _get_batch_tags(batch, out.logits, model.config.id2label)
-            prediction.embeddings += _get_batch_embeddings(batch, out.hidden_states[-1])
-            prediction.scores += _get_batch_scores(batch, out.logits)
-            prediction.attentions += _get_batch_attentions(
-                batch, torch.tensor(out.attentions)
-            )
+
+            if "embeddings" in additional_returns:
+                prediction.embeddings += _get_batch_embeddings(
+                    batch, out.hidden_states[-1]
+                )
+
+            if "scores" in additional_returns:
+                prediction.scores += _get_batch_scores(batch, out.logits)
+
+            if "attentions" in additional_returns:
+                prediction.attentions += _get_batch_attentions(
+                    batch, torch.tensor(out.attentions)
+                )
 
     return prediction

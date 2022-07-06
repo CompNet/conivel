@@ -90,8 +90,7 @@ def main(
                 os.remove("./model.tar.gz")
 
         # CoNLL test
-        test_preds = predict(model, test_dataset)
-        test_preds = cast(List[List[str]], test_preds)
+        test_preds = predict(model, test_dataset).tags
         precision, recall, f1 = score_ner(
             test_dataset.sents(), test_preds, ignored_classes={"MISC", "ORG", "LOC"}
         )
@@ -100,8 +99,7 @@ def main(
         _run.log_scalar("test_f1", f1)
 
         # Dekker test
-        dekker_preds = predict(model, dekker_dataset)
-        dekker_preds = cast(List[List[str]], dekker_preds)
+        dekker_preds = predict(model, dekker_dataset).tags
         precision, recall, f1 = score_ner(
             dekker_dataset.sents(),
             dekker_preds,

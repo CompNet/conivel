@@ -10,7 +10,6 @@ from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.conll import CoNLLDataset
 from conivel.datas.context import NeuralContextSelector
-from conivel.predict import predict
 from conivel.utils import (
     sacred_archive_huggingface_model,
     sacred_archive_jsonifiable_as_file,
