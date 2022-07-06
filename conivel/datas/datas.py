@@ -20,6 +20,12 @@ class NERSentence:
         assert len(self.tokens) == len(self.tags)
         return len(self.tokens)
 
+    def len_with_ctx(self) -> int:
+        out_len = len(self)
+        for sent in self.left_context + self.right_context:
+            out_len += len(sent)
+        return out_len
+
     def __repr__(self) -> str:
         rep = f"(tokens={self.tokens}, tags={self.tags}"
         if len(self.left_context) > 0:
