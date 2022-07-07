@@ -1,9 +1,8 @@
-from typing import cast
+from typing import List
 import unittest
 from hypothesis import given, settings
-from hypothesis.strategies import integers
+from hypothesis.strategies import integers, lists
 import torch
-from transformers import BertTokenizerFast, BertForTokenClassification  # type: ignore
 from conivel.predict import (
     _get_batch_tags,
     _get_batch_embeddings,
@@ -26,14 +25,14 @@ class TestBatchParsing(unittest.TestCase):
 
     @settings(deadline=None)  # deactivate deadline because of tokenizer instantiation
     @given(
-        sent=ner_sentence(min_len=1, max_len=25),
-        sents_nb=integers(min_value=1, max_value=32),
-        batch_size=integers(min_value=1, max_value=16),
+        sents=lists(
+            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=2, right_ctx_max_nb=2),
+            min_size=2,
+            max_size=16,
+        ),
+        batch_size=integers(min_value=1, max_value=8),
     )
-    def test_batch_tags_extraction(
-        self, sent: NERSentence, sents_nb: int, batch_size: int
-    ):
-        sents = [sent] * sents_nb
+    def test_batch_tags_extraction(self, sents: List[NERSentence], batch_size: int):
         dataset = NERDataset([sents], tokenizer=TestBatchParsing.tokenizer)
 
         for batch_i, batch in enumerate(
@@ -45,6 +44,9 @@ class TestBatchParsing(unittest.TestCase):
             logits = torch.zeros(l_batch_size, seq_size, dataset.tags_nb)
             for i in range(l_batch_size):
                 for j in range(seq_size):
+                    # ignore padding
+                    if batch["labels"][i][j] == -100:  # type: ignore
+                        continue
                     logits[i][j][batch["labels"][i][j]] = 1  # type: ignore
 
             pred_tags = _get_batch_tags(batch, logits, dataset.id_to_tag)
@@ -55,14 +57,12 @@ class TestBatchParsing(unittest.TestCase):
 
     @settings(deadline=None)
     @given(
-        sent=ner_sentence(min_len=1, max_len=25),
-        sents_nb=integers(min_value=1, max_value=32),
-        batch_size=integers(min_value=1, max_value=16),
+        sents=lists(ner_sentence(min_len=1, max_len=16), min_size=1, max_size=16),
+        batch_size=integers(min_value=1, max_value=8),
     )
     def test_batch_embeddings_extraction(
-        self, sent: NERSentence, sents_nb: int, batch_size: int
+        self, sents: List[NERSentence], batch_size: int
     ):
-        sents = [sent] * sents_nb
         dataset = NERDataset([sents], tokenizer=TestBatchParsing.tokenizer)
         hidden_size = 10
 
@@ -80,14 +80,10 @@ class TestBatchParsing(unittest.TestCase):
 
     @settings(deadline=None)
     @given(
-        sent=ner_sentence(min_len=1, max_len=25),
-        sents_nb=integers(min_value=1, max_value=32),
-        batch_size=integers(min_value=1, max_value=16),
+        sents=lists(ner_sentence(min_len=1, max_len=16), min_size=1, max_size=16),
+        batch_size=integers(min_value=1, max_value=8),
     )
-    def test_batch_scores_extraction(
-        self, sent: NERSentence, sents_nb: int, batch_size: int
-    ):
-        sents = [sent] * sents_nb
+    def test_batch_scores_extraction(self, sents: List[NERSentence], batch_size: int):
         dataset = NERDataset([sents], tokenizer=TestBatchParsing.tokenizer)
 
         for batch_i, batch in enumerate(
@@ -105,14 +101,12 @@ class TestBatchParsing(unittest.TestCase):
 
     @settings(deadline=None)
     @given(
-        sent=ner_sentence(min_len=1, max_len=25),
-        sents_nb=integers(min_value=1, max_value=32),
-        batch_size=integers(min_value=1, max_value=16),
+        sents=lists(ner_sentence(min_len=1, max_len=16), min_size=1, max_size=16),
+        batch_size=integers(min_value=1, max_value=8),
     )
     def test_batch_attentions_extraction(
-        self, sent: NERSentence, sents_nb: int, batch_size: int
+        self, sents: List[NERSentence], batch_size: int
     ):
-        sents = [sent] * sents_nb
         dataset = NERDataset([sents], tokenizer=TestBatchParsing.tokenizer)
         layers_nb = 12
         heads_nb = 8

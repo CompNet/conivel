@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Dict, Literal, Union, Optional
+from typing import List, Dict, Literal, Set, Union, Optional
 from dataclasses import dataclass, field
 
 from itertools import chain
@@ -48,6 +48,12 @@ class NERSentence:
             + ("r",)
             + tuple(self.right_context)
         )
+
+    def tags_set(self) -> Set[str]:
+        tags = set(self.tags)
+        for sent in self.left_context + self.right_context:
+            tags = tags.union(sent.tags_set())
+        return tags
 
     @staticmethod
     def sents_with_surrounding_context(
@@ -168,12 +174,15 @@ def truncate_batch(
 
 
 class DataCollatorForTokenClassificationWithBatchEncoding:
-    """Same as ``transformers.DataCollatorForTokenClassification``, except it :
+    """Same as ``transformers.DataCollatorForTokenClassification``,
+    except it :
 
-    - correctly returns a ``BatchEncoding`` object with correct ``encodings``
-        attribute.
-    - wont try to convert the key ``'tokens_labels_mask'`` that is used to
-        determine
+        - correctly returns a ``BatchEncoding`` object with correct
+          ``encodings`` attribute.
+
+        - wont try to convert the key ``'tokens_labels_mask'`` that is
+          used to tell apart which tokens are to be predicted vs
+          context
 
     Don't know why this is not the default ?
     """
@@ -215,7 +224,7 @@ class DataCollatorForTokenClassificationWithBatchEncoding:
             ]
             batch["tokens_labels_mask"] = [
                 mask + [0] * (sequence_length - len(mask))
-                for mask in batch["tokens_labels_mask"]
+                for mask in batch["tokens_labels_mask"]  # type: ignore
             ]
         else:
             batch[label_name] = [
@@ -224,7 +233,7 @@ class DataCollatorForTokenClassificationWithBatchEncoding:
             ]
             batch["tokens_labels_mask"] = [
                 [0] * (sequence_length - len(mask)) + mask
-                for mask in batch["tokens_labels_mask"]
+                for mask in batch["tokens_labels_mask"]  # type: ignore
             ]
 
         # ignore "tokens_labels_mask"

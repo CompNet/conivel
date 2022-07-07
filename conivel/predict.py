@@ -71,10 +71,12 @@ def _get_batch_tags(
         tags_nb = len(
             {
                 k
-                for k in token_to_word
-                if not k is None and batch["tokens_labels_mask"][i][k].item()  # type: ignore
+                for j, k in enumerate(token_to_word)
+                if not k is None and batch["tokens_labels_mask"][i][j].item()  # type: ignore
             }
         )
+
+        # start_index = min(filter(lambda e: not e is None, token_to_word))
 
         sent_tags = ["O"] * tags_nb
         ignored_words_count: int = 0
@@ -90,9 +92,12 @@ def _get_batch_tags(
                 continue
 
             tag_index = int(tags_indexs[i][j].item())
-            sent_index = word_index - ignored_words_count
+            sent_index = word_index - ignored_words_count  # - start_index
 
-            sent_tags[sent_index] = id2label[tag_index]
+            try:
+                sent_tags[sent_index] = id2label[tag_index]
+            except IndexError:
+                breakpoint()
 
         batch_tags.append(sent_tags)
 
@@ -127,8 +132,8 @@ def _get_batch_embeddings(
         words_nb = len(
             [
                 k
-                for k in token_to_word
-                if not k is None and batch["tokens_labels_mask"][i][k].item()  # type: ignore
+                for j, k in enumerate(token_to_word)
+                if not k is None and batch["tokens_labels_mask"][i][j].item()  # type: ignore
             ]
         )
 
@@ -187,8 +192,8 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
         words_nb = len(
             [
                 k
-                for k in token_to_word
-                if not k is None and batch["tokens_labels_mask"][i][k].item()  # type: ignore
+                for j, k in enumerate(token_to_word)
+                if not k is None and batch["tokens_labels_mask"][i][j].item()  # type: ignore
             ]
         )
 
@@ -243,7 +248,7 @@ def _get_batch_attentions(
     for i in range(batch_size):
 
         token_to_word = [batch.token_to_word(i, token_index=j) for j in range(seq_size)]
-        words_nb = len([k for k in token_to_word])
+        words_nb = len([k for k in token_to_word if not k is None])
 
         sent_attentions = [[[] for _ in range(words_nb)] for _ in range(words_nb)]
 
@@ -327,7 +332,7 @@ def predict(
     model = model.to(device)
 
     prediction = PredictionOutput(
-        embeddings=[] if "embeddgins" in additional_returns else None,
+        embeddings=[] if "embeddings" in additional_returns else None,
         scores=[] if "scores" in additional_returns else None,
         attentions=[] if "attentions" in additional_returns else None,
     )
@@ -354,14 +359,14 @@ def predict(
             if "embeddings" in additional_returns:
                 prediction.embeddings += _get_batch_embeddings(
                     batch, out.hidden_states[-1]
-                )
+                )  # type: ignore
 
             if "scores" in additional_returns:
-                prediction.scores += _get_batch_scores(batch, out.logits)
+                prediction.scores += _get_batch_scores(batch, out.logits)  # type: ignore
 
             if "attentions" in additional_returns:
                 prediction.attentions += _get_batch_attentions(
                     batch, torch.tensor(out.attentions)
-                )
+                )  # type: ignore
 
     return prediction
