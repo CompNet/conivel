@@ -111,7 +111,6 @@ def align_tokens_labels_(
     batch_encoding: BatchEncoding,
     labels: List[str],
     all_labels: Dict[str, int],
-    words_labels_mask: List[int],
 ) -> BatchEncoding:
     """Modify a huggingface single batch encoding by adding tokens
     labels, taking wordpiece into account
@@ -120,36 +119,28 @@ def align_tokens_labels_(
 
         Adapted from https://huggingface.co/docs/transformers/custom_datasets#tok_ner
 
-    :param batch_encoding: ``'labels'`` and ``tokens_labels_mask``
-        keys will be added to the batch encoding.  It must be a single
-        batch.
+    :param batch_encoding: ``'labels'`` key will be added to the batch
+        encoding.  It must be a single batch.
     :param labels: list of per-word labels.  ``None`` labels will be
         given -100 label, in order to be ignored by torch loss
         functions.
     :param all_labels: mapping of a label to its index
-    :param word_labels_mask: per-word labels mask, used to ignore
-        context at inference time.
 
     :return: the modified batch encoding
     """
     labels_ids: List[int] = []
-    tokens_labels_mask: List[int] = []
 
     word_ids = batch_encoding.word_ids(batch_index=0)
     for word_idx in word_ids:
         if word_idx is None:
             labels_ids.append(-100)
-            tokens_labels_mask.append(0)
             continue
         if labels[word_idx] is None:
             labels_ids.append(-100)
-            tokens_labels_mask.append(0)
             continue
         labels_ids.append(all_labels[labels[word_idx]])
-        tokens_labels_mask.append(words_labels_mask[word_idx])
 
     batch_encoding["labels"] = labels_ids
-    batch_encoding["tokens_labels_mask"] = tokens_labels_mask
 
     return batch_encoding
 
@@ -180,7 +171,7 @@ class DataCollatorForTokenClassificationWithBatchEncoding:
         - correctly returns a ``BatchEncoding`` object with correct
           ``encodings`` attribute.
 
-        - wont try to convert the key ``'tokens_labels_mask'`` that is
+        - wont try to convert the key ``'words_labels_mask'`` that is
           used to tell apart which tokens are to be predicted vs
           context
 
@@ -222,26 +213,18 @@ class DataCollatorForTokenClassificationWithBatchEncoding:
                 list(label) + [self.label_pad_token_id] * (sequence_length - len(label))
                 for label in labels
             ]
-            batch["tokens_labels_mask"] = [
-                mask + [0] * (sequence_length - len(mask))
-                for mask in batch["tokens_labels_mask"]  # type: ignore
-            ]
         else:
             batch[label_name] = [
                 [self.label_pad_token_id] * (sequence_length - len(label)) + list(label)
                 for label in labels
             ]
-            batch["tokens_labels_mask"] = [
-                [0] * (sequence_length - len(mask)) + mask
-                for mask in batch["tokens_labels_mask"]  # type: ignore
-            ]
 
-        # ignore "tokens_labels_mask"
+        # ignore "words_labels_mask"
         return BatchEncoding(
             {
                 k: torch.tensor(v, dtype=torch.int64)
-                if not k == "tokens_labels_mask"
-                else torch.tensor(v, dtype=torch.bool)
+                if not k == "words_labels_mask"
+                else v
                 for k, v in batch.items()
             },
             encoding=batch.encodings,

@@ -48,7 +48,7 @@ def _get_batch_tags(
 
     .. note::
 
-        the ``tokens_labels_mask`` key is respected and
+        the ``words_labels_mask`` key is respected and
         context sentences tags are *not* extracted
 
 
@@ -68,36 +68,27 @@ def _get_batch_tags(
     for i in range(batch_size):
 
         token_to_word = [batch.token_to_word(i, token_index=j) for j in range(seq_size)]
-        tags_nb = len(
-            {
-                k
-                for j, k in enumerate(token_to_word)
-                if not k is None and batch["tokens_labels_mask"][i][j].item()  # type: ignore
-            }
-        )
-
-        # start_index = min(filter(lambda e: not e is None, token_to_word))
+        start_index = min(filter(lambda e: not e is None, token_to_word))
+        token_to_word = [t - start_index if not t is None else t for t in token_to_word]
+        tags_nb = sum(batch["words_labels_mask"][i])  # type: ignore
 
         sent_tags = ["O"] * tags_nb
         ignored_words_count: int = 0
 
         for j in range(seq_size):
 
-            if not batch["tokens_labels_mask"][i][j].item():  # type: ignore
-                ignored_words_count += 1
-                continue
-
             word_index = token_to_word[j]
             if word_index is None:
+                continue
+
+            if not batch["words_labels_mask"][i][word_index]:  # type: ignore
+                ignored_words_count += 1
                 continue
 
             tag_index = int(tags_indexs[i][j].item())
             sent_index = word_index - ignored_words_count  # - start_index
 
-            try:
-                sent_tags[sent_index] = id2label[tag_index]
-            except IndexError:
-                breakpoint()
+            sent_tags[sent_index] = id2label[tag_index]
 
         batch_tags.append(sent_tags)
 
@@ -111,7 +102,7 @@ def _get_batch_embeddings(
 
     .. note::
 
-        the ``tokens_labels_mask`` key is respected
+        the ``words_labels_mask`` key is respected
         and context sentences are *not* extracted
 
     :param batch:
@@ -129,25 +120,21 @@ def _get_batch_embeddings(
     for i in range(batch_size):
 
         token_to_word = [batch.token_to_word(i, token_index=j) for j in range(seq_size)]
-        words_nb = len(
-            [
-                k
-                for j, k in enumerate(token_to_word)
-                if not k is None and batch["tokens_labels_mask"][i][j].item()  # type: ignore
-            ]
-        )
+        start_index = min(filter(lambda e: not e is None, token_to_word))
+        token_to_word = [t - start_index if not t is None else t for t in token_to_word]
+        words_nb = sum(batch["words_labels_mask"][i])  # type: ignore
 
         sent_embeddings = [[] for _ in range(words_nb)]
         ignored_words_count = 0
 
         for j in range(seq_size):
 
-            if not batch["tokens_labels_mask"][i][j].item():  # type: ignore
-                ignored_words_count += 1
-                continue
-
             word_index = token_to_word[j]
             if word_index is None:
+                continue
+
+            if not batch["words_labels_mask"][i][j]:  # type: ignore
+                ignored_words_count += 1
                 continue
 
             sent_index = word_index - ignored_words_count
@@ -169,7 +156,7 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
 
     .. note::
 
-        the ``tokens_labels_mask`` key is respected
+        the ``words_labels_mask`` key is respected
         and context sentences are *not* extracted
 
     :param batch:
@@ -189,25 +176,21 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
     for i in range(batch_size):
 
         token_to_word = [batch.token_to_word(i, token_index=j) for j in range(seq_size)]
-        words_nb = len(
-            [
-                k
-                for j, k in enumerate(token_to_word)
-                if not k is None and batch["tokens_labels_mask"][i][j].item()  # type: ignore
-            ]
-        )
+        start_index = min(filter(lambda e: not e is None, token_to_word))
+        token_to_word = [t - start_index if not t is None else t for t in token_to_word]
+        words_nb = sum(batch["words_labels_mask"][i])  # type: ignore
 
         sent_scores = [[] for _ in range(words_nb)]
         ignored_words_count = 0
 
         for j in range(seq_size):
 
-            if not batch["tokens_labels_mask"][i][j].item():  # type: ignore
-                ignored_words_count += 1
-                continue
-
             word_index = token_to_word[j]
             if word_index is None:
+                continue
+
+            if not batch["words_labels_mask"][i][j]:  # type: ignore
+                ignored_words_count += 1
                 continue
 
             sent_index = word_index - ignored_words_count
@@ -228,7 +211,7 @@ def _get_batch_attentions(
 
     .. note::
 
-        the ``tokens_labels_mask`` key is *not* respected,
+        the ``words_labels_mask`` key is *not* respected,
         and attentions from context sentences is therefore
         extracted. This is so attention with context
         sentences can be examinated.

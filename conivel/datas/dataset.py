@@ -101,38 +101,6 @@ class NERDataset(Dataset):
             index_in_doc -= len(document)
         raise ValueError
 
-    def _tokenize_and_get_overflow_infos(
-        self, sent: List[str], **kwargs
-    ) -> BatchEncoding:
-        """Tokenize input sentence and fix the returned
-        ``BatchEncoding`` so that it contains overflowing tokens info.
-
-        .. note::
-
-            This function tries to fix an issue in `transformers==4.15.0`.
-            In that version, using ``return_overflowing_tokens=True``
-            is not exactly super useful... in particular, no key
-            ``'overflowing_tokens`` is present on the returned batch.
-
-        :param sent: sent to tokenize
-
-        :return: a ``BatchEncoding``, with a special key
-                 ``'length_before_truncation'``, corresponding to the
-                 length of the sentence before truncation
-        """
-        batch = self.tokenizer(sent, return_overflowing_tokens=True, **kwargs)
-        batch["length_before_truncation"] = [sum([len(lst) for lst in batch["input_ids"]])]  # type: ignore
-        batch = BatchEncoding(
-            {
-                k: v[0]
-                for k, v in batch.items()
-                if not k == "overflow_to_sample_mapping"
-            },
-            encoding=batch.encodings,
-        )
-
-        return batch
-
     def __getitem__(self, index: int) -> BatchEncoding:
         """Get a BatchEncoding representing sentence at index, with
         its context
@@ -140,7 +108,7 @@ class NERDataset(Dataset):
         .. note::
 
             As an addition to the classic huggingface BatchEncoding keys,
-            a ``"tokens_labels_mask"`` is added to the outputed BatchEncoding.
+            a ``"words_labels_mask"`` is added to the outputed BatchEncoding.
             This masks denotes the difference between a sentence context
             (previous and next context) and the sentence itself. when
             concatenating a sentence and its context sentence, we obtain :
@@ -149,7 +117,7 @@ class NERDataset(Dataset):
 
             with li being a token of the left context, si a token of the
             sentence and ri a token of the right context. The
-            ``"tokens_labels_mask"`` is thus :
+            ``"words_labels_mask"`` is thus :
 
             ``[0, 0, 0, ...] + [1, 1, 1, ...] + [0, 0, 0, ...]``
 
@@ -201,11 +169,11 @@ class NERDataset(Dataset):
         # create a BatchEncoding using huggingface tokenizer
         truncation_side = (
             "right"
-            if len(flattened_left_context) < len(flattened_right_context)
+            if len(flattened_left_context) <= len(flattened_right_context)
             else "left"
         )
         self.tokenizer.truncation_side = truncation_side
-        batch = self._tokenize_and_get_overflow_infos(
+        batch = self.tokenizer(
             ["[CLS]"]
             + flattened_left_context
             + sent.tokens
@@ -217,7 +185,19 @@ class NERDataset(Dataset):
             add_special_tokens=False,  # no hidden magic please
         )  # type: ignore
 
-        # create tokens_labels_mask
+        labels = (
+            # [CLS]
+            ["O"]
+            + flattened([s.tags for s in sent.left_context])
+            + sent.tags
+            + flattened([s.tags for s in sent.right_context])
+            # [SEP]
+            + ["O"]
+        )
+
+        # align tokens labels with wordpiece
+        batch = align_tokens_labels_(batch, labels, self.tag_to_id)
+
         # [CLS]
         words_labels_mask = (
             # [CLS]
@@ -231,19 +211,7 @@ class NERDataset(Dataset):
             # [SEP]
             + [0]
         )
-
-        labels = (
-            # [CLS]
-            ["O"]
-            + flattened([s.tags for s in sent.left_context])
-            + sent.tags
-            + flattened([s.tags for s in sent.right_context])
-            # [SEP]
-            + ["O"]
-        )
-
-        # align tokens labels with wordpiece
-        batch = align_tokens_labels_(batch, labels, self.tag_to_id, words_labels_mask)
+        batch["words_labels_mask"] = words_labels_mask
 
         return batch
 

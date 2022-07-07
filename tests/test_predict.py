@@ -57,7 +57,11 @@ class TestBatchParsing(unittest.TestCase):
 
     @settings(deadline=None)
     @given(
-        sents=lists(ner_sentence(min_len=1, max_len=16), min_size=1, max_size=16),
+        sents=lists(
+            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=2, right_ctx_max_nb=2),
+            min_size=1,
+            max_size=16,
+        ),
         batch_size=integers(min_value=1, max_value=8),
     )
     def test_batch_embeddings_extraction(
@@ -80,7 +84,11 @@ class TestBatchParsing(unittest.TestCase):
 
     @settings(deadline=None)
     @given(
-        sents=lists(ner_sentence(min_len=1, max_len=16), min_size=1, max_size=16),
+        sents=lists(
+            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=2, right_ctx_max_nb=2),
+            min_size=1,
+            max_size=16,
+        ),
         batch_size=integers(min_value=1, max_value=8),
     )
     def test_batch_scores_extraction(self, sents: List[NERSentence], batch_size: int):
@@ -101,7 +109,11 @@ class TestBatchParsing(unittest.TestCase):
 
     @settings(deadline=None)
     @given(
-        sents=lists(ner_sentence(min_len=1, max_len=16), min_size=1, max_size=16),
+        sents=lists(
+            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=2, right_ctx_max_nb=2),
+            min_size=1,
+            max_size=16,
+        ),
         batch_size=integers(min_value=1, max_value=8),
     )
     def test_batch_attentions_extraction(
@@ -124,9 +136,18 @@ class TestBatchParsing(unittest.TestCase):
 
             batch_sents = sents[batch_i * batch_size : batch_size * (batch_i + 1)]
             for att, sent in zip(batch_attentions, batch_sents):
-                # len(sent) + 2 : take into account [CLS] and [SEP]
+                special_tokens_len = 2
+                if len(sent.left_context) > 0:
+                    special_tokens_len += 1
+                if len(sent.right_context) > 0:
+                    special_tokens_len += 1
                 self.assertEqual(
-                    (layers_nb, heads_nb, len(sent) + 2, len(sent) + 2),
+                    (
+                        layers_nb,
+                        heads_nb,
+                        sent.len_with_ctx() + special_tokens_len,
+                        sent.len_with_ctx() + special_tokens_len,
+                    ),
                     att.shape,
                 )
 
