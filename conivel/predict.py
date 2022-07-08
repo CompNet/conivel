@@ -134,7 +134,7 @@ def _get_batch_embeddings(
             if word_index is None:
                 continue
 
-            if not batch["words_labels_mask"][i][j]:  # type: ignore
+            if not batch["words_labels_mask"][i][word_index]:  # type: ignore
                 ignored_words_count += 1
                 continue
 
@@ -187,7 +187,7 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
             if word_index is None:
                 continue
 
-            if not batch["words_labels_mask"][i][j]:  # type: ignore
+            if not batch["words_labels_mask"][i][word_index]:  # type: ignore
                 ignored_words_count += 1
                 continue
 
