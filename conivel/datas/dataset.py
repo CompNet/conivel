@@ -1,8 +1,8 @@
-from typing import Set, List, Optional, Dict
+from typing import Set, List, Optional, Dict, cast
 from collections import defaultdict
 
 from torch.utils.data import Dataset
-from transformers import BertTokenizerFast
+from transformers import BertTokenizerFast  # type: ignore
 from transformers.tokenization_utils_base import BatchEncoding
 
 from conivel.datas import NERSentence, align_tokens_labels_
@@ -23,6 +23,7 @@ class NERDataset(Dataset):
         documents: List[List[NERSentence]],
         tags: Optional[Set[str]] = None,
         context_selectors: Optional[List["ContextSelector"]] = None,
+        tokenizer: Optional[BertTokenizerFast] = None,
     ) -> None:
         """
         :param documents:
@@ -32,19 +33,24 @@ class NERDataset(Dataset):
         self.documents = documents
 
         if tags is None:
-            self.tags = {
-                tag for document in documents for sent in document for tag in sent.tags
-            }
+            self.tags = set()
+            for document in documents:
+                for sent in document:
+                    self.tags = self.tags.union(sent.tags_set())
         else:
             self.tags = tags
+        self.tags.add("O")
         self.tags_nb = len(self.tags)
         self.tag_to_id: Dict[str, int] = {
             tag: i for i, tag in enumerate(sorted(list(self.tags)))
         }
+        self.id_to_tag = {v: k for k, v in self.tag_to_id.items()}
 
         self.context_selectors = [] if context_selectors is None else context_selectors
 
-        self.tokenizer: BertTokenizerFast = get_tokenizer()
+        if tokenizer is None:
+            tokenizer = get_tokenizer()
+        self.tokenizer = cast(BertTokenizerFast, tokenizer)
 
     def tag_frequencies(self) -> Dict[str, float]:
         """
@@ -102,7 +108,7 @@ class NERDataset(Dataset):
         .. note::
 
             As an addition to the classic huggingface BatchEncoding keys,
-            a "tokens_labels_mask" is added to the outputed BatchEncoding.
+            a ``"words_labels_mask"`` is added to the outputed BatchEncoding.
             This masks denotes the difference between a sentence context
             (previous and next context) and the sentence itself. when
             concatenating a sentence and its context sentence, we obtain :
@@ -111,13 +117,13 @@ class NERDataset(Dataset):
 
             with li being a token of the left context, si a token of the
             sentence and ri a token of the right context. The
-            "tokens_labels_mask" is thus :
+            ``"words_labels_mask"`` is thus :
 
             ``[0, 0, 0, ...] + [1, 1, 1, ...] + [0, 0, 0, ...]``
 
-            This mask is produced *before* tokenization by a huggingface
-            tokenizer, and therefore corresponds to *tokens* and not to
-            *wordpieces*.
+            This mask is produced *after* tokenization by a huggingface
+            tokenizer, and therefore corresponds to *wordpieces* and not to
+            *original tokens*.
 
         .. note::
 
@@ -163,34 +169,49 @@ class NERDataset(Dataset):
         # create a BatchEncoding using huggingface tokenizer
         truncation_side = (
             "right"
-            if len(flattened_left_context) < len(flattened_right_context)
+            if len(flattened_left_context) <= len(flattened_right_context)
             else "left"
         )
         self.tokenizer.truncation_side = truncation_side
         batch = self.tokenizer(
-            flattened_left_context + sent.tokens + flattened_right_context,
+            ["[CLS]"]
+            + flattened_left_context
+            + sent.tokens
+            + flattened_right_context
+            + ["[SEP]"],
             is_split_into_words=True,
             truncation=True,
             max_length=512,
+            add_special_tokens=False,  # no hidden magic please
         )  # type: ignore
 
-        # create tokens_labels_mask
-        batch["tokens_labels_mask"] = [0] * len(
-            flattened([s.tags for s in sent.left_context])
-        )
-        batch["tokens_labels_mask"] += [1] * len(sent.tags)
-        batch["tokens_labels_mask"] += [0] * len(
-            flattened([s.tags for s in sent.right_context])
+        labels = (
+            # [CLS]
+            ["O"]
+            + flattened([s.tags for s in sent.left_context])
+            + sent.tags
+            + flattened([s.tags for s in sent.right_context])
+            # [SEP]
+            + ["O"]
         )
 
         # align tokens labels with wordpiece
-        batch = align_tokens_labels_(
-            batch,
-            flattened([s.tags for s in sent.left_context])
-            + sent.tags
-            + flattened([s.tags for s in sent.right_context]),
-            self.tag_to_id,
+        batch = align_tokens_labels_(batch, labels, self.tag_to_id)
+
+        # [CLS]
+        words_labels_mask = (
+            # [CLS]
+            [0]
+            # left context
+            + [0] * len(flattened([s.tags for s in sent.left_context]))
+            # sentence
+            + [1] * len(sent.tags)
+            # right context
+            + [0] * len(flattened([s.tags for s in sent.right_context]))
+            # [SEP]
+            + [0]
         )
+        batch["words_labels_mask"] = words_labels_mask
 
         return batch
 

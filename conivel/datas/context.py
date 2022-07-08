@@ -316,9 +316,7 @@ class NeuralContextSelector(ContextSelector):
                  train a context selector.
         """
 
-        predictions = cast(
-            List[List[str]], predict(ner_model, train_dataset, batch_size=batch_size)
-        )
+        predictions = predict(ner_model, train_dataset, batch_size=batch_size).tags
 
         preliminary_ctx_selector = SameWordSelector(samples_per_sent)
 
@@ -359,8 +357,7 @@ class NeuralContextSelector(ContextSelector):
                 NERDataset([sent_and_ctx], train_dataset.tags),
                 quiet=True,
                 batch_size=batch_size,
-            )
-            preds_with_ctx = cast(List[List[str]], preds_with_ctx)
+            ).tags
             for pred_with_ctx, ctx_sent in zip(
                 preds_with_ctx, left_ctx_sents + right_ctx_sents
             ):
