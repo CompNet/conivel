@@ -26,7 +26,7 @@ class TestBatchParsing(unittest.TestCase):
     @settings(deadline=None)  # deactivate deadline because of tokenizer instantiation
     @given(
         sents=lists(
-            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=2, right_ctx_max_nb=2),
+            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=1, right_ctx_max_nb=1),
             min_size=2,
             max_size=16,
         ),
@@ -58,7 +58,7 @@ class TestBatchParsing(unittest.TestCase):
     @settings(deadline=None)
     @given(
         sents=lists(
-            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=2, right_ctx_max_nb=2),
+            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=1, right_ctx_max_nb=1),
             min_size=1,
             max_size=16,
         ),
@@ -85,7 +85,7 @@ class TestBatchParsing(unittest.TestCase):
     @settings(deadline=None)
     @given(
         sents=lists(
-            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=2, right_ctx_max_nb=2),
+            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=1, right_ctx_max_nb=1),
             min_size=1,
             max_size=16,
         ),
@@ -110,7 +110,7 @@ class TestBatchParsing(unittest.TestCase):
     @settings(deadline=None)
     @given(
         sents=lists(
-            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=2, right_ctx_max_nb=2),
+            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=1, right_ctx_max_nb=1),
             min_size=1,
             max_size=16,
         ),

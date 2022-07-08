@@ -33,7 +33,11 @@ def ner_sentence(
     """
     sent_len = draw(st.integers(min_value=min_len, max_value=max_len))
     tokens = draw(
-        st.lists(st.sampled_from(ascii_letters), min_size=sent_len, max_size=sent_len)
+        st.lists(
+            st.text(alphabet=ascii_letters, min_size=1, max_size=5),
+            min_size=sent_len,
+            max_size=sent_len,
+        )
     )
     tags = draw(
         st.lists(
@@ -50,7 +54,7 @@ def ner_sentence(
 
     right_ctx = [
         draw(ner_sentence(min_len, max_len))
-        for _ in range(left_ctx_min_nb, left_ctx_max_nb)
+        for _ in range(right_ctx_min_nb, right_ctx_max_nb)
     ]
 
     return NERSentence(tokens, tags, left_ctx, right_ctx)

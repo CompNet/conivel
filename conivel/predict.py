@@ -74,7 +74,7 @@ def _get_batch_tags(
         tags_nb = sum(batch["words_labels_mask"][i])  # type: ignore
 
         sent_tags = ["O"] * tags_nb
-        ignored_words_count: int = 0
+        ignored_words: Set[int] = set()
 
         for j in range(seq_size):
 
@@ -83,13 +83,16 @@ def _get_batch_tags(
                 continue
 
             if not batch["words_labels_mask"][i][word_index]:  # type: ignore
-                ignored_words_count += 1
+                ignored_words.add(word_index)
                 continue
 
             tag_index = int(tags_indexs[i][j].item())
-            sent_index = word_index - ignored_words_count  # - start_index
+            sent_index = word_index - len(ignored_words)
 
-            sent_tags[sent_index] = id2label[tag_index]
+            try:
+                sent_tags[sent_index] = id2label[tag_index]
+            except IndexError:
+                breakpoint()
 
         batch_tags.append(sent_tags)
 
@@ -126,7 +129,7 @@ def _get_batch_embeddings(
         words_nb = sum(batch["words_labels_mask"][i])  # type: ignore
 
         sent_embeddings = [[] for _ in range(words_nb)]
-        ignored_words_count = 0
+        ignored_words = set()
 
         for j in range(seq_size):
 
@@ -135,10 +138,10 @@ def _get_batch_embeddings(
                 continue
 
             if not batch["words_labels_mask"][i][word_index]:  # type: ignore
-                ignored_words_count += 1
+                ignored_words.add(word_index)
                 continue
 
-            sent_index = word_index - ignored_words_count
+            sent_index = word_index - len(ignored_words)
             sent_embeddings[sent_index].append(embeddings[i][j])
 
         # reduce word embeddings to be the mean of the embeddings of
@@ -179,7 +182,7 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
         words_nb = sum(batch["words_labels_mask"][i])  # type: ignore
 
         sent_scores = [[] for _ in range(words_nb)]
-        ignored_words_count = 0
+        ignored_words = set()
 
         for j in range(seq_size):
 
@@ -188,10 +191,10 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
                 continue
 
             if not batch["words_labels_mask"][i][word_index]:  # type: ignore
-                ignored_words_count += 1
+                ignored_words.add(word_index)
                 continue
 
-            sent_index = word_index - ignored_words_count
+            sent_index = word_index - len(ignored_words)
             sent_scores[sent_index].append(scores[i][j])
 
         # reduce word scores to be the mean of the scores of the
@@ -232,7 +235,7 @@ def _get_batch_attentions(
     for i in range(batch_size):
 
         token_to_word = [batch.token_to_word(i, token_index=j) for j in range(seq_size)]
-        words_nb = len([k for k in token_to_word if not k is None])
+        words_nb = len({k for k in token_to_word if not k is None})
 
         sent_attentions = [[[] for _ in range(words_nb)] for _ in range(words_nb)]
 
