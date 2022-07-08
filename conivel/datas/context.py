@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 import random
 
 import nltk
@@ -131,8 +131,8 @@ class ContextSelectionExample:
     sent: List[str]
     #: context to assist during prediction
     context: List[str]
-    #: 0 => context was not useful, 1 => context was useful
-    label: Optional[Literal[0, 1]]
+    #: usefulness of the exemple, between -1 and 1.
+    usefulness: Optional[float]
 
 
 class ContextSelectionDataset(Dataset):
@@ -166,8 +166,8 @@ class ContextSelectionDataset(Dataset):
             max_length=512,
         )
 
-        if not example.label is None:
-            batch["label"] = example.label
+        if not example.usefulness is None:
+            batch["label"] = example.usefulness
 
         return batch
 
@@ -211,7 +211,6 @@ class NeuralContextSelector(ContextSelector):
 
         # get self.heuristic_retrieval_sents_nb potentially important
         # context sentences
-        # TODO: perf : is list cast necessary ?
         left_ctx, right_ctx = self.heuristic_retrieve_ctx(sent_idx, document)
         ctx_sents = left_ctx + right_ctx
 
@@ -272,6 +271,26 @@ class NeuralContextSelector(ContextSelector):
         return self.same_word_selector(sent_idx, document)
 
     @staticmethod
+    def _pred_error(
+        sent: NERSentence, pred_scores: torch.Tensor, tag_to_id: Dict[str, int]
+    ) -> float:
+        """Compute error between a reference sentence and a prediction
+
+        :param sent: reference sentence
+        :param pred_scores: ``(sentence_size, vocab_size)``
+        :param tag_to_id: a mapping from a tag to its id in the
+            vocabulary.
+
+        :return: an error between 0 and 1
+        """
+        errs = []
+        for tag_i, tag in enumerate(sent.tags):
+            tag_score = pred_scores[tag_i][tag_to_id[tag]].item()
+            errs.append(1 - tag_score)
+        # TODO: mean seems to give very low scores
+        return max(errs)
+
+    @staticmethod
     def generate_context_dataset(
         ner_model: BertForTokenClassification,
         train_dataset: NERDataset,
@@ -287,13 +306,12 @@ class NeuralContextSelector(ContextSelector):
             1. Make predictions for a NER dataset using an already
                trained NER model.
 
-            2. For all erroneous sentence predictions, sample a bunch
-               of possible context sentences using some heuristic, and
-               retry predictions with those context sentences.
-               Context sentences not able to fix wrong predictions are
-               negative example of context retrieval, while context
-               sentences that can fix wrong predictions are positive
-               examples.
+            2. For each prediction, sample a bunch of possible context
+               sentences using some heuristic, and retry predictions
+               with those context for the sentence.  Then, the
+               difference of errors between the prediction without
+               context and the prediction with context is used to
+               create a sample of context retrieval.
 
         .. note::
 
@@ -315,20 +333,27 @@ class NeuralContextSelector(ContextSelector):
         :return: a ``ContextSelectionDataset`` that can be used to
                  train a context selector.
         """
-
-        predictions = predict(ner_model, train_dataset, batch_size=batch_size).tags
+        preds = predict(
+            ner_model,
+            train_dataset,
+            batch_size=batch_size,
+            additional_returns={"scores"},
+        )
+        assert not preds.scores is None
 
         preliminary_ctx_selector = SameWordSelector(samples_per_sent)
 
         ctx_selection_examples = []
-        for sent_i, (sent, sent_prediction) in tqdm(
-            enumerate(zip(train_dataset.sents(), predictions)), total=len(predictions)
+        for sent_i, (sent, pred_scores) in tqdm(
+            enumerate(zip(train_dataset.sents(), preds.scores)), total=len(preds.tags)
         ):
-            # prediction from the NER model was correct : nothing to do
-            if sent.tags == sent_prediction:
-                continue
             document = train_dataset.document_for_sent(sent_i)
 
+            pred_error = NeuralContextSelector._pred_error(
+                sent, pred_scores, train_dataset.tag_to_id
+            )
+
+            # did we already retrieve enough examples ?
             if (
                 not max_examples_nb is None
                 and len(ctx_selection_examples) >= max_examples_nb
@@ -350,37 +375,34 @@ class NeuralContextSelector(ContextSelector):
                 for ctx_sent in right_ctx_sents
             ]
 
-            # generate positive and negative examples
-            # TODO: positive / negative ratio
-            preds_with_ctx = predict(
+            # generate examples by making new predictions with context
+            # sentences
+            preds_ctx = predict(
                 ner_model,
                 NERDataset([sent_and_ctx], train_dataset.tags),
                 quiet=True,
                 batch_size=batch_size,
-            ).tags
-            for pred_with_ctx, ctx_sent in zip(
-                preds_with_ctx, left_ctx_sents + right_ctx_sents
+                additional_returns={"scores"},
+            )
+            assert not preds_ctx.scores is None
+            for preds_scores_ctx, ctx_sent in zip(
+                preds_ctx.scores, left_ctx_sents + right_ctx_sents
             ):
-                ctx_was_helpful = pred_with_ctx == sent.tags
-                example = ContextSelectionExample(
-                    sent.tokens, ctx_sent.tokens, 1 if ctx_was_helpful else 0
+                pred_ctx_error = NeuralContextSelector._pred_error(
+                    sent, preds_scores_ctx, train_dataset.tag_to_id
                 )
-                ctx_selection_examples.append(example)
+                usefulness = pred_error - pred_ctx_error
+                ctx_selection_examples.append(
+                    ContextSelectionExample(sent.tokens, ctx_sent.tokens, usefulness)
+                )
 
         if not _run is None:
             _run.log_scalar(
                 "context_dataset_generation.examples_nb", len(ctx_selection_examples)
             )
 
-            pos_examples_nb = sum([ex.label for ex in ctx_selection_examples])
-            neg_examples_nb = len(ctx_selection_examples) - pos_examples_nb
-            try:
-                _run.log_scalar(
-                    "context_dataset_generation.pos_neg_ratio",
-                    pos_examples_nb / neg_examples_nb,
-                )
-            except ZeroDivisionError:
-                pass
+            for ex in ctx_selection_examples:
+                _run.log_scalar("context_dataset_generation.usefulness", ex.usefulness)
 
         return ContextSelectionDataset(ctx_selection_examples)
 
@@ -406,7 +428,7 @@ class NeuralContextSelector(ContextSelector):
         :return: a trained ``BertForSequenceClassification``
         """
         ctx_classifier = BertForSequenceClassification.from_pretrained(
-            "bert-base-cased"
+            "bert-base-cased", problem_type="regression", num_labels=1
         )  # type: ignore
 
         optimizer = torch.optim.AdamW(ctx_classifier.parameters(), lr=learning_rate)
