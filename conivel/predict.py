@@ -153,24 +153,21 @@ def _get_batch_embeddings(
 
 def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.Tensor]:
     """
-
     .. note::
 
         the ``words_labels_mask`` key is respected
         and context sentences are *not* extracted
 
     :param batch:
-    :param logits: a tensor of shape ``(batch_size, seq_size, vocab_size)``
+    :param logits: a tensor of shape ``(batch_size, seq_size,
+        vocab_size)``
 
-    :return: a list of tensors of shape ``(sentence_size)`` (one
-             tensor per sentence).
+    :return: a list of tensors of shape ``(sentence_size,
+             vocab_size)`` (one tensor per sentence).
     """
-    batch_size, seq_size = batch["input_ids"].shape  # type: ignore
+    batch_size, seq_size, vocab_size = logits.shape
 
     scores = torch.softmax(logits, dim=2)
-    scores, _ = torch.max(scores, dim=2)
-    assert scores.shape == (batch_size, seq_size)
-
     batch_scores = []
 
     for i in range(batch_size):
@@ -194,11 +191,14 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
                 continue
 
             sent_index = word_index - ignored_words_count
-            sent_scores[sent_index].append(scores[i][j].item())
+            sent_scores[sent_index].append(scores[i][j])
 
         # reduce word scores to be the mean of the scores of the
-        # subtokens composing them
-        sent_scores = torch.tensor([mean(sc) for sc in sent_scores])
+        # subtokens composing them. The result is a list of tensors of
+        # shape (vocab_size).
+        sent_scores = [torch.mean(torch.stack(sc), dim=0) for sc in sent_scores]
+        # (sentence_size, vocab_size)
+        sent_scores = torch.stack(sent_scores)
         batch_scores.append(sent_scores)
 
     return batch_scores

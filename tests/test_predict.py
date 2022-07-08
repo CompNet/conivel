@@ -105,7 +105,7 @@ class TestBatchParsing(unittest.TestCase):
 
             batch_sents = sents[batch_i * batch_size : batch_size * (batch_i + 1)]
             for scores, sent in zip(pred_scores, batch_sents):
-                self.assertEqual((len(sent),), scores.shape)
+                self.assertEqual((len(sent), dataset.tags_nb), scores.shape)
 
     @settings(deadline=None)
     @given(
