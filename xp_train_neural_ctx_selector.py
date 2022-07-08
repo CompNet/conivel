@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 from logging import Logger
 from sacred.commands import print_config
@@ -5,7 +6,7 @@ from transformers import BertForTokenClassification  # type: ignore
 from sacred import Experiment
 from sacred.run import Run
 from sacred.utils import apply_backspaces_and_linefeeds
-from sacred.observers import FileStorageObserver
+from sacred.observers import FileStorageObserver, TelegramObserver
 from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.conll import CoNLLDataset
@@ -16,9 +17,15 @@ from conivel.utils import (
 )
 
 
+script_dir = os.path.abspath(os.path.dirname(__file__))
+
 ex = Experiment()
 ex.captured_out_filter = apply_backspaces_and_linefeeds  # type: ignore
 ex.observers.append(FileStorageObserver("runs"))
+if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
+    ex.observers.append(
+        TelegramObserver.from_config(f"{script_dir}/telegram_observer_config.json")
+    )
 
 
 dataset_to_constructor = {"conll": CoNLLDataset.train_dataset, "dekker": DekkerDataset}
