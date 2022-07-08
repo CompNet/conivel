@@ -34,10 +34,11 @@ class PredictionOutput:
     #: . When a token is composed of several wordpieces
     attentions: Optional[List[torch.Tensor]] = None
 
-    #: prediction scores, one tensor per sentence. Each tensor is
-    #: of shape ``(sentence_size)``. When a token is composed of
-    #: several wordpieces, its prediction score is the mean of the
-    #: prediction scores.
+    #: prediction scores, one tensor per sentence. Each tensor is : of
+    # shape ``(sentence_size, vocab_size)`` (vocab size being the
+    # number of different possible tags). When a token is composed of :
+    # several wordpieces, its prediction score is the mean of the :
+    # prediction scores.
     scores: Optional[List[torch.Tensor]] = None
 
 
@@ -298,7 +299,7 @@ def predict(
               ``(sentence_size, hidden_size)``, one per sentence.
 
             - ``'scores'`` : a list of prediction score tensors of
-              shape ``(sentence_size)``, one per sentence.
+              shape ``(sentence_size, vocab_size)``, one per sentence.
 
             - ``'attentions'`` : a list of attentions tensors of shape
               ``(layers_nb, heads_nb, sentence+context_size,
