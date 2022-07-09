@@ -295,9 +295,9 @@ class NeuralContextSelector(ContextSelector):
         ner_model: BertForTokenClassification,
         train_dataset: NERDataset,
         batch_size: int,
-        samples_per_sent: int,
+        examples_per_sent: int,
         max_examples_nb: Optional[int] = None,
-        example_usefulness_threshold: float = 0.0,
+        examples_usefulness_threshold: float = 0.0,
         _run: Optional[Run] = None,
     ) -> ContextSelectionDataset:
         """Generate a context selection training dataset.
@@ -324,10 +324,14 @@ class NeuralContextSelector(ContextSelector):
             generate initial predictions
         :param train_dataset: NER dataset used to extract examples
         :param batch_size: batch size used for NER inference
-        :param samples_per_sent: number of context selection samples
+        :param examples_per_sent: number of context selection samples
             to generate per wrongly predicted sentence
         :param max_examples_nb: max number of examples in the
             generated dataset.  If ``None``, no limit is applied.
+        :param examples_usefulness_threshold: threshold to select
+            example.  an example is considered only if the absolute
+            value of its usefulness is greater or equal to this
+            threshold.
         :param _run: The current sacred run.  If not ``None``, will be
             used to record generation metrics.
 
@@ -342,7 +346,7 @@ class NeuralContextSelector(ContextSelector):
         )
         assert not preds.scores is None
 
-        preliminary_ctx_selector = SameWordSelector(samples_per_sent)
+        preliminary_ctx_selector = SameWordSelector(examples_per_sent)
 
         ctx_selection_examples = []
         for sent_i, (sent, pred_scores) in tqdm(
@@ -393,7 +397,7 @@ class NeuralContextSelector(ContextSelector):
                     sent, preds_scores_ctx, train_dataset.tag_to_id
                 )
                 usefulness = pred_error - pred_ctx_error
-                if abs(usefulness) >= example_usefulness_threshold:
+                if abs(usefulness) >= examples_usefulness_threshold:
                     ctx_selection_examples.append(
                         ContextSelectionExample(
                             sent.tokens, ctx_sent.tokens, usefulness

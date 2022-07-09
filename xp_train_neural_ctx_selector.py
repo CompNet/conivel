@@ -52,9 +52,9 @@ def main(
     epochs_nb: int,
     learning_rate: float,
     batch_size: int,
-    samples_per_sent: int,
+    examples_per_sent: int,
     max_examples_nb: Optional[int],
-    example_usefulness_threshold: float,
+    examples_usefulness_threshold: float,
 ):
     print_config(_run)
 
@@ -77,9 +77,9 @@ def main(
         ner_model,
         ner_train_dataset,
         batch_size,
-        samples_per_sent,
+        examples_per_sent,
         max_examples_nb=max_examples_nb,
-        example_usefulness_threshold=example_usefulness_threshold
+        examples_usefulness_threshold=examples_usefulness_threshold,
         _run=_run,
     )
     sacred_archive_jsonifiable_as_file(
