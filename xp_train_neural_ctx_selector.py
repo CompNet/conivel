@@ -40,6 +40,7 @@ def config():
     batch_size: int = 4
     samples_per_sent: int = 4
     max_examples_nb: Optional[int] = None
+    example_usefulness_threshold: float = 0.0
 
 
 @ex.automain
@@ -53,6 +54,7 @@ def main(
     batch_size: int,
     samples_per_sent: int,
     max_examples_nb: Optional[int],
+    example_usefulness_threshold: float,
 ):
     print_config(_run)
 
@@ -77,6 +79,7 @@ def main(
         batch_size,
         samples_per_sent,
         max_examples_nb=max_examples_nb,
+        example_usefulness_threshold=example_usefulness_threshold
         _run=_run,
     )
     sacred_archive_jsonifiable_as_file(

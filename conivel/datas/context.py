@@ -297,6 +297,7 @@ class NeuralContextSelector(ContextSelector):
         batch_size: int,
         samples_per_sent: int,
         max_examples_nb: Optional[int] = None,
+        example_usefulness_threshold: float = 0.0,
         _run: Optional[Run] = None,
     ) -> ContextSelectionDataset:
         """Generate a context selection training dataset.
@@ -392,9 +393,12 @@ class NeuralContextSelector(ContextSelector):
                     sent, preds_scores_ctx, train_dataset.tag_to_id
                 )
                 usefulness = pred_error - pred_ctx_error
-                ctx_selection_examples.append(
-                    ContextSelectionExample(sent.tokens, ctx_sent.tokens, usefulness)
-                )
+                if abs(usefulness) >= example_usefulness_threshold:
+                    ctx_selection_examples.append(
+                        ContextSelectionExample(
+                            sent.tokens, ctx_sent.tokens, usefulness
+                        )
+                    )
 
         if not _run is None:
             _run.log_scalar(
