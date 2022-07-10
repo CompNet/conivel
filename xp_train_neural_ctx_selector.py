@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Any, Dict, Optional
 from logging import Logger
 from sacred.commands import print_config
 from transformers import BertForTokenClassification  # type: ignore
@@ -38,9 +38,10 @@ def config():
     epochs_nb: int = 5
     learning_rate: float = 1e-5
     batch_size: int = 4
-    samples_per_sent: int = 4
     max_examples_nb: Optional[int] = None
-    example_usefulness_threshold: float = 0.0
+    examples_usefulness_threshold: float = 0.0
+    heuristic_context_selector: str
+    heuristic_context_selector_kwargs: Dict[str, Any]
 
 
 @ex.automain
@@ -52,9 +53,10 @@ def main(
     epochs_nb: int,
     learning_rate: float,
     batch_size: int,
-    examples_per_sent: int,
     max_examples_nb: Optional[int],
     examples_usefulness_threshold: float,
+    heuristic_context_selector: str,
+    heuristic_context_selector_kwargs: Dict[str, Any],
 ):
     print_config(_run)
 
@@ -77,7 +79,8 @@ def main(
         ner_model,
         ner_train_dataset,
         batch_size,
-        examples_per_sent,
+        heuristic_context_selector,
+        heuristic_context_selector_kwargs,
         max_examples_nb=max_examples_nb,
         examples_usefulness_threshold=examples_usefulness_threshold,
         _run=_run,

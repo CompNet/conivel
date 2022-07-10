@@ -1,11 +1,18 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type, cast
 import random
-
+from functools import lru_cache
+from dataclasses import dataclass
 import nltk
 from sacred.run import Run
-
+import torch
+from torch.utils.data import Dataset, DataLoader
+from transformers import BertForTokenClassification, BertForSequenceClassification, BertTokenizerFast, DataCollatorWithPadding  # type: ignore
+from transformers.tokenization_utils_base import BatchEncoding
+from tqdm import tqdm
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
+from conivel.utils import get_tokenizer
+from conivel.predict import predict
 
 
 class ContextSelector:
@@ -26,6 +33,9 @@ class ContextSelector:
             sent
         """
         raise NotImplemented
+
+
+context_selector_name_to_class: Dict[str, Type[ContextSelector]] = {}
 
 
 class RandomContextSelector(ContextSelector):
@@ -50,6 +60,9 @@ class RandomContextSelector(ContextSelector):
             [document[i] for i in selected_sents_idx if i < sent_idx],
             [document[i] for i in selected_sents_idx if i > sent_idx],
         )
+
+
+context_selector_name_to_class["random"] = RandomContextSelector
 
 
 class SameWordSelector(ContextSelector):
@@ -90,6 +103,9 @@ class SameWordSelector(ContextSelector):
         )
 
 
+context_selector_name_to_class["sameword"] = SameWordSelector
+
+
 class NeighborsContextSelector(ContextSelector):
     """A context selector that chooses nearby sentences."""
 
@@ -111,16 +127,7 @@ class NeighborsContextSelector(ContextSelector):
         )
 
 
-from typing import Literal, cast
-from functools import lru_cache
-from dataclasses import dataclass
-import torch
-from torch.utils.data import Dataset, DataLoader, dataloader
-from transformers import BertForTokenClassification, BertForSequenceClassification, BertTokenizerFast, DataCollatorWithPadding  # type: ignore
-from transformers.tokenization_utils_base import BatchEncoding
-from tqdm import tqdm
-from conivel.utils import get_tokenizer
-from conivel.predict import predict
+context_selector_name_to_class["neighbors"] = NeighborsContextSelector
 
 
 @dataclass
@@ -181,25 +188,30 @@ class NeuralContextSelector(ContextSelector):
     def __init__(
         self,
         pretrained_model_name: str,
-        heuristic_retrieval_sents_nb: int,
+        heuristic_context_selector: str,
+        heuristic_context_selector_kwargs: Dict[str, Any],
         batch_size: int,
         sents_nb: int,
     ) -> None:
         """
         :param pretrained_model_name: pretrained model name, used to
             load a :class:`transformers.BertForSequenceClassification`
-        :param heuristic_retrieval_sents_nb: number of sents to
-            retrieve using the heuristic before neural selection.
+        :param heuristic_context_selector: name of the context
+            selector to use as retrieval heuristic, from
+            ``context_selector_name_to_class``
+        :param heuristic_context_selector_kwargs: kwargs to pass the
+            heuristic context retriever at instantiation time
         :param batch_size: batch size used at inference
         :param sents_nb: max number of sents to retrieve
         """
         self.ctx_classifier: BertForSequenceClassification = BertForSequenceClassification.from_pretrained(pretrained_model_name)  # type: ignore
 
-        self.heuristic_retrieval_sents_nb = heuristic_retrieval_sents_nb
-        self.same_word_selector = SameWordSelector(heuristic_retrieval_sents_nb)
+        selector_class = context_selector_name_to_class[heuristic_context_selector]
+        self.heuristic_context_selector = selector_class(
+            **heuristic_context_selector_kwargs
+        )
 
         self.batch_size = batch_size
-
         self.sents_nb = sents_nb
 
     @lru_cache(maxsize=None)
@@ -268,7 +280,7 @@ class NeuralContextSelector(ContextSelector):
 
         :return: ``(left_context, right_context)``
         """
-        return self.same_word_selector(sent_idx, document)
+        return self.heuristic_context_selector(sent_idx, document)
 
     @staticmethod
     def _pred_error(
@@ -295,7 +307,8 @@ class NeuralContextSelector(ContextSelector):
         ner_model: BertForTokenClassification,
         train_dataset: NERDataset,
         batch_size: int,
-        examples_per_sent: int,
+        heuristic_context_selector: str,
+        heuristic_context_selector_kwargs: Dict[str, Any],
         max_examples_nb: Optional[int] = None,
         examples_usefulness_threshold: float = 0.0,
         _run: Optional[Run] = None,
@@ -324,8 +337,11 @@ class NeuralContextSelector(ContextSelector):
             generate initial predictions
         :param train_dataset: NER dataset used to extract examples
         :param batch_size: batch size used for NER inference
-        :param examples_per_sent: number of context selection samples
-            to generate per wrongly predicted sentence
+        :param heuristic_context_selector: name of the context
+            selector to use as retrieval heuristic, from
+            ``context_selector_name_to_class``
+        :param heuristic_context_selector_kwargs: kwargs to pass the
+            heuristic context retriever at instantiation time
         :param max_examples_nb: max number of examples in the
             generated dataset.  If ``None``, no limit is applied.
         :param examples_usefulness_threshold: threshold to select
@@ -346,7 +362,10 @@ class NeuralContextSelector(ContextSelector):
         )
         assert not preds.scores is None
 
-        preliminary_ctx_selector = SameWordSelector(examples_per_sent)
+        ctx_selector_class = context_selector_name_to_class[heuristic_context_selector]
+        preliminary_ctx_selector = ctx_selector_class(
+            **heuristic_context_selector_kwargs
+        )
 
         ctx_selection_examples = []
         for sent_i, (sent, pred_scores) in tqdm(
@@ -438,6 +457,7 @@ class NeuralContextSelector(ContextSelector):
         ctx_classifier = BertForSequenceClassification.from_pretrained(
             "bert-base-cased", problem_type="regression", num_labels=1
         )  # type: ignore
+        ctx_classifier = cast(BertForSequenceClassification, ctx_classifier)
 
         optimizer = torch.optim.AdamW(ctx_classifier.parameters(), lr=learning_rate)
 
@@ -477,3 +497,6 @@ class NeuralContextSelector(ContextSelector):
                 _run.log_scalar("training.mean_epoch_loss", mean_epoch_loss)
 
         return ctx_classifier
+
+
+context_selector_name_to_class["neural"] = NeuralContextSelector
