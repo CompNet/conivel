@@ -4,7 +4,7 @@ import shutil
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
-from sacred.observers import FileStorageObserver
+from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 from transformers import BertForTokenClassification  # type: ignore
 from conivel.datas.conll import CoNLLDataset
@@ -16,9 +16,15 @@ from conivel.train import train_ner_model
 from conivel.utils import RunLogScope
 
 
+script_dir = os.path.abspath(os.path.dirname(__file__))
+
 ex = Experiment()
 ex.captured_out_filter = apply_backspaces_and_linefeeds  # type: ignore
 ex.observers.append(FileStorageObserver("runs"))
+if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
+    ex.observers.append(
+        TelegramObserver.from_config(f"{script_dir}/telegram_observer_config.json")
+    )
 
 
 @ex.config
