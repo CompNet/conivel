@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from more_itertools import windowed
 from transformers import PreTrainedModel  # type: ignore
 from sacred.run import Run
+from transformers.utils.dummy_tokenizers_objects import BertTokenizerFast
 
 
 @dataclass(frozen=True)
@@ -40,9 +41,9 @@ def flattened(lst: List[List[T]]) -> List[T]:
     return out_lst
 
 
-def get_tokenizer(retries_nb: int = 10):
+def get_tokenizer(retries_nb: int = 10) -> "BertTokenizerFast":
     """resiliently try to get a tokenizer from the transformers library"""
-    from transformers import BertTokenizerFast
+    from transformers import BertTokenizerFast  # type: ignore
 
     tokenizer = None
     for i in range(retries_nb):

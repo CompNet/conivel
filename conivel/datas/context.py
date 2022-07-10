@@ -150,9 +150,15 @@ class ContextSelectionDataset(Dataset):
     context in special tokens such as '[CTX]' ?
     """
 
-    def __init__(self, examples: List[ContextSelectionExample]) -> None:
+    def __init__(
+        self,
+        examples: List[ContextSelectionExample],
+        tokenizer: Optional[BertTokenizerFast] = None,
+    ) -> None:
         self.examples = examples
-        self.tokenizer: BertTokenizerFast = get_tokenizer()
+        if tokenizer is None:
+            tokenizer = get_tokenizer()
+        self.tokenizer: BertTokenizerFast = tokenizer
 
     def __len__(self) -> int:
         return len(self.examples)
@@ -204,7 +210,11 @@ class NeuralContextSelector(ContextSelector):
         :param batch_size: batch size used at inference
         :param sents_nb: max number of sents to retrieve
         """
-        self.ctx_classifier: BertForSequenceClassification = BertForSequenceClassification.from_pretrained(pretrained_model_name)  # type: ignore
+        self.ctx_classifier = BertForSequenceClassification.from_pretrained(
+            pretrained_model_name
+        )
+        self.ctx_classifier = cast(BertForSequenceClassification, self.ctx_classifier)
+        self.tokenizer = get_tokenizer()
 
         selector_class = context_selector_name_to_class[heuristic_context_selector]
         self.heuristic_context_selector = selector_class(
@@ -235,7 +245,8 @@ class NeuralContextSelector(ContextSelector):
             [
                 ContextSelectionExample(sent.tokens, ctx_sent.tokens, None)
                 for ctx_sent in ctx_sents
-            ]
+            ],
+            self.tokenizer,
         )
         data_collator = DataCollatorWithPadding(dataset.tokenizer)  # type: ignore
         dataloader = DataLoader(
