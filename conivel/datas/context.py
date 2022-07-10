@@ -244,24 +244,23 @@ class NeuralContextSelector(ContextSelector):
 
         # inference using self.ctx_classifier
         self.ctx_classifier = self.ctx_classifier.eval()
-        scores = torch.zeros((0,))
         with torch.no_grad():
+            scores = torch.zeros((0,))
             for X in dataloader:
-                # out.logits is of shape (batch_size, 2)
+                # out.logits is of shape (batch_size, 1)
                 out = self.ctx_classifier(
                     X["input_ids"],
                     token_type_ids=X["token_type_ids"],
                     attention_mask=X["attention_mask"],
                 )
-                scores = torch.cat([scores, out.logits[:, 1]], dim=0)
+                scores = torch.cat([scores, out.logits[:, 0]], dim=0)
 
-        # now scores should be of shape
-        # (self.heuristic_retrieval_sents_nb). We keep the top
-        # `self.sents_nb` sentences.
-        best_ctx_idxs = torch.topk(
-            scores, min(self.sents_nb, scores.shape[0]), dim=0
-        ).indices
-        left_ctx_idxs_mask = best_ctx_idxs < len(left_ctx)
+            # now scores should be of shape
+            # (self.heuristic_retrieval_sents_nb). We keep the top
+            # `self.sents_nb` sentences that are positive.
+            topk = torch.topk(scores, min(self.sents_nb, scores.shape[0]), dim=0)
+            best_ctx_idxs = topk.indices[topk.values > 0]
+            left_ctx_idxs_mask = best_ctx_idxs < len(left_ctx)
 
         return (
             [ctx_sents[ctx_idx] for ctx_idx in best_ctx_idxs[left_ctx_idxs_mask]],
