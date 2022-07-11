@@ -1,46 +1,39 @@
 import os
-from typing import Dict, List, Optional, Type, cast
+from typing import Dict, Optional
 import shutil
 from sacred import Experiment
+from sacred.commands import print_config
 from sacred.run import Run
-from sacred.observers import FileStorageObserver
+from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
-from transformers import BertForTokenClassification
+from transformers import BertForTokenClassification  # type: ignore
 from conivel.datas.conll import CoNLLDataset
-from conivel.datas.context import (
-    ContextSelector,
-    NeighborsContextSelector,
-    RandomContextSelector,
-    SameWordSelector,
-    NeuralContextSelector,
-)
 from conivel.datas.dekker import DekkerDataset
+from conivel.datas.context import context_selector_name_to_class
 from conivel.predict import predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
 from conivel.utils import RunLogScope
 
 
+script_dir = os.path.abspath(os.path.dirname(__file__))
+
 ex = Experiment()
 ex.captured_out_filter = apply_backspaces_and_linefeeds  # type: ignore
 ex.observers.append(FileStorageObserver("runs"))
-
-
-context_selectors_name_to_class: Dict[str, Type[ContextSelector]] = {
-    "neighbors": NeighborsContextSelector,
-    "random": RandomContextSelector,
-    "sameword": SameWordSelector,
-    "neural": NeuralContextSelector,
-}
+if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
+    ex.observers.append(
+        TelegramObserver.from_config(f"{script_dir}/telegram_observer_config.json")
+    )
 
 
 @ex.config
 def config():
-    context_selectors = {}
-    epochs_nb = 2
-    repeats_nb = 1
-    save_models = True
-    book_group = None
+    context_selectors: Dict[str, dict] = {}
+    epochs_nb: int = 2
+    repeats_nb: int = 1
+    save_models: bool = True
+    book_group: Optional[str] = None
 
 
 @ex.automain
@@ -52,9 +45,11 @@ def main(
     save_models: bool,
     book_group: Optional[str],
 ):
+    print(context_selectors)
+    print_config(_run)
 
     selectors = [
-        context_selectors_name_to_class[key](**value)
+        context_selector_name_to_class[key](**value)
         for key, value in context_selectors.items()
     ]
 
