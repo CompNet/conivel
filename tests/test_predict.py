@@ -26,11 +26,11 @@ class TestBatchParsing(unittest.TestCase):
     @settings(deadline=None)  # deactivate deadline because of tokenizer instantiation
     @given(
         sents=lists(
-            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=1, right_ctx_max_nb=1),
+            ner_sentence(min_len=1, max_len=8, left_ctx_max_nb=1, right_ctx_max_nb=1),
             min_size=2,
-            max_size=16,
+            max_size=4,
         ),
-        batch_size=integers(min_value=1, max_value=8),
+        batch_size=integers(min_value=1, max_value=2),
     )
     def test_batch_tags_extraction(self, sents: List[NERSentence], batch_size: int):
         dataset = NERDataset([sents], tokenizer=TestBatchParsing.tokenizer)
@@ -55,14 +55,14 @@ class TestBatchParsing(unittest.TestCase):
             for tags, sent in zip(pred_tags, batch_sents):
                 self.assertEqual(tags, sent.tags)
 
-    @settings(deadline=None)
+    @settings(deadline=None)  # deactivate deadline because of tokenizer instantiation
     @given(
         sents=lists(
-            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=1, right_ctx_max_nb=1),
-            min_size=1,
-            max_size=16,
+            ner_sentence(min_len=1, max_len=8, left_ctx_max_nb=1, right_ctx_max_nb=1),
+            min_size=2,
+            max_size=4,
         ),
-        batch_size=integers(min_value=1, max_value=8),
+        batch_size=integers(min_value=1, max_value=2),
     )
     def test_batch_embeddings_extraction(
         self, sents: List[NERSentence], batch_size: int
@@ -82,14 +82,14 @@ class TestBatchParsing(unittest.TestCase):
             for emb, sent in zip(pred_embeddings, batch_sents):
                 self.assertEqual((len(sent), hidden_size), emb.shape)
 
-    @settings(deadline=None)
+    @settings(deadline=None)  # deactivate deadline because of tokenizer instantiation
     @given(
         sents=lists(
-            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=1, right_ctx_max_nb=1),
-            min_size=1,
-            max_size=16,
+            ner_sentence(min_len=1, max_len=8, left_ctx_max_nb=1, right_ctx_max_nb=1),
+            min_size=2,
+            max_size=4,
         ),
-        batch_size=integers(min_value=1, max_value=8),
+        batch_size=integers(min_value=1, max_value=2),
     )
     def test_batch_scores_extraction(self, sents: List[NERSentence], batch_size: int):
         dataset = NERDataset([sents], tokenizer=TestBatchParsing.tokenizer)
@@ -107,14 +107,14 @@ class TestBatchParsing(unittest.TestCase):
             for scores, sent in zip(pred_scores, batch_sents):
                 self.assertEqual((len(sent), dataset.tags_nb), scores.shape)
 
-    @settings(deadline=None)
+    @settings(deadline=None)  # deactivate deadline because of tokenizer instantiation
     @given(
         sents=lists(
-            ner_sentence(min_len=1, max_len=16, left_ctx_max_nb=1, right_ctx_max_nb=1),
-            min_size=1,
-            max_size=16,
+            ner_sentence(min_len=1, max_len=8, left_ctx_max_nb=1, right_ctx_max_nb=1),
+            min_size=2,
+            max_size=4,
         ),
-        batch_size=integers(min_value=1, max_value=8),
+        batch_size=integers(min_value=1, max_value=2),
     )
     def test_batch_attentions_extraction(
         self, sents: List[NERSentence], batch_size: int
