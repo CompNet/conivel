@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Dict, Literal, Set, Union, Optional
+from typing import List, Dict, Literal, Set, Tuple, Union, Optional
 from dataclasses import dataclass, field
 
 from itertools import chain
@@ -54,6 +54,59 @@ class NERSentence:
         for sent in self.left_context + self.right_context:
             tags = tags.union(sent.tags_set())
         return tags
+
+    def flattened(
+        self, add_special_tokens: bool = False
+    ) -> Tuple[List[str], List[str]]:
+        """Flatten the sentence, including itself and its left and
+        right context in a single list
+
+        :param add_special_tokens: if ``True``, will add :
+
+                - A `[CLS]` token at the beginning of the sentence
+
+                - A `[SEP]` token between the sentences and its right
+                  and left context, when applicable
+
+                - A `[SEP]` token at the end of the sentence
+
+        :return: a tuple with :
+
+                - flattened tokens
+
+                - flattened tags
+        """
+        tokens = []
+        tags = []
+
+        if add_special_tokens:
+            tokens.append("[CLS]")
+            tags.append("O")
+
+        if len(self.left_context) > 0:
+            for ctx in self.left_context:
+                tokens += ctx.tokens
+                tags += ctx.tags
+            if add_special_tokens:
+                tokens.append("[SEP]")
+                tags.append("O")
+
+        tokens += self.tokens
+        tags += self.tags
+
+        if len(self.right_context) > 0:
+            if add_special_tokens:
+                tokens.append("[SEP]")
+                tags.append("O")
+            for ctx in self.right_context:
+                tokens += ctx.tokens
+                tokens += ctx.tags
+
+        if add_special_tokens:
+            tokens.append("[SEP]")
+            tags.append("O")
+
+        return (tokens, tags)
 
     @staticmethod
     def sents_with_surrounding_context(
