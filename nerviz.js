@@ -3,6 +3,14 @@ requirejs['jquery'];
 window.currentSource = 0;
 window.attentions = null;
 
+function rgb2hex(component) {
+    let component_hex = component.toString(16);
+    if (component_hex.length === 1) {
+	component_hex = "0" + component_hex;
+    }
+    return component_hex;
+}
+
 // note : use the global window.attentions variable, which is a 2d
 // array of shape (source, target)
 function refreshAttentions() {
@@ -12,15 +20,15 @@ function refreshAttentions() {
     }
 
     $('.target').each(function (i, element) {
-	// [0-1]
+	// [0->1]
 	let attention = window.attentions[window.currentSource][i];
-	// [155-255]
-	let red = Math.floor(255 - attention * 100);
-	let red_hex = red.toString(16);
-	if (red_hex.length === 1) {
-	    red_hex = "0" + red_hex;
-	}
-	$(element).css("background-color", "#" + red_hex + "ccff");
+	// [205->0]
+	let red = Math.floor(205 - attention * 205);
+	let red_hex = rgb2hex(red);
+	// [255->0]
+	let green = Math.floor(255 - attention * 255);
+	let green_hex = rgb2hex(green);
+	$(element).css("background-color", "#" + red_hex + green_hex + "ff");
     });
     
 }
