@@ -1,9 +1,10 @@
 import os
 from typing import Optional, List
-from conivel.datas import NERSentence
 import torch
 from IPython.display import display, HTML, Javascript
 import ipywidgets as widgets
+from conivel.datas import NERSentence
+from conivel.utils import flattened
 
 
 _script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,7 +22,10 @@ def _refresh_attention(attentions: torch.Tensor):
 
 
 def visualise_ner_sent_attentions(
-    sent: NERSentence, attentions: torch.Tensor, pred_tags: Optional[List[str]] = None
+    sent: NERSentence,
+    attentions: torch.Tensor,
+    pred_tags: Optional[List[str]] = None,
+    add_special_tokens: bool = False,
 ):
     """Interactively visualize attentions for a NER sentence
 
@@ -29,12 +33,16 @@ def visualise_ner_sent_attentions(
     :param attentions: a tensor of shape ``(layers_nb, heads_nb,
         sentence_size, sentence_size)``
     :param pred_tags: if given, tag predictions for ``sent``
+    :param add_special_tokens: if ``True``, add special tokens as in
+        :func:`NERSentence.flattened`.
     """
     layers_nb = attentions.shape[0]
     heads_nb = attentions.shape[1]
 
+    tokens, tags = sent.flattened(add_special_tokens=add_special_tokens)
+
     tokens_html = []
-    for i, (token, tag) in enumerate(zip(sent.tokens, sent.tags)):
+    for i, (token, tag) in enumerate(zip(tokens, tags)):
         token_source_html = (
             f"<div class='token source' style='display: table-cell;'>{token}</div>"
         )
@@ -82,3 +90,4 @@ def visualise_ner_sent_attentions(
     options = widgets.HBox([layers_dropdown, heads_dropdown])
 
     display(options, viz_html, viz_js)
+    on_options_change(None)
