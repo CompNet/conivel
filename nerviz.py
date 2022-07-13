@@ -11,12 +11,16 @@ _script_dir = os.path.dirname(os.path.abspath(__file__))
 
 def _refresh_attention(attentions: torch.Tensor):
     """
-    :param attentions: ``(sentence_size)``
+    :param attentions: ``(sentence_size, sentence_size)``
     """
-    display(Javascript(f"refreshAttentions({attentions.tolist()});"))
+    display(
+        Javascript(
+            f"window.attentions = {attentions.tolist()}; window.refreshAttentions();"
+        )
+    )
 
 
-def visualize_ner_sent_attentions(
+def visualise_ner_sent_attentions(
     sent: NERSentence, attentions: torch.Tensor, pred_tags: Optional[List[str]] = None
 ):
     """Interactively visualize attentions for a NER sentence
@@ -42,7 +46,7 @@ def visualize_ner_sent_attentions(
             pred_tag = pred_tags[i]
             color = "green" if pred_tag == tag else "red"
             tag_html += f"<div style='display: table-cell; width: 10%; color: {color}'>{pred_tag}</div>"
-        tokens_html += "<div style='display: table-row;'> {} {} {} {} </div>".format(
+        tokens_html += "<div style='display: table-row;'> {} {} {} </div>".format(
             tag_html, token_source_html, token_target_html
         )
     tokens_html = "".join(tokens_html)
@@ -68,10 +72,9 @@ def visualize_ner_sent_attentions(
     )
 
     def on_options_change(event):
-        layer = int(layers_dropdown.value)
-        head = int(heads_dropdown.value)
-        # TODO:
-        # _refresh_attention(attentions[layer][head][])
+        layer = int(layers_dropdown.value)  # type: ignore
+        head = int(heads_dropdown.value)  # type: ignore
+        _refresh_attention(attentions[layer][head])
 
     layers_dropdown.observe(on_options_change, names="value")
     heads_dropdown.observe(on_options_change, names="value")

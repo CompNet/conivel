@@ -1,23 +1,39 @@
 requirejs['jquery'];
 
+window.currentSource = 0;
+window.attentions = null;
 
-$('.token').on('mouseenter', function(e) {
+// note : use the global window.attentions variable, which is a 2d
+// array of shape (source, target)
+function refreshAttentions() {
+    
+    if (window.attentions === null) {
+	return;
+    }
+
+    $('.target').each(function (i, element) {
+	// [0-1]
+	let attention = window.attentions[window.currentSource][i];
+	// [155-255]
+	let red = Math.floor(255 - attention * 100);
+	let red_hex = red.toString(16);
+	if (red_hex.length === 1) {
+	    red_hex = "0" + red_hex;
+	}
+	$(element).css("background-color", "#" + red_hex + "ccff");
+    });
+    
+}
+window.refreshAttentions = refreshAttentions;
+
+
+$('.source').on('mouseenter', function(e) {
     $(this).css('background-color', 'cyan');
+    window.currentSource = $('.source').index(this);
+    window.refreshAttentions();
 });
 
-$('.token').on('mouseleave', function(e) {
+$('.source').on('mouseleave', function(e) {
     $(this).css('background-color', 'transparent');
 });
 
-
-// @param attention an array of attention for target tokens
-function refreshAttention(attention) {
-    $('.target').each(function (i, element){
-	blue = attention[i] * 255;
-	blue_hex = blue.toString(16);
-	if (blue_hex.length == 1) {
-	    blue_hex = "0" + blue_hex;
-	}
-	element.css("background-color", "#0000" + blue_hex);
-    });
-}
