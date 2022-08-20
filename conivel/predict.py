@@ -353,7 +353,7 @@ def predict(
 
             if "attentions" in additional_returns:
                 prediction.attentions += _get_batch_attentions(
-                    batch, torch.tensor(out.attentions)
+                    batch, torch.stack(out.attentions).transpose(1, 2)
                 )  # type: ignore
 
     return prediction
