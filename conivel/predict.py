@@ -1,17 +1,12 @@
-from typing import Dict, List, Literal, Optional, Set, Union, Tuple, cast
-from statistics import mean
+from typing import Dict, List, Literal, Optional, Set
 from dataclasses import dataclass, field
 
 import torch
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 from transformers import BertForTokenClassification  # type: ignore
 from transformers.tokenization_utils_base import BatchEncoding
 
-from conivel.datas import (
-    batch_to_device,
-    DataCollatorForTokenClassificationWithBatchEncoding,
-)
+from conivel.datas import batch_to_device
+
 from conivel.datas.dataset import NERDataset
 from conivel.datas.dataset_utils import dataset_batchs
 
@@ -283,9 +278,10 @@ def predict(
     batch_size: int = 4,
     quiet: bool = False,
     device_str: Literal["cuda", "cpu", "auto"] = "auto",
-    additional_returns: Optional[
+    additional_outputs: Optional[
         Set[Literal["embeddings", "scores", "attentions"]]
     ] = None,
+    transfer_additional_outputs_to_cpu: bool = True,
 ) -> PredictionOutput:
     """perform prediction for a dataset
 
@@ -295,7 +291,7 @@ def predict(
     :param quiet: if ``True``, tqdm wont display a progress bar
     :param device_str: torch device to use for prediction
 
-    :param additional_returns: a set of possible additional returns,
+    :param additional_outputs: a set of possible additional outputs,
         between :
 
             - ``'embeddings'`` : a list of tensors of shape
@@ -307,21 +303,26 @@ def predict(
             - ``'attentions'`` : a list of attentions tensors of shape
               ``(layers_nb, heads_nb, sentence+context_size,
               sentence+context_size)``
+
+    :param transfer_additional_outputs_to_cpu: when ``True``,
+        transfers any additional output tensor to cpu.  This is useful
+        to avoid reaching the GPU ram limit when, for example, making
+        predictions on a sufficiently large dataset.
     """
     if device_str == "auto":
         device_str = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device_str)
 
-    if additional_returns is None:
-        additional_returns = set()
+    if additional_outputs is None:
+        additional_outputs = set()
 
     model = model.eval()
     model = model.to(device)
 
     prediction = PredictionOutput(
-        embeddings=[] if "embeddings" in additional_returns else None,
-        scores=[] if "scores" in additional_returns else None,
-        attentions=[] if "attentions" in additional_returns else None,
+        embeddings=[] if "embeddings" in additional_outputs else None,
+        scores=[] if "scores" in additional_outputs else None,
+        attentions=[] if "attentions" in additional_outputs else None,
     )
 
     with torch.no_grad():
@@ -343,17 +344,24 @@ def predict(
 
             prediction.tags += _get_batch_tags(batch, out.logits, model.config.id2label)
 
-            if "embeddings" in additional_returns:
-                prediction.embeddings += _get_batch_embeddings(
-                    batch, out.hidden_states[-1]
-                )  # type: ignore
+            if "embeddings" in additional_outputs:
+                embeddings = _get_batch_embeddings(batch, out.hidden_states[-1])
+                if transfer_additional_outputs_to_cpu:
+                    embeddings = [e.to(torch.device("cpu")) for e in embeddings]
+                prediction.embeddings += embeddings  # type: ignore
 
-            if "scores" in additional_returns:
-                prediction.scores += _get_batch_scores(batch, out.logits)  # type: ignore
+            if "scores" in additional_outputs:
+                scores = _get_batch_scores(batch, out.logits)  # type: ignore
+                if transfer_additional_outputs_to_cpu:
+                    scores = [s.to(torch.device("cpu")) for s in scores]
+                prediction.scores += scores  # type: ignore
 
-            if "attentions" in additional_returns:
-                prediction.attentions += _get_batch_attentions(
-                    batch, torch.tensor(out.attentions)
+            if "attentions" in additional_outputs:
+                attentions = _get_batch_attentions(
+                    batch, torch.stack(out.attentions).transpose(1, 2)
                 )  # type: ignore
+                if transfer_additional_outputs_to_cpu:
+                    attentions = [a.to(torch.device("cpu")) for a in attentions]
+                prediction.attentions += attentions  # type: ignore
 
     return prediction
