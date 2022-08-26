@@ -1,4 +1,6 @@
-from typing import Set, List, Optional, Dict, cast
+from __future__ import annotations
+import math
+from typing import TYPE_CHECKING, Set, List, Optional, Dict, Tuple, cast
 from collections import defaultdict
 
 from torch.utils.data import Dataset
@@ -7,6 +9,9 @@ from transformers.tokenization_utils_base import BatchEncoding
 
 from conivel.datas import NERSentence, align_tokens_labels_
 from conivel.utils import flattened, get_tokenizer
+
+if TYPE_CHECKING:
+    from conivel.datas.context import ContextSelector
 
 
 class NERDataset(Dataset):
@@ -22,7 +27,7 @@ class NERDataset(Dataset):
         self,
         documents: List[List[NERSentence]],
         tags: Optional[Set[str]] = None,
-        context_selectors: Optional[List["ContextSelector"]] = None,
+        context_selectors: Optional[List[ContextSelector]] = None,
         tokenizer: Optional[BertTokenizerFast] = None,
     ) -> None:
         """
@@ -78,6 +83,28 @@ class NERDataset(Dataset):
     def sents(self) -> List[NERSentence]:
         """Return the list of sents of the datasets, ordered by documents."""
         return flattened(self.documents)
+
+    def kfolds(self, k: int) -> List[Tuple[NERDataset, NERDataset]]:
+        """Return a kfold of the current dataset
+
+        :return: a list of ``k`` tuples, each tuple being of the form
+                 ``(train_set, test_set)``.
+        """
+        fold_size = math.ceil(len(self.documents) / k)
+        folds = []
+        for i in range(k):
+            test_start = fold_size * i
+            test_end = fold_size * (i + 1)
+            test_set = self.documents[test_start:test_end]
+            train_set = self.documents[:test_start] + self.documents[test_end:]
+            folds.append((train_set, test_set))
+        return [
+            (
+                NERDataset(train, self.tags, self.context_selectors, self.tokenizer),
+                NERDataset(test, self.tags, self.context_selectors, self.tokenizer),
+            )
+            for train, test in folds
+        ]
 
     def document_for_sent(self, sent_index: int) -> List[NERSentence]:
         """Get the document corresponding to the index of a sent."""
