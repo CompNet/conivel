@@ -26,7 +26,7 @@ class RandomRetrievalMethod(RetrievalMethod):
 
 class LeftContextRetrievalMethod(RetrievalMethod):
 
-    name = "left_context"
+    name = "left"
 
     def xtick_from_config(self, config: dict) -> int:
         return config["context_selectors"]["neighbors"]["left_sents_nb"]
@@ -34,7 +34,7 @@ class LeftContextRetrievalMethod(RetrievalMethod):
 
 class RightContextRetrievalMethod(RetrievalMethod):
 
-    name = "right_context"
+    name = "right"
 
     def xtick_from_config(self, config: dict) -> int:
         return config["context_selectors"]["neighbors"]["right_sents_nb"]
@@ -63,14 +63,21 @@ class SameWordContextRetrievalMethod(RetrievalMethod):
 
 
 class NeuralContextRetrievalMethod(RetrievalMethod):
-
-    name = "neural_context_random_6_heuristic_sents"
+    def __init__(self, heuristic_name: str, heuristic_sents_nb: int):
+        self.heuristic_name = heuristic_name
+        self.heuristic_sents_nb = heuristic_sents_nb
+        self.name = f"neural_{heuristic_name}_{heuristic_sents_nb}"
 
     def xtick_from_config(self, config: dict) -> int:
         return config["context_selectors"]["neural"]["sents_nb"]
 
     def display_name(self) -> str:
-        return "neural (with 'random' heuristic)"
+        heuristic_name = self.heuristic_name
+        if heuristic_name == "sameword":
+            heuristic_name = "shared noun"
+        elif heuristic_name == "neighbors":
+            heuristic_name = "left + right"
+        return f"{heuristic_name} {self.heuristic_sents_nb} > neural"
 
 
 if __name__ == "__main__":
@@ -98,11 +105,16 @@ if __name__ == "__main__":
         RightContextRetrievalMethod(),
         NeighborsContextRetrievalMethod(),
         SameWordContextRetrievalMethod(),
-        NeuralContextRetrievalMethod(),
+        NeuralContextRetrievalMethod("neighbors", 6),
+        NeuralContextRetrievalMethod("neighbors", 12),
+        NeuralContextRetrievalMethod("random", 6),
+        NeuralContextRetrievalMethod("random", 12),
+        NeuralContextRetrievalMethod("sameword", 6),
+        NeuralContextRetrievalMethod("sameword", 12),
     ]
 
-    cols_nb = math.ceil(len(retrieval_methods) / 2)
-    fig, axs = plt.subplots(2, cols_nb)
+    cols_nb = math.ceil(len(retrieval_methods) / 3)
+    fig, axs = plt.subplots(3, cols_nb)
 
     for i, method in enumerate(retrieval_methods):
 
