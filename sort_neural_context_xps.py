@@ -20,17 +20,26 @@ if __name__ == "__main__":
         if "sents_nb" in heuristic_kwargs:
             heuristic_sents_nb = heuristic_kwargs["sents_nb"]
         elif "left_sents_nb" in heuristic_kwargs:
-            assert (
-                heuristic_kwargs["left_sents_nb"] == heuristic_kwargs["right_sents_nb"]
-            )
-            heuristic_sents_nb = heuristic_kwargs["left_sents_nb"] * 2
+            left_sents_nb = heuristic_kwargs["left_sents_nb"]
+            right_sents_nb = heuristic_kwargs["right_sents_nb"]
+            if left_sents_nb == right_sents_nb:
+                heuristic_sents_nb = left_sents_nb * 2
+            else:
+                if left_sents_nb > 0 and right_sents_nb == 0:
+                    heuristic = "left"
+                    heuristic_sents_nb = left_sents_nb
+                elif right_sents_nb > 0 and left_sents_nb == 0:
+                    heuristic = "right"
+                    heuristic_sents_nb = right_sents_nb
+                else:
+                    raise ValueError
         else:
             print(f"error processing {run_dir} heuristic kwargs. Ignoring...")
             continue
 
         sents_nb = neural_config["sents_nb"]
 
-        run_group_dir = f"runs/neural_context_{heuristic}_{heuristic_sents_nb}"
+        run_group_dir = f"runs/neural_{heuristic}_{heuristic_sents_nb}"
         os.makedirs(run_group_dir, exist_ok=True)
 
         print(f"moving {run_dir} to {run_group_dir}/{sents_nb}...")

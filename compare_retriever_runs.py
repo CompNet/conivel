@@ -3,6 +3,7 @@ from typing import Dict, Literal, Tuple, List
 import glob, json, argparse, math
 from statistics import mean, stdev
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 class RetrievalMethod:
@@ -105,6 +106,8 @@ if __name__ == "__main__":
         RightContextRetrievalMethod(),
         NeighborsContextRetrievalMethod(),
         SameWordContextRetrievalMethod(),
+        NeuralContextRetrievalMethod("right", 6),
+        NeuralContextRetrievalMethod("right", 12),
         NeuralContextRetrievalMethod("neighbors", 6),
         NeuralContextRetrievalMethod("neighbors", 12),
         NeuralContextRetrievalMethod("random", 6),
@@ -116,7 +119,8 @@ if __name__ == "__main__":
     cols_nb = math.ceil(len(retrieval_methods) / 3)
     fig, axs = plt.subplots(3, cols_nb)
 
-    for i, method in enumerate(retrieval_methods):
+    retrieval_methods_tqdm = tqdm(retrieval_methods)
+    for i, method in enumerate(retrieval_methods_tqdm):
 
         datas: List[
             Dict[Literal["xtick", "mean", "stdev", "min", "max"], int | float]
@@ -133,7 +137,7 @@ if __name__ == "__main__":
 
         for run_dir in glob.glob(f"./runs/{method.name}/*"):
 
-            print(f"processing {run_dir}...")
+            retrieval_methods_tqdm.set_description(run_dir)
 
             with open(f"{run_dir}/config.json") as f:
                 run_config = json.load(f)
