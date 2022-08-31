@@ -408,7 +408,7 @@ class NeuralContextSelector(ContextSelector):
             ner_model,
             train_dataset,
             batch_size=batch_size,
-            additional_returns={"scores"},
+            additional_outputs={"scores"},
         )
         assert not preds.scores is None
 
@@ -456,7 +456,7 @@ class NeuralContextSelector(ContextSelector):
                 NERDataset([sent_and_ctx], train_dataset.tags),
                 quiet=True,
                 batch_size=batch_size,
-                additional_returns={"scores"},
+                additional_outputs={"scores"},
             )
             assert not preds_ctx.scores is None
             for preds_scores_ctx, ctx_sent in zip(
