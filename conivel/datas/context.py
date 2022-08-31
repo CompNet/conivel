@@ -164,6 +164,9 @@ class BM25ContextSelector(ContextSelector):
         )
 
 
+context_selector_name_to_class["bm25"] = BM25ContextSelector
+
+
 @dataclass
 class ContextSelectionExample:
     """A context selection example, to be used for training a context selector."""
