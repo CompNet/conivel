@@ -9,6 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import BertForTokenClassification, BertForSequenceClassification, BertTokenizerFast, DataCollatorWithPadding  # type: ignore
 from transformers.tokenization_utils_base import BatchEncoding
 from tqdm import tqdm
+from rank_bm25 import BM25Okapi
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
 from conivel.utils import get_tokenizer
@@ -131,6 +132,36 @@ class NeighborsContextSelector(ContextSelector):
 
 
 context_selector_name_to_class["neighbors"] = NeighborsContextSelector
+
+
+class BM25ContextSelector(ContextSelector):
+    """A context selector that selects sentences according to BM25 ranking formula."""
+
+    def __init__(self, sents_nb: int) -> None:
+        self.sents_nb = sents_nb
+
+    @staticmethod
+    @lru_cache(maxsize=None)
+    def _get_bm25_model(document: Tuple[NERSentence, ...]) -> BM25Okapi:
+        return BM25Okapi([sent.tokens for sent in document])
+
+    def __call__(
+        self, sent_idx: int, document: Tuple[NERSentence, ...]
+    ) -> Tuple[List[NERSentence], List[NERSentence]]:
+        """"""
+        bm25_model = BM25ContextSelector._get_bm25_model(document)
+        query = document[sent_idx].tokens
+        sent_scores = bm25_model.get_scores(query)
+        sent_scores[sent_idx] = -1  # don't retrieve self
+        best_idxs = list(
+            torch.topk(torch.tensor(sent_scores), k=self.sents_nb, dim=0)
+            .indices.sort()
+            .values
+        )
+        return (
+            [document[i] for i in best_idxs if i < sent_idx],
+            [document[i] for i in best_idxs if i > sent_idx],
+        )
 
 
 @dataclass

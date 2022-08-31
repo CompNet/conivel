@@ -19,6 +19,7 @@ sacred = "^0.8.2"
 nltk = "^3.7"
 scikit-learn = "^1.1.1"
 python-telegram-bot = "^13.13"
+rank-bm25 = "^0.2.2"
 
 [tool.poetry.dev-dependencies]
 
