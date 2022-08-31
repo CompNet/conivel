@@ -165,6 +165,7 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
              vocab_size)`` (one tensor per sentence).
     """
     batch_size, seq_size, vocab_size = logits.shape
+    device = logits.device
 
     scores = torch.softmax(logits, dim=2)
     batch_scores = []
@@ -195,7 +196,16 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
         # reduce word scores to be the mean of the scores of the
         # subtokens composing them. The result is a list of tensors of
         # shape (vocab_size).
-        sent_scores = [torch.mean(torch.stack(sc), dim=0) for sc in sent_scores]
+        # note: its possible that a word has no score for its
+        # subtokens. This can happen when the sentence was truncated :
+        # at this point, there are no predictions for some words. In
+        # those cases, we output scores of 0 for each class.
+        sent_scores = [
+            torch.mean(torch.stack(sc), dim=0)
+            if len(sc) > 0
+            else torch.zeros(vocab_size).to(device)  # no prediction for this word
+            for sc in sent_scores
+        ]
         # (sentence_size, vocab_size)
         sent_scores = torch.stack(sent_scores)
         batch_scores.append(sent_scores)
