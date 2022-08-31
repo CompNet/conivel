@@ -30,7 +30,8 @@ class ContextSelector:
         :param document: document in where to find the context
 
         :return: a tuple with the left and right context of the input
-            sent
+                 sent.  Sents must be returned *in order* according to
+                 the original text.
         """
         raise NotImplemented
 
@@ -55,6 +56,7 @@ class RandomContextSelector(ContextSelector):
             [i for i in range(len(document)) if not i == sent_idx],
             k=min(len(document) - 1, self.sents_nb),
         )
+        selected_sents_idx = sorted(selected_sents_idx)
 
         return (
             [document[i] for i in selected_sents_idx if i < sent_idx],
@@ -96,6 +98,7 @@ class SameWordSelector(ContextSelector):
         selected_sents_idx = random.sample(
             selected_sents_idx, k=min(self.sents_nb, len(selected_sents_idx))
         )
+        selected_sents_idx = sorted(selected_sents_idx)
 
         return (
             [document[i] for i in selected_sents_idx if i < sent_idx],
@@ -273,9 +276,12 @@ class NeuralContextSelector(ContextSelector):
             best_ctx_idxs = topk.indices[topk.values > 0]
             left_ctx_idxs_mask = best_ctx_idxs < len(left_ctx)
 
+            left_ctx_idxs = best_ctx_idxs[left_ctx_idxs_mask].sort().values
+            right_ctx_idxs = best_ctx_idxs[~left_ctx_idxs_mask].sort().values
+
         return (
-            [ctx_sents[ctx_idx] for ctx_idx in best_ctx_idxs[left_ctx_idxs_mask]],
-            [ctx_sents[ctx_idx] for ctx_idx in best_ctx_idxs[~left_ctx_idxs_mask]],
+            [ctx_sents[ctx_idx] for ctx_idx in left_ctx_idxs],
+            [ctx_sents[ctx_idx] for ctx_idx in right_ctx_idxs],
         )
 
     def heuristic_retrieve_ctx(
