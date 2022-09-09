@@ -10,6 +10,7 @@ from sacred.observers import FileStorageObserver, TelegramObserver
 from conivel.train import train_ner_model
 from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
+from conivel.datas.the_hunger_games import TheHungerGamesDataset
 from conivel.datas.conll import CoNLLDataset
 from conivel.datas.context import NeuralContextSelector
 from conivel.utils import (
@@ -58,7 +59,10 @@ def main(
     print_config(_run)
 
     dekker_dataset = DekkerDataset()
-    kfolds = dekker_dataset.kfolds(k)
+    the_hunger_games_dataset = TheHungerGamesDataset()
+    dataset = NERDataset.concatenated([dekker_dataset, the_hunger_games_dataset])
+
+    kfolds = dataset.kfolds(k)
 
     for i, (train_set, _) in enumerate(kfolds):
 

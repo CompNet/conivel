@@ -1,5 +1,5 @@
 from __future__ import annotations
-import math
+import math, itertools
 from typing import TYPE_CHECKING, Set, List, Optional, Dict, Tuple, cast
 from collections import defaultdict
 
@@ -105,6 +105,34 @@ class NERDataset(Dataset):
             )
             for train, test in folds
         ]
+
+    @staticmethod
+    def concatenated(datasets: List[NERDataset]) -> NERDataset:
+        """Concatenate several datasets into a single one
+
+        .. note::
+
+            all datasets should have the same context selectors
+
+        :param datasets: list of datasets to concatenate together
+        """
+        assert len(datasets) >= 2
+
+        # check that all datasets have same context selectors
+        for d1, d2 in itertools.combinations(datasets, 2):
+            assert d1.context_selectors == d2.context_selectors
+
+        # try to "smartly" select a tokenizer by taking the first
+        # tokenizer from ``datasets`` that is not ``None``
+        tokenizer = None
+        for dataset in datasets:
+            if not dataset.tokenizer is None:
+                tokenizer = tokenizer
+                break
+
+        return NERDataset(
+            flattened([dataset.documents for dataset in datasets]), tokenizer=tokenizer
+        )
 
     def document_for_sent(self, sent_index: int) -> List[NERSentence]:
         """Get the document corresponding to the index of a sent."""
