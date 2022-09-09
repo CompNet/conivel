@@ -127,7 +127,7 @@ class NERDataset(Dataset):
         tokenizer = None
         for dataset in datasets:
             if not dataset.tokenizer is None:
-                tokenizer = tokenizer
+                tokenizer = dataset.tokenizer
                 break
 
         return NERDataset(
