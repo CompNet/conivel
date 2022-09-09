@@ -66,18 +66,19 @@ class DekkerDataset(NERDataset):
 
                 for line in f:
 
-                    splitted = line.strip().split(" ")
+                    token, tag = line.strip().split(" ")
 
-                    sent.tokens.append(splitted[0])
-                    sent.tags.append(splitted[1])
+                    fixed_token = '"' if token in {"``", "''"} else token
+                    sent.tokens.append(fixed_token)
+                    sent.tags.append(tag)
 
-                    if splitted[0] == "``":
+                    if token == "``":
                         in_quote = True
-                    elif splitted[0] == "''":
+                    elif token == "''":
                         in_quote = False
                         cur_doc.append(sent)
                         sent = NERSentence([], [])
-                    elif splitted[0] in {".", "?", "!"} and not in_quote:
+                    elif token in {".", "?", "!"} and not in_quote:
                         cur_doc.append(sent)
                         sent = NERSentence([], [])
 
