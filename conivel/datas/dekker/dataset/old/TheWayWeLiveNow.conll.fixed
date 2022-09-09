@@ -2191,7 +2191,7 @@ told O
 Mr. B-PER
 Leadham I-PER
 -- O
--LSB- O
+[ O
 Mr. B-PER
 Leadham I-PER
 was O
@@ -2209,7 +2209,7 @@ Messrs. O
 Leadham B-PER
 and O
 Loiter O
--RSB- O
+] O
 -- O
 to O
 send O

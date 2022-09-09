@@ -1441,12 +1441,12 @@ and O
 mighty O
 Miss B-PER
 Saltire I-PER
--LRB- O
+( O
 Lord B-PER
 Dexter I-PER
 's O
 granddaughter O
--RRB- O
+) O
 allowed O
 that O
 her O
@@ -1562,11 +1562,11 @@ hysterics O
 like O
 the O
 heiress O
--LRB- O
+( O
 who O
 paid O
 double O
--RRB- O
+) O
 of O
 St. O
 Kitt O
@@ -1721,12 +1721,12 @@ in O
 novels O
 , O
 which O
--LRB- O
+( O
 and O
 the O
 latter O
 especially O
--RRB- O
+) O
 abound O
 in O
 villains O
@@ -2068,7 +2068,7 @@ Dexter O
 said O
 Miss B-PER
 Saltire I-PER
--LRB- O
+( O
 who O
 , O
 by O
@@ -2078,7 +2078,7 @@ way O
 was O
 rather O
 shabby O
--RRB- O
+) O
 . O
 ` O
 Never O
@@ -2115,13 +2115,13 @@ orphan O
 little O
 Laura B-PER
 Martin I-PER
--LRB- O
+( O
 who O
 was O
 just O
 in O
 round-hand O
--RRB- O
+) O
 , O
 took O
 her O
@@ -2195,7 +2195,7 @@ Jones B-PER
 at O
 this O
 minute O
--LRB- O
+( O
 rather O
 flushed O
 with O
@@ -2208,7 +2208,7 @@ half O
 pint O
 of O
 wine O
--RRB- O
+) O
 , O
 taking O
 out O
@@ -2613,7 +2613,7 @@ venerable O
 and O
 Roman-nosed O
 head O
--LRB- O
+( O
 on O
 the O
 top O
@@ -2625,7 +2625,7 @@ large O
 and O
 solemn O
 turban O
--RRB- O
+) O
 , O
 she O
 said O
@@ -3926,7 +3926,7 @@ of O
 this O
 little O
 conversation O
--LRB- O
+( O
 which O
 took O
 place O
@@ -3940,7 +3940,7 @@ by O
 the O
 river O
 side O
--RRB- O
+) O
 that O
 though O
 Miss B-PER
@@ -4174,7 +4174,7 @@ work O
 , O
 Miss B-PER
 Sedley I-PER
--LRB- O
+( O
 whom O
 we O
 have O
@@ -4220,7 +4220,7 @@ in O
 her O
 place O
 ! O
--RRB- O
+) O
 it O
 could O
 not O
@@ -5151,7 +5151,7 @@ after O
 the O
 evening O
 party O
--LRB- O
+( O
 it O
 was O
 on O
@@ -5167,7 +5167,7 @@ the O
 professors O
 were O
 invited O
--RRB- O
+) O
 and O
 how O
 Miss B-PER
@@ -6527,7 +6527,7 @@ friendship O
 for O
 Miss B-PER
 Sharp I-PER
--LRB- O
+( O
 '' O
 tis O
 the O
@@ -6552,7 +6552,7 @@ to O
 her O
 mistress O
 ' O
--RRB- O
+) O
 , O
 Miss B-PER
 Sharp I-PER
@@ -6623,7 +6623,7 @@ one O
 for O
 Rebecca B-PER
 -- O
--LRB- O
+( O
 indeed O
 , O
 if O
@@ -6684,7 +6684,7 @@ answer O
 to O
 another O
 letter O
--RRB- O
+) O
 . O
 But O
 who O
