@@ -25,16 +25,21 @@ class TheHungerGamesDataset(NERDataset):
 
             sent = NERSentence([], [])
             in_quote = False
+            prev_line_was_space = False
 
             for line in f:
 
-                # cut into paragraphs
+                # cut into chapters
                 if line.isspace():
                     if len(sent) > 0:
                         documents[-1].append(sent)
                         sent = NERSentence([], [])
-                    documents.append([])
+                    if prev_line_was_space:
+                        documents.append([])
+                        continue
+                    prev_line_was_space = True
                     continue
+                prev_line_was_space = False
 
                 token, tag = line.strip().split("\t")
 
@@ -50,5 +55,8 @@ class TheHungerGamesDataset(NERDataset):
                 elif token in {".", "?", "!"} and not in_quote:
                     documents[-1].append(sent)
                     sent = NERSentence([], [])
+
+        # chapter 0 is the title page -> we remove it
+        documents = documents[1:]
 
         super().__init__(documents, **kwargs)
