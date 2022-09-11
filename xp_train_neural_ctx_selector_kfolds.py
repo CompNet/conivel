@@ -62,7 +62,7 @@ def main(
     the_hunger_games_dataset = TheHungerGamesDataset()
     dataset = NERDataset.concatenated([dekker_dataset, the_hunger_games_dataset])
 
-    kfolds = dataset.kfolds(k)
+    kfolds = dataset.kfolds(k, shuffle=True, shuffle_seed=0)
 
     for i, (train_set, _) in enumerate(kfolds):
 

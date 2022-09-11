@@ -1,5 +1,5 @@
 from __future__ import annotations
-import math, itertools
+import math, itertools, copy, random
 from typing import TYPE_CHECKING, Set, List, Optional, Dict, Tuple, cast
 from collections import defaultdict
 
@@ -84,20 +84,36 @@ class NERDataset(Dataset):
         """Return the list of sents of the datasets, ordered by documents."""
         return flattened(self.documents)
 
-    def kfolds(self, k: int) -> List[Tuple[NERDataset, NERDataset]]:
+    def kfolds(
+        self, k: int, shuffle: bool = False, shuffle_seed: Optional[int] = None
+    ) -> List[Tuple[NERDataset, NERDataset]]:
         """Return a kfold of the current dataset
+
+        :param k: number of folds
+        :param shuffle: if ``True``, documents are shuffled before
+            splitting
+        :param shuffle_seed: the seed to use when shuffling.  If
+            ``None``, the global random generator is used.
 
         :return: a list of ``k`` tuples, each tuple being of the form
                  ``(train_set, test_set)``.
         """
-        fold_size = math.ceil(len(self.documents) / k)
+        documents = copy.copy(self.documents)
+        if shuffle:
+            if shuffle_seed is None:
+                random.shuffle(documents)
+            else:
+                random.Random(shuffle_seed).shuffle(documents)
+
+        fold_size = math.ceil(len(documents) / k)
         folds = []
         for i in range(k):
             test_start = fold_size * i
             test_end = fold_size * (i + 1)
-            test_set = self.documents[test_start:test_end]
-            train_set = self.documents[:test_start] + self.documents[test_end:]
+            test_set = documents[test_start:test_end]
+            train_set = documents[:test_start] + documents[test_end:]
             folds.append((train_set, test_set))
+
         return [
             (
                 NERDataset(train, self.tags, self.context_selectors, self.tokenizer),
