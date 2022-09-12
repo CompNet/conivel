@@ -46,9 +46,9 @@ def config():
     max_examples_nb: Optional[int] = None
     examples_usefulness_threshold: float = 0.0
     heuristic_context_selector: str = "random"
+    train_datasets_names: list = ["dekker"]
     heuristic_context_selector_kwargs: Dict[str, Any]
     k: int
-    train_datasets_names: List[str] = ["dekker"]
 
 
 @ex.automain
@@ -70,7 +70,7 @@ def main(
     assert all([d in list(dataset_name_to_class.keys()) for d in train_datasets_names])
 
     dataset = NERDataset.concatenated(
-        [dataset_name_to_class[name] for name in train_datasets_names]
+        [dataset_name_to_class[name]() for name in train_datasets_names]
     )
     kfolds = dataset.kfolds(k, shuffle=True, shuffle_seed=0)
 
