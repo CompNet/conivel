@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, Type, cast
+from typing import Any, Dict, List, Literal, Optional, Tuple, Type, cast
 import random
 from functools import lru_cache
 from dataclasses import dataclass
@@ -175,17 +175,14 @@ class ContextSelectionExample:
     sent: List[str]
     #: context to assist during prediction
     context: List[str]
+    #: context side (doest the context comes from the left or the right of ``sent`` ?)
+    context_side: Literal["left", "right"]
     #: usefulness of the exemple, between -1 and 1.
     usefulness: Optional[float]
 
 
 class ContextSelectionDataset(Dataset):
-    """
-    :todo: watch out for context direction (does it come from the left
-    or the right ?), it might affect performance and is unhandled as
-    of now.  Maybe we should rethink the input method and enclose
-    context in special tokens such as '[CTX]' ?
-    """
+    """"""
 
     def __init__(
         self,
@@ -209,8 +206,15 @@ class ContextSelectionDataset(Dataset):
         """
         example = self.examples[index]
 
+        if example.context_side == "left":
+            tokens = example.context + ["<"] + example.sent
+        elif example.context_side == "right":
+            tokens = example.sent + [">"] + example.context
+        else:
+            raise ValueError
+
         batch: BatchEncoding = self.tokenizer(
-            example.sent + ["[SEP]"] + example.context,
+            tokens,
             is_split_into_words=True,
             truncation=True,
             max_length=512,
@@ -280,8 +284,12 @@ class NeuralContextSelector(ContextSelector):
         # prepare datas for inference
         dataset = ContextSelectionDataset(
             [
-                ContextSelectionExample(sent.tokens, ctx_sent.tokens, None)
-                for ctx_sent in ctx_sents
+                ContextSelectionExample(sent.tokens, ctx_sent.tokens, "left", None)
+                for ctx_sent in left_ctx
+            ]
+            + [
+                ContextSelectionExample(sent.tokens, ctx_sent.tokens, "right", None)
+                for ctx_sent in right_ctx
             ],
             self.tokenizer,
         )
@@ -349,7 +357,6 @@ class NeuralContextSelector(ContextSelector):
         for tag_i, tag in enumerate(sent.tags):
             tag_score = pred_scores[tag_i][tag_to_id[tag]].item()
             errs.append(1 - tag_score)
-        # TODO: mean seems to give very low scores
         return max(errs)
 
     @staticmethod
@@ -459,17 +466,18 @@ class NeuralContextSelector(ContextSelector):
                 additional_outputs={"scores"},
             )
             assert not preds_ctx.scores is None
-            for preds_scores_ctx, ctx_sent in zip(
-                preds_ctx.scores, left_ctx_sents + right_ctx_sents
+            for i, (preds_scores_ctx, ctx_sent) in enumerate(
+                zip(preds_ctx.scores, left_ctx_sents + right_ctx_sents)
             ):
                 pred_ctx_error = NeuralContextSelector._pred_error(
                     sent, preds_scores_ctx, train_dataset.tag_to_id
                 )
                 usefulness = pred_error - pred_ctx_error
                 if abs(usefulness) >= examples_usefulness_threshold:
+                    context_side = "left" if i < len(left_ctx_sents) else "right"
                     ctx_selection_examples.append(
                         ContextSelectionExample(
-                            sent.tokens, ctx_sent.tokens, usefulness
+                            sent.tokens, ctx_sent.tokens, context_side, usefulness
                         )
                     )
 
