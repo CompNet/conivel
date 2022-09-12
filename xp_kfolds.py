@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Union
 import shutil
 from sacred import Experiment
 from sacred.commands import print_config
@@ -28,7 +28,7 @@ if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
 
 @ex.config
 def config():
-    context_selectors: Dict[str, dict] = {}
+    context_selectors: Union[Dict[str, dict], List[Dict[str, dict]]] = {}
     epochs_nb: int = 2
     k: int = 5
     save_models: bool = True
@@ -38,7 +38,7 @@ def config():
 @ex.automain
 def main(
     _run: Run,
-    context_selectors: Dict[str, dict],
+    context_selectors: Union[Dict[str, dict], List[Dict[str, dict]]],
     epochs_nb: int,
     k: int,
     save_models: bool,
@@ -46,13 +46,26 @@ def main(
 ):
     print_config(_run)
 
-    selectors = [
-        context_selector_name_to_class[key](**value)
-        for key, value in context_selectors.items()
-    ]
-
-    dekker_dataset = DekkerDataset(context_selectors=selectors, book_group=book_group)
+    dekker_dataset = DekkerDataset(book_group=book_group)
     kfolds = dekker_dataset.kfolds(k)
+
+    if isinstance(context_selectors, list):
+        assert len(context_selectors) == k
+        for (train_set, test_set), selectors in zip(kfolds, context_selectors):
+            selectors = [
+                context_selector_name_to_class[key](**value)
+                for key, value in selectors.items()
+            ]
+            train_set.context_selectors = selectors
+            test_set.context_selectors = selectors
+    else:
+        selectors = [
+            context_selector_name_to_class[key](**value)
+            for key, value in context_selectors.items()
+        ]
+        for train_set, test_set in kfolds:
+            train_set.context_selectors = selectors
+            test_set.context_selectors = selectors
 
     for i, (train_set, test_set) in enumerate(kfolds):
 
