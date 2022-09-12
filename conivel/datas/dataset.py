@@ -132,7 +132,8 @@ class NERDataset(Dataset):
 
         :param datasets: list of datasets to concatenate together
         """
-        assert len(datasets) >= 2
+        if len(datasets) == 1:
+            return datasets[0]
 
         # check that all datasets have same context selectors
         for d1, d2 in itertools.combinations(datasets, 2):
