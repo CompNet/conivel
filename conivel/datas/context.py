@@ -536,7 +536,7 @@ class NeuralContextSelector(ContextSelector):
                 optimizer.step()
 
                 if not _run is None:
-                    _run.log_scalar("training.loss", out.loss.item())
+                    _run.log_scalar("neural_selector_training.loss", out.loss.item())
 
                 data_tqdm.set_description(f"loss : {out.loss.item():.3f}")
                 epoch_losses.append(out.loss.item())
@@ -544,7 +544,9 @@ class NeuralContextSelector(ContextSelector):
             mean_epoch_loss = sum(epoch_losses) / len(epoch_losses)
             tqdm.write(f"epoch mean loss : {mean_epoch_loss:.3f}")
             if not _run is None:
-                _run.log_scalar("training.mean_epoch_loss", mean_epoch_loss)
+                _run.log_scalar(
+                    "neural_selector_training.mean_epoch_loss", mean_epoch_loss
+                )
 
         return ctx_classifier
 

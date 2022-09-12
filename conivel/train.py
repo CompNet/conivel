@@ -101,13 +101,13 @@ def train_ner_model(
             if not quiet:
                 data_tqdm.set_description(f"loss : {loss.item():.3f}")
             if not _run is None:
-                _run.log_scalar("training.loss", loss.item())
+                _run.log_scalar("ner_training.loss", loss.item())
             epoch_losses.append(loss.item())
 
         mean_epoch_loss = sum(epoch_losses) / len(epoch_losses)
         tqdm.write(f"epoch mean loss : {mean_epoch_loss:.3f}")
         if not _run is None:
-            _run.log_scalar("training.mean_epoch_loss", mean_epoch_loss)
+            _run.log_scalar("ner_training.mean_epoch_loss", mean_epoch_loss)
 
         # compute, record and print validation metrics
         predicted_tags = predict(
@@ -118,9 +118,9 @@ def train_ner_model(
         )
 
         if not _run is None:
-            _run.log_scalar("training.validation_precision", precision)
-            _run.log_scalar("training.validation_recall", recall)
-            _run.log_scalar("training.validation_f1", f1)
+            _run.log_scalar("ner_training.validation_precision", precision)
+            _run.log_scalar("ner_training.validation_recall", recall)
+            _run.log_scalar("ner_training.validation_f1", f1)
 
         tqdm.write(
             json.dumps(
