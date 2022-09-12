@@ -47,6 +47,7 @@ def config():
     examples_usefulness_threshold: float = 0.0
     heuristic_context_selector: str = "random"
     train_datasets_names: list = ["dekker"]
+    shuffle_kfolds_seed: Optional[int] = None
     heuristic_context_selector_kwargs: Dict[str, Any]
     k: int
 
@@ -61,9 +62,10 @@ def main(
     max_examples_nb: Optional[int],
     examples_usefulness_threshold: float,
     heuristic_context_selector: str,
+    train_datasets_names: List[str],
+    shuffle_kfolds_seed: Optional[int],
     heuristic_context_selector_kwargs: Dict[str, Any],
     k: int,
-    train_datasets_names: List[str],
 ):
     print_config(_run)
 
@@ -72,7 +74,9 @@ def main(
     dataset = NERDataset.concatenated(
         [dataset_name_to_class[name]() for name in train_datasets_names]
     )
-    kfolds = dataset.kfolds(k, shuffle=True, shuffle_seed=0)
+    kfolds = dataset.kfolds(
+        k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
+    )
 
     for i, (train_set, _) in enumerate(kfolds):
 
