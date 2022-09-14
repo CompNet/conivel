@@ -28,7 +28,7 @@ if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
 
 @ex.config
 def config():
-    context_selectors: Union[Dict[str, dict], List[Dict[str, dict]]] = {}
+    context_selectors: Union[Dict[str, dict], list] = {}
     epochs_nb: int = 2
     k: int = 5
     shuffle_kfolds_seed: Optional[int] = None
