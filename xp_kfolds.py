@@ -31,6 +31,7 @@ def config():
     context_selectors: Union[Dict[str, dict], List[Dict[str, dict]]] = {}
     epochs_nb: int = 2
     k: int = 5
+    shuffle_kfolds_seed: Optional[int] = None
     save_models: bool = True
     book_group: Optional[str] = None
 
@@ -41,13 +42,16 @@ def main(
     context_selectors: Union[Dict[str, dict], List[Dict[str, dict]]],
     epochs_nb: int,
     k: int,
+    shuffle_kfolds_seed: Optional[int],
     save_models: bool,
     book_group: Optional[str],
 ):
     print_config(_run)
 
     dekker_dataset = DekkerDataset(book_group=book_group)
-    kfolds = dekker_dataset.kfolds(k)
+    kfolds = dekker_dataset.kfolds(
+        k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
+    )
 
     if isinstance(context_selectors, list):
         assert len(context_selectors) == k
