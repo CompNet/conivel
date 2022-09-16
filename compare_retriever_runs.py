@@ -14,7 +14,7 @@ class RetrievalMethod:
         raise NotImplementedError
 
     def display_name(self) -> str:
-        return self.__class__.name
+        return self.name
 
 
 class RandomRetrievalMethod(RetrievalMethod):
@@ -23,6 +23,14 @@ class RandomRetrievalMethod(RetrievalMethod):
 
     def xtick_from_config(self, config: dict) -> int:
         return config["context_selectors"]["random"]["sents_nb"]
+
+
+class BM25RetrievalMethod(RetrievalMethod):
+
+    name = "bm25"
+
+    def xtick_from_config(self, config: dict) -> int:
+        return config["context_selectors"]["bm25"]["sents_nb"]
 
 
 class LeftContextRetrievalMethod(RetrievalMethod):
@@ -85,6 +93,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--metric_name", type=str, default="dekker_f1")
+    parser.add_argument("-p", "--phase", type=str, default="phase1")
     parser.add_argument(
         "-e",
         "--errorbars",
@@ -95,26 +104,38 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # load base f1
-    with open("./runs/no_context/metrics.json") as f:
+    with open(f"./runs/{args.phase}/no_context/metrics.json") as f:
         no_ctx_metrics = json.load(f)
     no_ctx_metrics = no_ctx_metrics[args.metric_name]["values"]
 
-    # load f1s from context xps
-    retrieval_methods = [
-        RandomRetrievalMethod(),
-        LeftContextRetrievalMethod(),
-        RightContextRetrievalMethod(),
-        NeighborsContextRetrievalMethod(),
-        SameWordContextRetrievalMethod(),
-        NeuralContextRetrievalMethod("right", 6),
-        NeuralContextRetrievalMethod("right", 12),
-        NeuralContextRetrievalMethod("neighbors", 6),
-        NeuralContextRetrievalMethod("neighbors", 12),
-        NeuralContextRetrievalMethod("random", 6),
-        NeuralContextRetrievalMethod("random", 12),
-        NeuralContextRetrievalMethod("sameword", 6),
-        NeuralContextRetrievalMethod("sameword", 12),
-    ]
+    if args.phase == "phase1":
+        # load f1s from context xps
+        retrieval_methods = [
+            RandomRetrievalMethod(),
+            LeftContextRetrievalMethod(),
+            RightContextRetrievalMethod(),
+            NeighborsContextRetrievalMethod(),
+            SameWordContextRetrievalMethod(),
+            NeuralContextRetrievalMethod("right", 6),
+            NeuralContextRetrievalMethod("right", 12),
+            NeuralContextRetrievalMethod("neighbors", 6),
+            NeuralContextRetrievalMethod("neighbors", 12),
+            NeuralContextRetrievalMethod("random", 6),
+            NeuralContextRetrievalMethod("random", 12),
+            NeuralContextRetrievalMethod("sameword", 6),
+            NeuralContextRetrievalMethod("sameword", 12),
+        ]
+    elif args.phase == "phase2":
+        retrieval_methods = [
+            RandomRetrievalMethod(),
+            LeftContextRetrievalMethod(),
+            RightContextRetrievalMethod(),
+            NeighborsContextRetrievalMethod(),
+            SameWordContextRetrievalMethod(),
+            BM25RetrievalMethod(),
+        ]
+    else:
+        raise RuntimeError
 
     cols_nb = math.ceil(len(retrieval_methods) / 3)
     fig, axs = plt.subplots(3, cols_nb)
@@ -135,7 +156,7 @@ if __name__ == "__main__":
             }
         )
 
-        for run_dir in glob.glob(f"./runs/{method.name}/*"):
+        for run_dir in glob.glob(f"./runs/{args.phase}/{method.name}/*"):
 
             retrieval_methods_tqdm.set_description(run_dir)
 
