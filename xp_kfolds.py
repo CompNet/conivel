@@ -8,7 +8,7 @@ from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 from transformers import BertForTokenClassification  # type: ignore
 from conivel.datas.dekker import DekkerDataset
-from conivel.datas.context import context_selector_name_to_class
+from conivel.datas.context import NeuralContextSelector, context_selector_name_to_class
 from conivel.predict import predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
@@ -60,15 +60,31 @@ def main(
                 context_selector_name_to_class[key](**value)
                 for key, value in selectors.items()
             ]
-            train_set.context_selectors = selectors
+            # PERFORMANCE HACK: in case of the neural retriever, we
+            # only use the underlying heuristic at training time
+            train_selectors = [
+                sel.heuristic_context_selector
+                if isinstance(sel, NeuralContextSelector)
+                else sel
+                for sel in selectors
+            ]
+            train_set.context_selectors = train_selectors
             test_set.context_selectors = selectors
     else:
         selectors = [
             context_selector_name_to_class[key](**value)
             for key, value in context_selectors.items()
         ]
+        # PERFORMANCE HACK: in case of the neural retriever, we
+        # only use the underlying heuristic at training time
+        train_selectors = [
+            sel.heuristic_context_selector
+            if isinstance(sel, NeuralContextSelector)
+            else sel
+            for sel in selectors
+        ]
         for train_set, test_set in kfolds:
-            train_set.context_selectors = selectors
+            train_set.context_selectors = train_selectors
             test_set.context_selectors = selectors
 
     for i, (train_set, test_set) in enumerate(kfolds):
