@@ -54,7 +54,7 @@ class NeighborsContextRetrievalMethod(RetrievalMethod):
     name = "neighbors"
 
     def xtick_from_config(self, config: dict) -> int:
-        return config["context_selectors"]["neighbors"]["left_sents_nb"] * 2
+        return config["context_selectors"]["neighbors"]["left_sents_nb"]
 
     def display_name(self) -> str:
         return "left + right"
@@ -78,6 +78,10 @@ class NeuralContextRetrievalMethod(RetrievalMethod):
         self.name = f"neural_{heuristic_name}_{heuristic_sents_nb}"
 
     def xtick_from_config(self, config: dict) -> int:
+        # case of a kfold training of a neural selector with k
+        # different models : we have k similar configs
+        if isinstance(config["context_selectors"], list):
+            config["context_selectors"] = config["context_selectors"][0]
         return config["context_selectors"]["neural"]["sents_nb"]
 
     def display_name(self) -> str:
@@ -133,6 +137,11 @@ if __name__ == "__main__":
             NeighborsContextRetrievalMethod(),
             SameWordContextRetrievalMethod(),
             BM25RetrievalMethod(),
+            NeuralContextRetrievalMethod("random", 12),
+            NeuralContextRetrievalMethod("left", 12),
+            NeuralContextRetrievalMethod("right", 12),
+            NeuralContextRetrievalMethod("neighbors", 12),
+            NeuralContextRetrievalMethod("sameword", 12),
         ]
     else:
         raise RuntimeError

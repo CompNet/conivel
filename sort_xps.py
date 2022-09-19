@@ -48,6 +48,14 @@ if __name__ == "__main__":
         with open(f"{run_dir}/config.json") as f:
             config = json.load(f)
 
+        # in the case of a kfold experiment, we can have k context
+        # selectors. This was done so we can give a different neural
+        # model for each fold of the neural context selector. In that
+        # case (which is the only case we know of at the time of
+        # writing), configs are the same except for the name of the model.
+        if isinstance(config["context_selectors"], list):
+            config["context_selectors"] = config["context_selectors"][0]
+
         if "neural" in config["context_selectors"]:
             neural_config = config["context_selectors"]["neural"]
             run_group = neural_run_group(neural_config)
