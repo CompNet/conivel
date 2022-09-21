@@ -142,6 +142,7 @@ if __name__ == "__main__":
             NeuralContextRetrievalMethod("right", 12),
             NeuralContextRetrievalMethod("neighbors", 12),
             NeuralContextRetrievalMethod("sameword", 12),
+            NeuralContextRetrievalMethod("bm25", 12),
         ]
     else:
         raise RuntimeError
