@@ -460,7 +460,11 @@ class NeuralContextSelector(ContextSelector):
             # sentences
             preds_ctx = predict(
                 ner_model,
-                NERDataset([sent_and_ctx], train_dataset.tags),
+                NERDataset(
+                    [sent_and_ctx],
+                    train_dataset.tags,
+                    tokenizer=train_dataset.tokenizer,
+                ),
                 quiet=True,
                 batch_size=batch_size,
                 additional_outputs={"scores"},
