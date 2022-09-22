@@ -512,10 +512,13 @@ class NeuralContextSelector(ContextSelector):
 
         :return: a trained ``BertForSequenceClassification``
         """
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         ctx_classifier = BertForSequenceClassification.from_pretrained(
             "bert-base-cased", problem_type="regression", num_labels=1
         )  # type: ignore
         ctx_classifier = cast(BertForSequenceClassification, ctx_classifier)
+        ctx_classifier = ctx_classifier.to(device)
 
         optimizer = torch.optim.AdamW(ctx_classifier.parameters(), lr=learning_rate)
 
@@ -533,6 +536,8 @@ class NeuralContextSelector(ContextSelector):
             for X in data_tqdm:
 
                 optimizer.zero_grad()
+
+                X = X.to(device)
 
                 out = ctx_classifier(
                     X["input_ids"],
