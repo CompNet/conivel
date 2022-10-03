@@ -75,6 +75,7 @@ class DekkerDataset(NERDataset):
                         continue
 
                     fixed_token = '"' if token in {"``", "''"} else token
+                    fixed_token = "'" if token == "`" else token
                     sent.tokens.append(fixed_token)
                     sent.tags.append(tag)
 

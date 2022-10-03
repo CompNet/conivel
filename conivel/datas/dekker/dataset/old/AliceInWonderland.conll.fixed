@@ -3481,13 +3481,14 @@ I O
 try O
 and O
 say O
-`` O
+` O
 How O
 doth O
 the O
 little O
 -- O
-``' O
+' O
+'' O
 and O
 she O
 crossed O
@@ -3555,6 +3556,7 @@ every O
 golden O
 scale O
 ! O
+'' O
 `` O
 How O
 cheerfully O
@@ -3684,6 +3686,7 @@ heads O
 down O
 and O
 saying O
+'' O
 `` O
 Come O
 up O
@@ -5537,7 +5540,7 @@ Mercia O
 and O
 Northumbria O
 -- O
-' O
+'' O
 `` O
 Ugh O
 ! O
@@ -5629,7 +5632,7 @@ found O
 it O
 advisable O
 -- O
-' O
+'' O
 `` O
 Found O
 WHAT O
@@ -6803,7 +6806,7 @@ you O
 to O
 death O
 . O
-' O
+'' O
 `` O
 You O
 are O
