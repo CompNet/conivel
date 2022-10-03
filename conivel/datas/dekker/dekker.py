@@ -64,9 +64,15 @@ class DekkerDataset(NERDataset):
                 sent = NERSentence([], [])
                 in_quote = False
 
-                for line in f:
+                for i, line in enumerate(f):
 
-                    token, tag = line.strip().split(" ")
+                    try:
+                        token, tag = line.strip().split(" ")
+                    except ValueError:
+                        print(f"error processing line {i+1} of book {book_path}")
+                        print(f"line content was : '{line}'")
+                        print("trying to proceed...")
+                        continue
 
                     fixed_token = '"' if token in {"``", "''"} else token
                     sent.tokens.append(fixed_token)
