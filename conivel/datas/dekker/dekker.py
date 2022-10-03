@@ -74,18 +74,21 @@ class DekkerDataset(NERDataset):
                         print("trying to proceed...")
                         continue
 
+                    if not in_quote and token == "``":
+                        cur_doc.append(sent)
+                        sent = NERSentence([], [])
+                        in_quote = True
+
                     fixed_token = '"' if token in {"``", "''"} else token
                     fixed_token = "'" if token == "`" else token
                     sent.tokens.append(fixed_token)
                     sent.tags.append(tag)
 
-                    if token == "``":
-                        in_quote = True
-                    elif token == "''":
+                    if token == "''":
                         in_quote = False
                         cur_doc.append(sent)
                         sent = NERSentence([], [])
-                    elif token in {".", "?", "!"} and not in_quote:
+                    elif token in [".", "?", "!"] and not in_quote:
                         cur_doc.append(sent)
                         sent = NERSentence([], [])
 
