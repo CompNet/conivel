@@ -11,8 +11,8 @@ from transformers.tokenization_utils_base import BatchEncoding
 
 @dataclass(frozen=True)
 class NERSentence:
-    tokens: List[str]
-    tags: List[str]
+    tokens: List[str] = field(default_factory=lambda: [])
+    tags: List[str] = field(default_factory=lambda: [])
     left_context: List[NERSentence] = field(default_factory=lambda: [])
     right_context: List[NERSentence] = field(default_factory=lambda: [])
 

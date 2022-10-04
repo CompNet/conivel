@@ -52,36 +52,56 @@ class DekkerDataset(NERDataset):
 
         for book_path in new_paths + old_paths:
 
-            cur_doc = []
-
+            # skip book if it's not in the given book group
             if not book_group is None:
                 name = book_name(book_path)
                 if not name in book_groups[book_group]:
                     continue
 
+            # load tokens and tags from CoNLL formatted file
+            tokens = []
+            tags = []
+
             with open(book_path) as f:
 
-                sent = NERSentence([], [])
-                in_quote = False
+                for i, line in enumerate(f):
 
-                for line in f:
+                    try:
+                        token, tag = line.strip().split(" ")
+                    except ValueError:
+                        print(f"error processing line {i+1} of book {book_path}")
+                        print(f"line content was : '{line}'")
+                        print("trying to proceed...")
+                        continue
 
-                    token, tag = line.strip().split(" ")
+                    tokens.append(token)
+                    tags.append(tag)
 
-                    fixed_token = '"' if token in {"``", "''"} else token
-                    sent.tokens.append(fixed_token)
-                    sent.tags.append(tag)
+            # parse into sentences
+            doc = []
+            sent = NERSentence()
 
-                    if token == "``":
-                        in_quote = True
-                    elif token == "''":
-                        in_quote = False
-                        cur_doc.append(sent)
-                        sent = NERSentence([], [])
-                    elif token in {".", "?", "!"} and not in_quote:
-                        cur_doc.append(sent)
-                        sent = NERSentence([], [])
+            for i, (token, tag) in enumerate(zip(tokens, tags)):
 
-            documents.append(cur_doc)
+                fixed_token = '"' if token in {"``", "''"} else token
+                fixed_token = "'" if token == "`" else fixed_token
+                next_token = tokens[i + 1] if i < len(tokens) - 1 else None
+
+                sent.tokens.append(fixed_token)
+                sent.tags.append(tag)
+
+                # quote ends next token : skip this token
+                # this avoids problem with cases where we have punctuation
+                # at the end of a quote (otherwise, the end of the quote
+                # would be part of the next sentence)
+                if next_token == "''":
+                    continue
+
+                # sentence end
+                if token in ["''", ".", "?", "!"]:
+                    doc.append(sent)
+                    sent = NERSentence()
+
+            documents.append(doc)
 
         super().__init__(documents, **kwargs)
