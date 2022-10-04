@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal, Optional, Tuple, Type, cast
+from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union, cast
 import random
 from functools import lru_cache
 from dataclasses import dataclass
@@ -234,7 +234,7 @@ class NeuralContextSelector(ContextSelector):
 
     def __init__(
         self,
-        pretrained_model_name: str,
+        pretrained_model: Union[str, BertForSequenceClassification],
         heuristic_context_selector: str,
         heuristic_context_selector_kwargs: Dict[str, Any],
         batch_size: int,
@@ -251,10 +251,14 @@ class NeuralContextSelector(ContextSelector):
         :param batch_size: batch size used at inference
         :param sents_nb: max number of sents to retrieve
         """
-        self.ctx_classifier = BertForSequenceClassification.from_pretrained(
-            pretrained_model_name
-        )
+        if isinstance(pretrained_model, str):
+            self.ctx_classifier = BertForSequenceClassification.from_pretrained(
+                pretrained_model
+            )
+        else:
+            self.ctx_classifier = pretrained_model
         self.ctx_classifier = cast(BertForSequenceClassification, self.ctx_classifier)
+
         self.tokenizer = get_tokenizer()
 
         selector_class = context_selector_name_to_class[heuristic_context_selector]

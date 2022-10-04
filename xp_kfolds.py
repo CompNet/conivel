@@ -8,7 +8,7 @@ from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 from transformers import BertForTokenClassification  # type: ignore
 from conivel.datas.dekker import DekkerDataset
-from conivel.datas.context import NeuralContextSelector, context_selector_name_to_class
+from conivel.datas.context import context_selector_name_to_class
 from conivel.predict import predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
@@ -28,7 +28,7 @@ if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
 
 @ex.config
 def config():
-    context_selectors: Union[Dict[str, dict], list] = {}
+    context_selectors: Dict[str, dict] = {}
     epochs_nb: int = 2
     k: int = 5
     shuffle_kfolds_seed: Optional[int] = None
@@ -53,39 +53,13 @@ def main(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
 
-    if isinstance(context_selectors, list):
-        assert len(context_selectors) == k
-        for (train_set, test_set), selectors in zip(kfolds, context_selectors):
-            selectors = [
-                context_selector_name_to_class[key](**value)
-                for key, value in selectors.items()
-            ]
-            # PERFORMANCE HACK: in case of the neural retriever, we
-            # only use the underlying heuristic at training time
-            train_selectors = [
-                sel.heuristic_context_selector
-                if isinstance(sel, NeuralContextSelector)
-                else sel
-                for sel in selectors
-            ]
-            train_set.context_selectors = train_selectors
-            test_set.context_selectors = selectors
-    else:
-        selectors = [
-            context_selector_name_to_class[key](**value)
-            for key, value in context_selectors.items()
-        ]
-        # PERFORMANCE HACK: in case of the neural retriever, we
-        # only use the underlying heuristic at training time
-        train_selectors = [
-            sel.heuristic_context_selector
-            if isinstance(sel, NeuralContextSelector)
-            else sel
-            for sel in selectors
-        ]
-        for train_set, test_set in kfolds:
-            train_set.context_selectors = train_selectors
-            test_set.context_selectors = selectors
+    selectors = [
+        context_selector_name_to_class[key](**value)
+        for key, value in context_selectors.items()
+    ]
+    for train_set, test_set in kfolds:
+        train_set.context_selectors = selectors
+        test_set.context_selectors = selectors
 
     for i, (train_set, test_set) in enumerate(kfolds):
 
