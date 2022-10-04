@@ -308,7 +308,7 @@ class NeuralContextSelector(ContextSelector):
         # inference using self.ctx_classifier
         self.ctx_classifier = self.ctx_classifier.eval()
         with torch.no_grad():
-            scores = torch.zeros((0,))
+            scores = torch.zeros((0,)).to(device)
             for X in dataloader:
                 X = X.to(device)
                 # out.logits is of shape (batch_size, 1)
