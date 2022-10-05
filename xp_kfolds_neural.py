@@ -174,7 +174,7 @@ def main(
             ]
             test_set.context_selectors = [neural_context_retriever]
 
-            with RunLogScope(_run, f"ner.fold{i}.{i}_sents"):
+            with RunLogScope(_run, f"ner.fold{i}.{sents_nb}_sents"):
 
                 ner_model = BertForTokenClassification.from_pretrained(
                     "bert-base-cased",
