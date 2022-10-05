@@ -199,6 +199,6 @@ def main(
             precision, recall, f1 = score_ner(
                 test_set.sents(), test_preds, ignored_classes={"MISC", "ORG", "LOC"}
             )
-            _run.log_scalar("test_precision", precision)
-            _run.log_scalar("test_recall", recall)
-            _run.log_scalar("test_f1", f1)
+            _run.log_scalar(f"test_precision.fold{i}", precision)
+            _run.log_scalar(f"test_recall.fold{i}", recall)
+            _run.log_scalar(f"test_f1.fold{i}", f1)
