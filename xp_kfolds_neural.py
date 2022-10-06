@@ -1,6 +1,5 @@
-import os
+import os, gc
 from typing import Dict, List, Optional, Union
-import shutil
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
@@ -100,7 +99,7 @@ def main(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
 
-    for i, (train_set, test_set) in enumerate(kfolds):
+    for fold_i, (train_set, test_set) in enumerate(kfolds):
 
         # train context selector
         ner_model = BertForTokenClassification.from_pretrained(
@@ -115,7 +114,7 @@ def main(
             2, shuffle=False
         )[0]
 
-        with RunLogScope(_run, f"ctx_retrieval_training.fold{i}"):
+        with RunLogScope(_run, f"ctx_retrieval_training.fold{fold_i}"):
 
             # train a NER model on half the training dataset
             ner_model = train_ner_model(
@@ -142,6 +141,10 @@ def main(
             sacred_archive_jsonifiable_as_file(
                 _run, ctx_retrieval_dataset.to_jsonifiable(), "ctx_retrieval_dataset"
             )
+
+            # NER model is not needed anymore : free the GPU of it
+            del ner_model
+            gc.collect()
 
             # train a context retriever using the previously generated
             # context retrieval dataset
@@ -174,7 +177,7 @@ def main(
             ]
             test_set.context_selectors = [neural_context_retriever]
 
-            with RunLogScope(_run, f"ner.fold{i}.{sents_nb}_sents"):
+            with RunLogScope(_run, f"ner.fold{fold_i}.{sents_nb}_sents"):
 
                 ner_model = BertForTokenClassification.from_pretrained(
                     "bert-base-cased",
@@ -196,9 +199,7 @@ def main(
                     sacred_archive_huggingface_model(_run, ner_model, "ner_model")
 
             test_preds = predict(ner_model, test_set).tags
-            precision, recall, f1 = score_ner(
-                test_set.sents(), test_preds, ignored_classes={"MISC", "ORG", "LOC"}
-            )
-            _run.log_scalar(f"test_precision.fold{i}", precision)
-            _run.log_scalar(f"test_recall.fold{i}", recall)
-            _run.log_scalar(f"test_f1.fold{i}", f1)
+            precision, recall, f1 = score_ner(test_set.sents(), test_preds)
+            _run.log_scalar(f"test_precision.fold{fold_i}", precision)
+            _run.log_scalar(f"test_recall.fold{fold_i}", recall)
+            _run.log_scalar(f"test_f1.fold{fold_i}", f1)
