@@ -6,6 +6,7 @@ from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 from transformers import BertForTokenClassification  # type: ignore
+import torch
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.context import NeuralContextSelector, context_selector_name_to_class
 from conivel.predict import predict
@@ -27,6 +28,11 @@ if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
     ex.observers.append(
         TelegramObserver.from_config(f"{script_dir}/telegram_observer_config.json")
     )
+
+
+def gpu_memory_usage() -> float:
+    mem_infos = torch.cuda.mem_get_info()
+    return 1 - mem_infos[0] / mem_infos[1]  # type: ignore
 
 
 @ex.config
@@ -204,6 +210,8 @@ def main(
                 sacred_archive_huggingface_model(_run, ner_model, "ner_model")
 
         for sents_nb in range(min_sents_nb, max_sents_nb + 1):
+
+            _run.log_scalar("gpu_usage", gpu_memory_usage())
 
             neural_context_retriever = NeuralContextSelector(
                 ctx_retriever_model,
