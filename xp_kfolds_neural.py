@@ -42,7 +42,7 @@ def config():
     book_group: Optional[str] = None
     # list of folds number (starting from 0) to perform the experiment
     # on. If not specified, perform the experiment on all folds
-    folds_list: Optional[List[int]] = None
+    folds_list: Optional[list] = None
 
     # -- common parameters
     batch_size: int
