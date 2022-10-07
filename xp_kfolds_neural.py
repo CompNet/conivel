@@ -40,6 +40,9 @@ def config():
     # wether to restrict the experiment to a group of book in the
     # Dekker et al's dataset
     book_group: Optional[str] = None
+    # list of folds number (starting from 0) to perform the experiment
+    # on. If not specified, perform the experiment on all folds
+    folds_list: Optional[List[int]] = None
 
     # -- common parameters
     batch_size: int
@@ -79,6 +82,7 @@ def main(
     k: int,
     shuffle_kfolds_seed: Optional[int],
     book_group: Optional[str],
+    folds_list: Optional[List[int]],
     batch_size: int,
     save_models: bool,
     retrieval_heuristic: str,
@@ -100,6 +104,9 @@ def main(
     )
 
     for fold_i, (train_set, test_set) in enumerate(kfolds):
+
+        if not folds_list is None and not fold_i in folds_list:
+            continue
 
         # train context selector
         ner_model = BertForTokenClassification.from_pretrained(
