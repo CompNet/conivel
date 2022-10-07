@@ -1,4 +1,4 @@
-import os, gc
+import os, gc, copy
 from typing import Dict, List, Optional, Union
 from sacred import Experiment
 from sacred.commands import print_config
@@ -49,6 +49,8 @@ def config():
     # wether models should be saved or not
     save_models: bool = True
     # pre-retrieval heuristic name
+    # only officially supports 'random', 'sameword' and 'bm25' for
+    # now
     retrieval_heuristic: str = "random"
     # parameters for the retrieval heuristic used when generating a
     # context retrieval dataset
@@ -96,6 +98,7 @@ def main(
     ner_epochs_nb: int,
     ner_lr: float,
 ):
+    assert retrieval_heuristic in ["random", "bm25", "sameword"]
     print_config(_run)
 
     dekker_dataset = DekkerDataset(book_group=book_group)
@@ -167,6 +170,39 @@ def main(
                     _run, ctx_retriever_model, "ctx_retriever_model"
                 )
 
+        # PERFORMANCE HACK: only use the retrieval heuristic at
+        # training time. At training time, the number of sentences
+        # retrieved is random between ``min_sents_nb`` and
+        # ``max_sents_nb`` for each example.
+        train_set_heuristic_kwargs = copy.deepcopy(retrieval_heuristic_inference_kwargs)
+        train_set_heuristic_kwargs["sents_nb"] = list(
+            range(min_sents_nb, max_sents_nb + 1)
+        )
+        train_set_heuristic = context_selector_name_to_class[retrieval_heuristic](
+            **train_set_heuristic_kwargs
+        )
+        train_set.context_selectors = [train_set_heuristic]
+
+        # train ner model on train_set
+        ner_model = BertForTokenClassification.from_pretrained(
+            "bert-base-cased",
+            num_labels=train_set.tags_nb,
+            label2id=train_set.tag_to_id,
+            id2label={v: k for k, v in train_set.tag_to_id.items()},
+        )
+        with RunLogScope(_run, f"ner.fold{fold_i}"):
+            ner_model = train_ner_model(
+                ner_model,
+                train_set,
+                train_set,
+                _run=_run,
+                epochs_nb=ner_epochs_nb,
+                batch_size=batch_size,
+                learning_rate=ner_lr,
+            )
+            if save_models:
+                sacred_archive_huggingface_model(_run, ner_model, "ner_model")
+
         for sents_nb in range(min_sents_nb, max_sents_nb + 1):
 
             neural_context_retriever = NeuralContextSelector(
@@ -176,37 +212,10 @@ def main(
                 batch_size,
                 sents_nb,
             )
-
-            # - PERFORMANCE HACK: only use the retrieval heuristic at
-            #   training time
-            train_set.context_selectors = [
-                neural_context_retriever.heuristic_context_selector
-            ]
             test_set.context_selectors = [neural_context_retriever]
-
-            with RunLogScope(_run, f"ner.fold{fold_i}.{sents_nb}_sents"):
-
-                ner_model = BertForTokenClassification.from_pretrained(
-                    "bert-base-cased",
-                    num_labels=train_set.tags_nb,
-                    label2id=train_set.tag_to_id,
-                    id2label={v: k for k, v in train_set.tag_to_id.items()},
-                )
-
-                ner_model = train_ner_model(
-                    ner_model,
-                    train_set,
-                    train_set,
-                    _run=_run,
-                    epochs_nb=ner_epochs_nb,
-                    batch_size=batch_size,
-                    learning_rate=ner_lr,
-                )
-                if save_models:
-                    sacred_archive_huggingface_model(_run, ner_model, "ner_model")
 
             test_preds = predict(ner_model, test_set).tags
             precision, recall, f1 = score_ner(test_set.sents(), test_preds)
-            _run.log_scalar(f"test_precision.fold{fold_i}", precision)
-            _run.log_scalar(f"test_recall.fold{fold_i}", recall)
-            _run.log_scalar(f"test_f1.fold{fold_i}", f1)
+            _run.log_scalar(f"test_precision.fold{fold_i}", precision, step=sents_nb)
+            _run.log_scalar(f"test_recall.fold{fold_i}", recall, step=sents_nb)
+            _run.log_scalar(f"test_f1.fold{fold_i}", f1, step=sents_nb)

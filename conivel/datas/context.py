@@ -43,9 +43,11 @@ context_selector_name_to_class: Dict[str, Type[ContextSelector]] = {}
 class RandomContextSelector(ContextSelector):
     """A context selector choosing context at random in a document."""
 
-    def __init__(self, sents_nb):
+    def __init__(self, sents_nb: Union[int, List[int]]):
         """
-        :param sents_nb: number of context sentences to select
+        :param sents_nb: number of context sentences to select.  If a
+            list, the number of context sentences to select will be
+            picked randomly among this list at call time.
         """
         self.sents_nb = sents_nb
 
@@ -53,9 +55,12 @@ class RandomContextSelector(ContextSelector):
         self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """ """
+        if isinstance((sents_nb := self.sents_nb), list):
+            sents_nb = random.choice(sents_nb)
+
         selected_sents_idx = random.sample(
             [i for i in range(len(document)) if not i == sent_idx],
-            k=min(len(document) - 1, self.sents_nb),
+            k=min(len(document) - 1, sents_nb),
         )
         selected_sents_idx = sorted(selected_sents_idx)
 
@@ -74,7 +79,12 @@ class SameWordSelector(ContextSelector):
 
     """
 
-    def __init__(self, sents_nb: int):
+    def __init__(self, sents_nb: Union[int, List[int]]):
+        """
+        :param sents_nb: number of context sentences to select.  If a
+            list, the number of context sentences to select will be
+            picked randomly among this list at call time.
+        """
         self.sents_nb = sents_nb
         # nltk pos tagging dependency
         nltk.download("averaged_perceptron_tagger")
@@ -83,6 +93,9 @@ class SameWordSelector(ContextSelector):
         self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """ """
+        if isinstance((sents_nb := self.sents_nb), list):
+            sents_nb = random.choice(sents_nb)
+
         sent = document[sent_idx]
         tagged = nltk.pos_tag(sent.tokens)
         name_tokens = set([t[0] for t in tagged if t[1].startswith("NN")])
@@ -97,7 +110,7 @@ class SameWordSelector(ContextSelector):
 
         # keep at most k sentences
         selected_sents_idx = random.sample(
-            selected_sents_idx, k=min(self.sents_nb, len(selected_sents_idx))
+            selected_sents_idx, k=min(sents_nb, len(selected_sents_idx))
         )
         selected_sents_idx = sorted(selected_sents_idx)
 
@@ -137,7 +150,12 @@ context_selector_name_to_class["neighbors"] = NeighborsContextSelector
 class BM25ContextSelector(ContextSelector):
     """A context selector that selects sentences according to BM25 ranking formula."""
 
-    def __init__(self, sents_nb: int) -> None:
+    def __init__(self, sents_nb: Union[int, List[int]]) -> None:
+        """
+        :param sents_nb: number of context sentences to select.  If a
+            list, the number of context sentences to select will be
+            picked randomly among this list at call time.
+        """
         self.sents_nb = sents_nb
 
     @staticmethod
@@ -149,12 +167,15 @@ class BM25ContextSelector(ContextSelector):
         self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """"""
+        if isinstance((sents_nb := self.sents_nb), list):
+            sents_nb = random.choice(sents_nb)
+
         bm25_model = BM25ContextSelector._get_bm25_model(document)
         query = document[sent_idx].tokens
         sent_scores = bm25_model.get_scores(query)
         sent_scores[sent_idx] = -1  # don't retrieve self
         best_idxs = list(
-            torch.topk(torch.tensor(sent_scores), k=self.sents_nb, dim=0)
+            torch.topk(torch.tensor(sent_scores), k=sents_nb, dim=0)
             .indices.sort()
             .values
         )
