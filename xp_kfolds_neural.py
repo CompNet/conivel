@@ -227,3 +227,10 @@ def main(
             _run.log_scalar(f"test_precision.fold{fold_i}", precision, step=sents_nb)
             _run.log_scalar(f"test_recall.fold{fold_i}", recall, step=sents_nb)
             _run.log_scalar(f"test_f1.fold{fold_i}", f1, step=sents_nb)
+
+        # clear the context selectors off memory (otherwise,
+        # ``train_set`` and ``test_set`` keep a reference to them and
+        # they are not collected by the gc)
+        train_set.context_selectors = []
+        test_set.context_selectors = []
+        gc.collect()
