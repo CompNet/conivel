@@ -1,6 +1,5 @@
-import os
-from typing import Dict, List, Optional, Union
-import shutil
+from typing import Dict, Optional
+import os, copy, shutil
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
@@ -28,23 +27,52 @@ if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
 
 @ex.config
 def config():
-    context_selectors: Dict[str, dict] = {}
-    epochs_nb: int = 2
+    # -- datas parameters
+    # number of folds
     k: int = 5
+    # seed to use when folds shuffling. If ``None``, no shuffling is
+    # performed.
     shuffle_kfolds_seed: Optional[int] = None
-    save_models: bool = True
+    # wether to restrict the experiment to a group of book in the
+    # Dekker et al's dataset
     book_group: Optional[str] = None
+
+    # -- common parameters
+    batch_size: int
+    # wether models should be saved or not
+    save_models: bool = True
+
+    # -- context retrieval
+    # context retriever heuristic name
+    context_retriever: str
+    # context retriever extra args (not including ``sents_nb``)
+    context_retriever_kwargs: dict
+
+    # -- NER training parameters
+    # min number of context sents
+    min_sents_nb: int = 1
+    # max number of context sents
+    max_sents_nb: int = 8
+    # number of epochs for NER training
+    ner_epochs_nb: int = 2
+    # learning rate for NER training
+    ner_lr: float = 2e-5
 
 
 @ex.automain
 def main(
     _run: Run,
-    context_selectors: Union[Dict[str, dict], List[Dict[str, dict]]],
-    epochs_nb: int,
     k: int,
     shuffle_kfolds_seed: Optional[int],
-    save_models: bool,
     book_group: Optional[str],
+    batch_size: int,
+    save_models: bool,
+    context_retriever: str,
+    context_retriever_kwargs: dict,
+    min_sents_nb: int,
+    max_sents_nb: int,
+    ner_epochs_nb: int,
+    ner_lr: float,
 ):
     print_config(_run)
 
@@ -53,15 +81,14 @@ def main(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
 
-    selectors = [
-        context_selector_name_to_class[key](**value)
-        for key, value in context_selectors.items()
-    ]
-    for train_set, test_set in kfolds:
-        train_set.context_selectors = selectors
-        test_set.context_selectors = selectors
-
     for i, (train_set, test_set) in enumerate(kfolds):
+
+        train_set.context_selectors = [
+            context_selector_name_to_class[context_retriever](
+                sents_nb=list(range(min_sents_nb, max_sents_nb + 1)),
+                **context_retriever_kwargs,
+            )
+        ]
 
         # train
         with RunLogScope(_run, f"fold{i}"):
@@ -76,10 +103,11 @@ def main(
             model = train_ner_model(
                 model,
                 train_set,
-                test_set,
+                train_set,
                 _run=_run,
-                epochs_nb=epochs_nb,
-                ignored_valid_classes={"MISC", "ORG", "LOC"},
+                epochs_nb=ner_epochs_nb,
+                batch_size=batch_size,
+                learning_rate=ner_lr,
             )
             if save_models:
                 model.save_pretrained("./model")
@@ -88,11 +116,17 @@ def main(
                 shutil.rmtree("./model")
                 os.remove("./model.tar.gz")
 
-        # test
-        test_preds = predict(model, test_set).tags
-        precision, recall, f1 = score_ner(
-            test_set.sents(), test_preds, ignored_classes={"MISC", "ORG", "LOC"}
-        )
-        _run.log_scalar("test_precision", precision)
-        _run.log_scalar("test_recall", recall)
-        _run.log_scalar("test_f1", f1)
+        for sents_nb in range(min_sents_nb, max_sents_nb + 1):
+
+            test_set.context_selectors = [
+                context_selector_name_to_class[context_retriever](
+                    sents_nb=sents_nb, **context_retriever_kwargs
+                )
+            ]
+
+            # test
+            test_preds = predict(model, test_set, batch_size=batch_size).tags
+            precision, recall, f1 = score_ner(test_set.sents(), test_preds)
+            _run.log_scalar("test_precision", precision)
+            _run.log_scalar("test_recall", recall)
+            _run.log_scalar("test_f1", f1)
