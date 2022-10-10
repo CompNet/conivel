@@ -16,6 +16,7 @@ from conivel.utils import (
     RunLogScope,
     sacred_archive_huggingface_model,
     sacred_archive_jsonifiable_as_file,
+    gpu_memory_usage,
 )
 
 
@@ -28,11 +29,6 @@ if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
     ex.observers.append(
         TelegramObserver.from_config(f"{script_dir}/telegram_observer_config.json")
     )
-
-
-def gpu_memory_usage() -> float:
-    mem_infos = torch.cuda.mem_get_info()
-    return 1 - mem_infos[0] / mem_infos[1]  # type: ignore
 
 
 @ex.config

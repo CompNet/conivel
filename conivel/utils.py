@@ -4,6 +4,7 @@ import copy, time, os, uuid, shutil, json
 from types import MethodType
 from dataclasses import dataclass
 from more_itertools import windowed
+import torch
 from transformers import PreTrainedModel  # type: ignore
 from sacred.run import Run
 from transformers.utils.dummy_tokenizers_objects import BertTokenizerFast
@@ -305,3 +306,8 @@ def sacred_archive_huggingface_model(run: Run, model: PreTrainedModel, model_nam
     sacred_archive_dir(
         run, tmp_model_name, dir_archive_name=model_name, and_delete=True
     )
+
+
+def gpu_memory_usage() -> float:
+    mem_infos = torch.cuda.mem_get_info()
+    return 1 - mem_infos[0] / mem_infos[1]  # type: ignore

@@ -11,7 +11,7 @@ from conivel.datas.context import context_selector_name_to_class
 from conivel.predict import predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
-from conivel.utils import RunLogScope
+from conivel.utils import RunLogScope, gpu_memory_usage
 
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -117,6 +117,8 @@ def main(
                 os.remove("./model.tar.gz")
 
         for sents_nb in range(min_sents_nb, max_sents_nb + 1):
+
+            _run.log_scalar("gpu_usage", gpu_memory_usage())
 
             test_set.context_selectors = [
                 context_selector_name_to_class[context_retriever](
