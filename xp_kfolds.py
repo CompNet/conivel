@@ -78,7 +78,7 @@ def main(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
 
-    for i, (train_set, test_set) in enumerate(kfolds):
+    for fold_i, (train_set, test_set) in enumerate(kfolds):
 
         train_set.context_selectors = [
             context_selector_name_to_class[context_retriever](
@@ -88,7 +88,7 @@ def main(
         ]
 
         # train
-        with RunLogScope(_run, f"fold{i}"):
+        with RunLogScope(_run, f"fold{fold_i}"):
 
             model = BertForTokenClassification.from_pretrained(
                 "bert-base-cased",
@@ -126,6 +126,6 @@ def main(
             # test
             test_preds = predict(model, test_set, batch_size=batch_size).tags
             precision, recall, f1 = score_ner(test_set.sents(), test_preds)
-            _run.log_scalar("test_precision", precision, step=sents_nb)
-            _run.log_scalar("test_recall", recall, step=sents_nb)
-            _run.log_scalar("test_f1", f1, step=sents_nb)
+            _run.log_scalar(f"test_precision.fold{fold_i}", precision, step=sents_nb)
+            _run.log_scalar(f"test_recall.fold{fold_i}", recall, step=sents_nb)
+            _run.log_scalar(f"test_f1.fold{fold_i}", f1, step=sents_nb)
