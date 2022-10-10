@@ -19,8 +19,8 @@ from conivel.predict import predict
 class ContextSelector:
     """"""
 
-    def __init__(self, **kwargs) -> None:
-        raise NotImplemented
+    def __init__(self, sents_nb: Union[int, List[int]], **kwargs) -> None:
+        self.sents_nb = sents_nb
 
     def __call__(
         self, sent_idx: int, document: Tuple[NERSentence, ...]
@@ -49,7 +49,7 @@ class RandomContextSelector(ContextSelector):
             list, the number of context sentences to select will be
             picked randomly among this list at call time.
         """
-        self.sents_nb = sents_nb
+        super().__init__(sents_nb)
 
     def __call__(
         self, sent_idx: int, document: Tuple[NERSentence, ...]
@@ -85,9 +85,9 @@ class SameWordSelector(ContextSelector):
             list, the number of context sentences to select will be
             picked randomly among this list at call time.
         """
-        self.sents_nb = sents_nb
         # nltk pos tagging dependency
         nltk.download("averaged_perceptron_tagger")
+        super().__init__(sents_nb)
 
     def __call__(
         self, sent_idx: int, document: Tuple[NERSentence, ...]
@@ -126,13 +126,15 @@ context_selector_name_to_class["sameword"] = SameWordSelector
 class NeighborsContextSelector(ContextSelector):
     """A context selector that chooses nearby sentences."""
 
-    def __init__(self, left_sents_nb: int, right_sents_nb: int) -> None:
+    def __init__(self, sents_nb: int):
         """
         :param left_sents_nb: number of left context sentences to select
         :param right_sents_nb: number of right context sentences to select
         """
-        self.left_sents_nb = left_sents_nb
-        self.right_sents_nb = right_sents_nb
+        assert sents_nb % 2 == 0
+        super().__init__(sents_nb)
+        self.left_sents_nb = sents_nb // 2
+        self.right_sents_nb = sents_nb // 2
 
     def __call__(
         self, sent_idx: int, document: Tuple[NERSentence, ...]
@@ -147,6 +149,30 @@ class NeighborsContextSelector(ContextSelector):
 context_selector_name_to_class["neighbors"] = NeighborsContextSelector
 
 
+class LeftContextSelector(NeighborsContextSelector):
+    """"""
+
+    def __init__(self, sents_nb: int):
+        self.left_sents_nb = sents_nb
+        self.right_sents_nb = 0
+        super().__init__(sents_nb)
+
+
+context_selector_name_to_class["left"] = LeftContextSelector
+
+
+class RightContextSelector(NeighborsContextSelector):
+    """"""
+
+    def __init__(self, sents_nb: int):
+        self.left_sents_nb = 0
+        self.right_sents_nb = sents_nb
+        super().__init__(sents_nb)
+
+
+context_selector_name_to_class["right"] = RightContextSelector
+
+
 class BM25ContextSelector(ContextSelector):
     """A context selector that selects sentences according to BM25 ranking formula."""
 
@@ -156,7 +182,7 @@ class BM25ContextSelector(ContextSelector):
             list, the number of context sentences to select will be
             picked randomly among this list at call time.
         """
-        self.sents_nb = sents_nb
+        super().__init__(sents_nb)
 
     @staticmethod
     @lru_cache(maxsize=None)
@@ -288,7 +314,8 @@ class NeuralContextSelector(ContextSelector):
         )
 
         self.batch_size = batch_size
-        self.sents_nb = sents_nb
+
+        super().__init__(sents_nb)
 
     @lru_cache(maxsize=None)
     def __call__(

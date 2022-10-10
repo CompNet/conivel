@@ -70,10 +70,8 @@ def config():
     ctx_retrieval_usefulness_threshold: float = 0.1
 
     # -- NER trainng parameters
-    # min number of context sents
-    min_sents_nb: int = 1
-    # max number of context sents
-    max_sents_nb: int = 8
+    # list of number of sents to test
+    sents_nb_list: list
     # number of epochs for NER training
     ner_epochs_nb: int = 2
     # learning rate for NER training
@@ -95,8 +93,7 @@ def main(
     ctx_retrieval_epochs_nb: int,
     ctx_retrieval_lr: float,
     ctx_retrieval_usefulness_threshold: float,
-    min_sents_nb: int,
-    max_sents_nb: int,
+    sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
 ):
@@ -174,12 +171,10 @@ def main(
 
         # PERFORMANCE HACK: only use the retrieval heuristic at
         # training time. At training time, the number of sentences
-        # retrieved is random between ``min_sents_nb`` and
-        # ``max_sents_nb`` for each example.
+        # retrieved is random between ``min(sents_nb_list)`` and
+        # ``max(sents_nb_list)`` for each example.
         train_set_heuristic_kwargs = copy.deepcopy(retrieval_heuristic_inference_kwargs)
-        train_set_heuristic_kwargs["sents_nb"] = list(
-            range(min_sents_nb, max_sents_nb + 1)
-        )
+        train_set_heuristic_kwargs["sents_nb"] = sents_nb_list
         train_set_heuristic = context_selector_name_to_class[retrieval_heuristic](
             **train_set_heuristic_kwargs
         )
@@ -205,7 +200,7 @@ def main(
             if save_models:
                 sacred_archive_huggingface_model(_run, ner_model, "ner_model")
 
-        for sents_nb in range(min_sents_nb, max_sents_nb + 1):
+        for sents_nb in sents_nb_list:
 
             _run.log_scalar("gpu_usage", gpu_memory_usage())
 

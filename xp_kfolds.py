@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 import os, copy, shutil
 from sacred import Experiment
 from sacred.commands import print_config
@@ -49,10 +49,8 @@ def config():
     context_retriever_kwargs: dict
 
     # -- NER training parameters
-    # min number of context sents
-    min_sents_nb: int = 1
-    # max number of context sents
-    max_sents_nb: int = 8
+    # list of number of sents to test
+    sents_nb_list: list
     # number of epochs for NER training
     ner_epochs_nb: int = 2
     # learning rate for NER training
@@ -69,8 +67,7 @@ def main(
     save_models: bool,
     context_retriever: str,
     context_retriever_kwargs: dict,
-    min_sents_nb: int,
-    max_sents_nb: int,
+    sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
 ):
@@ -85,7 +82,7 @@ def main(
 
         train_set.context_selectors = [
             context_selector_name_to_class[context_retriever](
-                sents_nb=list(range(min_sents_nb, max_sents_nb + 1)),
+                sents_nb=sents_nb_list,
                 **context_retriever_kwargs,
             )
         ]
@@ -116,7 +113,7 @@ def main(
                 shutil.rmtree("./model")
                 os.remove("./model.tar.gz")
 
-        for sents_nb in range(min_sents_nb, max_sents_nb + 1):
+        for sents_nb in sents_nb_list:
 
             _run.log_scalar("gpu_usage", gpu_memory_usage())
 
@@ -129,6 +126,6 @@ def main(
             # test
             test_preds = predict(model, test_set, batch_size=batch_size).tags
             precision, recall, f1 = score_ner(test_set.sents(), test_preds)
-            _run.log_scalar("test_precision", precision)
-            _run.log_scalar("test_recall", recall)
-            _run.log_scalar("test_f1", f1)
+            _run.log_scalar("test_precision", precision, step=sents_nb)
+            _run.log_scalar("test_recall", recall, step=sents_nb)
+            _run.log_scalar("test_f1", f1, step=sents_nb)
