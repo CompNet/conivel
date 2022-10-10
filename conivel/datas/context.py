@@ -126,48 +126,71 @@ context_selector_name_to_class["sameword"] = SameWordSelector
 class NeighborsContextSelector(ContextSelector):
     """A context selector that chooses nearby sentences."""
 
-    def __init__(self, sents_nb: int):
+    def __init__(self, sents_nb: Union[int, List[int]]):
         """
         :param left_sents_nb: number of left context sentences to select
         :param right_sents_nb: number of right context sentences to select
         """
-        assert sents_nb % 2 == 0
+        if isinstance(sents_nb, int):
+            assert sents_nb % 2 == 0
+        elif isinstance(sents_nb, list):
+            assert all([nb % 2 == 0 for nb in sents_nb])
+
         super().__init__(sents_nb)
-        self.left_sents_nb = sents_nb // 2
-        self.right_sents_nb = sents_nb // 2
 
     def __call__(
         self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
         """ """
+        if isinstance((sents_nb := self.sents_nb), list):
+            sents_nb = random.choice(sents_nb)
+
+        left_sents_nb = sents_nb // 2
+        right_sents_nb = sents_nb // 2
+
         return (
-            list(document[max(0, sent_idx - self.left_sents_nb) : sent_idx]),
-            list(document[sent_idx + 1 : sent_idx + 1 + self.right_sents_nb]),
+            list(document[max(0, sent_idx - left_sents_nb) : sent_idx]),
+            list(document[sent_idx + 1 : sent_idx + 1 + right_sents_nb]),
         )
 
 
 context_selector_name_to_class["neighbors"] = NeighborsContextSelector
 
 
-class LeftContextSelector(NeighborsContextSelector):
+class LeftContextSelector(ContextSelector):
     """"""
 
-    def __init__(self, sents_nb: int):
-        self.left_sents_nb = sents_nb
-        self.right_sents_nb = 0
+    def __init__(self, sents_nb: Union[int, List[int]]):
         super().__init__(sents_nb)
+
+    def __call__(
+        self, sent_idx: int, document: Tuple[NERSentence, ...]
+    ) -> Tuple[List[NERSentence], List[NERSentence]]:
+        if isinstance((sents_nb := self.sents_nb), list):
+            sents_nb = random.choice(sents_nb)
+
+        return (list(document[max(0, sent_idx - sents_nb) : sent_idx]), [])
 
 
 context_selector_name_to_class["left"] = LeftContextSelector
 
 
-class RightContextSelector(NeighborsContextSelector):
+class RightContextSelector(ContextSelector):
     """"""
 
-    def __init__(self, sents_nb: int):
-        self.left_sents_nb = 0
-        self.right_sents_nb = sents_nb
+    def __init__(self, sents_nb: Union[int, List[int]]):
         super().__init__(sents_nb)
+
+    def __call__(
+        self, sent_idx: int, document: Tuple[NERSentence, ...]
+    ) -> Tuple[List[NERSentence], List[NERSentence]]:
+        if isinstance((sents_nb := self.sents_nb), list):
+            sents_nb = random.choice(sents_nb)
+
+        return (
+            [],
+            list(document[sent_idx + 1 : sent_idx + 1 + sents_nb]),
+        )
 
 
 context_selector_name_to_class["right"] = RightContextSelector
