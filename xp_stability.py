@@ -3,7 +3,8 @@ from sacred import Experiment
 from sacred.run import Run
 from sacred.commands import print_config
 from sacred.observers import FileStorageObserver, TelegramObserver
-from transformers.utils.dummy_pt_objects import BertForTokenClassification
+from sacred.utils import apply_backspaces_and_linefeeds
+from transformers import BertForTokenClassification  # type: ignore
 from conivel.datas.dekker.dekker import DekkerDataset
 from conivel.predict import predict
 from conivel.score import score_ner
@@ -34,6 +35,8 @@ def config():
 def main(
     _run: Run, repeats_nb: int, low_epochs_nb: int, high_epochs_nb: int, batch_size: int
 ):
+    print_config(_run)
+
     train_set, test_set = DekkerDataset().kfolds(5, False)[0]
 
     for repeat_i in range(repeats_nb):
