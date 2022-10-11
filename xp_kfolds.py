@@ -11,7 +11,11 @@ from conivel.datas.context import context_selector_name_to_class
 from conivel.predict import predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
-from conivel.utils import RunLogScope, gpu_memory_usage
+from conivel.utils import (
+    RunLogScope,
+    gpu_memory_usage,
+    sacred_archive_huggingface_model,
+)
 
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -41,6 +45,8 @@ def config():
     batch_size: int
     # wether models should be saved or not
     save_models: bool = True
+    # number of experiment repeats
+    runs_nb: int = 5
 
     # -- context retrieval
     # context retriever heuristic name
@@ -65,6 +71,7 @@ def main(
     book_group: Optional[str],
     batch_size: int,
     save_models: bool,
+    runs_nb: int,
     context_retriever: str,
     context_retriever_kwargs: dict,
     sents_nb_list: List[int],
@@ -78,54 +85,58 @@ def main(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
 
-    for fold_i, (train_set, test_set) in enumerate(kfolds):
+    for run_i in range(runs_nb):
 
-        train_set.context_selectors = [
-            context_selector_name_to_class[context_retriever](
-                sents_nb=sents_nb_list,
-                **context_retriever_kwargs,
-            )
-        ]
+        for fold_i, (train_set, test_set) in enumerate(kfolds):
 
-        # train
-        with RunLogScope(_run, f"fold{fold_i}"):
-
-            model = BertForTokenClassification.from_pretrained(
-                "bert-base-cased",
-                num_labels=train_set.tags_nb,
-                label2id=train_set.tag_to_id,
-                id2label={v: k for k, v in train_set.tag_to_id.items()},
-            )
-
-            model = train_ner_model(
-                model,
-                train_set,
-                train_set,
-                _run=_run,
-                epochs_nb=ner_epochs_nb,
-                batch_size=batch_size,
-                learning_rate=ner_lr,
-            )
-            if save_models:
-                model.save_pretrained("./model")
-                shutil.make_archive("./model", "gztar", ".", "model")
-                _run.add_artifact("./model.tar.gz")
-                shutil.rmtree("./model")
-                os.remove("./model.tar.gz")
-
-        for sents_nb in sents_nb_list:
-
-            _run.log_scalar("gpu_usage", gpu_memory_usage())
-
-            test_set.context_selectors = [
+            train_set.context_selectors = [
                 context_selector_name_to_class[context_retriever](
-                    sents_nb=sents_nb, **context_retriever_kwargs
+                    sents_nb=sents_nb_list,
+                    **context_retriever_kwargs,
                 )
             ]
 
-            # test
-            test_preds = predict(model, test_set, batch_size=batch_size).tags
-            precision, recall, f1 = score_ner(test_set.sents(), test_preds)
-            _run.log_scalar(f"test_precision.fold{fold_i}", precision, step=sents_nb)
-            _run.log_scalar(f"test_recall.fold{fold_i}", recall, step=sents_nb)
-            _run.log_scalar(f"test_f1.fold{fold_i}", f1, step=sents_nb)
+            # train
+            with RunLogScope(_run, f"run{run_i}.fold{fold_i}"):
+
+                model = BertForTokenClassification.from_pretrained(
+                    "bert-base-cased",
+                    num_labels=train_set.tags_nb,
+                    label2id=train_set.tag_to_id,
+                    id2label={v: k for k, v in train_set.tag_to_id.items()},
+                )
+
+                model = train_ner_model(
+                    model,
+                    train_set,
+                    train_set,
+                    _run=_run,
+                    epochs_nb=ner_epochs_nb,
+                    batch_size=batch_size,
+                    learning_rate=ner_lr,
+                )
+                if save_models:
+                    sacred_archive_huggingface_model(_run, model, "model")  # type: ignore
+
+            for sents_nb in sents_nb_list:
+
+                _run.log_scalar("gpu_usage", gpu_memory_usage())
+
+                test_set.context_selectors = [
+                    context_selector_name_to_class[context_retriever](
+                        sents_nb=sents_nb, **context_retriever_kwargs
+                    )
+                ]
+
+                # test
+                test_preds = predict(model, test_set, batch_size=batch_size).tags
+                precision, recall, f1 = score_ner(test_set.sents(), test_preds)
+                _run.log_scalar(
+                    f"run{run_i}.fold{fold_i}.test_precision",
+                    precision,
+                    step=sents_nb,
+                )
+                _run.log_scalar(
+                    f"run{run_i}.fold{fold_i}.test_recall", recall, step=sents_nb
+                )
+                _run.log_scalar(f"run{run_i}.fold{fold_i}.test_f1", f1, step=sents_nb)

@@ -50,6 +50,9 @@ def config():
     batch_size: int
     # wether models should be saved or not
     save_models: bool = True
+    # number of experiment repeats
+    runs_nb: int = 5
+
     # pre-retrieval heuristic name
     # only officially supports 'random', 'sameword' and 'bm25' for
     # now
@@ -87,6 +90,7 @@ def main(
     folds_list: Optional[List[int]],
     batch_size: int,
     save_models: bool,
+    runs_nb: int,
     retrieval_heuristic: str,
     retrieval_heuristic_gen_kwargs: dict,
     retrieval_heuristic_inference_kwargs: dict,
@@ -105,123 +109,135 @@ def main(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
 
-    for fold_i, (train_set, test_set) in enumerate(kfolds):
+    for run_i in range(runs_nb):
 
-        if not folds_list is None and not fold_i in folds_list:
-            continue
+        for fold_i, (train_set, test_set) in enumerate(kfolds):
 
-        # train context selector
-        ner_model = BertForTokenClassification.from_pretrained(
-            "bert-base-cased",
-            num_labels=train_set.tags_nb,
-            label2id=train_set.tag_to_id,
-            id2label={v: k for k, v in train_set.tag_to_id.items()},
-        )
+            if not folds_list is None and not fold_i in folds_list:
+                continue
 
-        # HACK: split the training dataset in 2
-        ctx_retrieval_ner_train_set, ctx_retrieval_gen_set = train_set.kfolds(
-            2, shuffle=False
-        )[0]
-
-        with RunLogScope(_run, f"ctx_retrieval_training.fold{fold_i}"):
-
-            # train a NER model on half the training dataset
-            ner_model = train_ner_model(
-                ner_model,
-                ctx_retrieval_ner_train_set,
-                ctx_retrieval_ner_train_set,
-                _run,
-                ner_epochs_nb,
-                batch_size,
-                ctx_retrieval_lr,
+            # train context selector
+            ner_model = BertForTokenClassification.from_pretrained(
+                "bert-base-cased",
+                num_labels=train_set.tags_nb,
+                label2id=train_set.tag_to_id,
+                id2label={v: k for k, v in train_set.tag_to_id.items()},
             )
 
-            # generate a context retrieval dataset using the other
-            # half of the training set
-            ctx_retrieval_dataset = NeuralContextSelector.generate_context_dataset(
-                ner_model,
-                ctx_retrieval_gen_set,
-                batch_size,
-                retrieval_heuristic,
-                retrieval_heuristic_gen_kwargs,
-                examples_usefulness_threshold=ctx_retrieval_usefulness_threshold,
-                _run=_run,
-            )
-            sacred_archive_jsonifiable_as_file(
-                _run, ctx_retrieval_dataset.to_jsonifiable(), "ctx_retrieval_dataset"
-            )
+            # HACK: split the training dataset in 2
+            ctx_retrieval_ner_train_set, ctx_retrieval_gen_set = train_set.kfolds(
+                2, shuffle=False
+            )[0]
 
-            # NER model is not needed anymore : free the GPU of it
-            del ner_model
-            gc.collect()
+            with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ctx_retrieval_training"):
 
-            # train a context retriever using the previously generated
-            # context retrieval dataset
-            ctx_retriever_model = NeuralContextSelector.train_context_selector(
-                ctx_retrieval_dataset,
-                ctx_retrieval_epochs_nb,
-                batch_size,
-                ctx_retrieval_lr,
-                _run,
-            )
-            if save_models:
-                sacred_archive_huggingface_model(
-                    _run, ctx_retriever_model, "ctx_retriever_model"
+                # train a NER model on half the training dataset
+                ner_model = train_ner_model(
+                    ner_model,
+                    ctx_retrieval_ner_train_set,
+                    ctx_retrieval_ner_train_set,
+                    _run,
+                    ner_epochs_nb,
+                    batch_size,
+                    ctx_retrieval_lr,
                 )
 
-        # PERFORMANCE HACK: only use the retrieval heuristic at
-        # training time. At training time, the number of sentences
-        # retrieved is random between ``min(sents_nb_list)`` and
-        # ``max(sents_nb_list)`` for each example.
-        train_set_heuristic_kwargs = copy.deepcopy(retrieval_heuristic_inference_kwargs)
-        train_set_heuristic_kwargs["sents_nb"] = sents_nb_list
-        train_set_heuristic = context_selector_name_to_class[retrieval_heuristic](
-            **train_set_heuristic_kwargs
-        )
-        train_set.context_selectors = [train_set_heuristic]
+                # generate a context retrieval dataset using the other
+                # half of the training set
+                ctx_retrieval_dataset = NeuralContextSelector.generate_context_dataset(
+                    ner_model,
+                    ctx_retrieval_gen_set,
+                    batch_size,
+                    retrieval_heuristic,
+                    retrieval_heuristic_gen_kwargs,
+                    examples_usefulness_threshold=ctx_retrieval_usefulness_threshold,
+                    _run=_run,
+                )
+                sacred_archive_jsonifiable_as_file(
+                    _run,
+                    ctx_retrieval_dataset.to_jsonifiable(),
+                    "ctx_retrieval_dataset",
+                )
 
-        # train ner model on train_set
-        ner_model = BertForTokenClassification.from_pretrained(
-            "bert-base-cased",
-            num_labels=train_set.tags_nb,
-            label2id=train_set.tag_to_id,
-            id2label={v: k for k, v in train_set.tag_to_id.items()},
-        )
-        with RunLogScope(_run, f"ner.fold{fold_i}"):
-            ner_model = train_ner_model(
-                ner_model,
-                train_set,
-                train_set,
-                _run=_run,
-                epochs_nb=ner_epochs_nb,
-                batch_size=batch_size,
-                learning_rate=ner_lr,
+                # NER model is not needed anymore : free the GPU of it
+                del ner_model
+                gc.collect()
+
+                # train a context retriever using the previously generated
+                # context retrieval dataset
+                ctx_retriever_model = NeuralContextSelector.train_context_selector(
+                    ctx_retrieval_dataset,
+                    ctx_retrieval_epochs_nb,
+                    batch_size,
+                    ctx_retrieval_lr,
+                    _run,
+                )
+                if save_models:
+                    sacred_archive_huggingface_model(
+                        _run, ctx_retriever_model, "ctx_retriever_model"
+                    )
+
+            # PERFORMANCE HACK: only use the retrieval heuristic at
+            # training time. At training time, the number of sentences
+            # retrieved is random between ``min(sents_nb_list)`` and
+            # ``max(sents_nb_list)`` for each example.
+            train_set_heuristic_kwargs = copy.deepcopy(
+                retrieval_heuristic_inference_kwargs
             )
-            if save_models:
-                sacred_archive_huggingface_model(_run, ner_model, "ner_model")
-
-        for sents_nb in sents_nb_list:
-
-            _run.log_scalar("gpu_usage", gpu_memory_usage())
-
-            neural_context_retriever = NeuralContextSelector(
-                ctx_retriever_model,
-                retrieval_heuristic,
-                retrieval_heuristic_inference_kwargs,
-                batch_size,
-                sents_nb,
+            train_set_heuristic_kwargs["sents_nb"] = sents_nb_list
+            train_set_heuristic = context_selector_name_to_class[retrieval_heuristic](
+                **train_set_heuristic_kwargs
             )
-            test_set.context_selectors = [neural_context_retriever]
+            train_set.context_selectors = [train_set_heuristic]
 
-            test_preds = predict(ner_model, test_set).tags
-            precision, recall, f1 = score_ner(test_set.sents(), test_preds)
-            _run.log_scalar(f"test_precision.fold{fold_i}", precision, step=sents_nb)
-            _run.log_scalar(f"test_recall.fold{fold_i}", recall, step=sents_nb)
-            _run.log_scalar(f"test_f1.fold{fold_i}", f1, step=sents_nb)
+            # train ner model on train_set
+            ner_model = BertForTokenClassification.from_pretrained(
+                "bert-base-cased",
+                num_labels=train_set.tags_nb,
+                label2id=train_set.tag_to_id,
+                id2label={v: k for k, v in train_set.tag_to_id.items()},
+            )
+            with RunLogScope(_run, f"run{run_i}.{fold_i}.ner"):
+                ner_model = train_ner_model(
+                    ner_model,
+                    train_set,
+                    train_set,
+                    _run=_run,
+                    epochs_nb=ner_epochs_nb,
+                    batch_size=batch_size,
+                    learning_rate=ner_lr,
+                )
+                if save_models:
+                    sacred_archive_huggingface_model(_run, ner_model, "ner_model")
 
-        # clear the context selectors off memory (otherwise,
-        # ``train_set`` and ``test_set`` keep a reference to them and
-        # they are not collected by the gc)
-        train_set.context_selectors = []
-        test_set.context_selectors = []
-        gc.collect()
+            for sents_nb in sents_nb_list:
+
+                _run.log_scalar("gpu_usage", gpu_memory_usage())
+
+                neural_context_retriever = NeuralContextSelector(
+                    ctx_retriever_model,
+                    retrieval_heuristic,
+                    retrieval_heuristic_inference_kwargs,
+                    batch_size,
+                    sents_nb,
+                )
+                test_set.context_selectors = [neural_context_retriever]
+
+                test_preds = predict(ner_model, test_set).tags
+                precision, recall, f1 = score_ner(test_set.sents(), test_preds)
+                _run.log_scalar(
+                    f"run{run_i}.fold{fold_i}.test_precision", precision, step=sents_nb
+                )
+                _run.log_scalar(
+                    f"run{run_i}.fold{fold_i}.test_recall", recall, step=sents_nb
+                )
+                _run.log_scalar(
+                    f"run{run_i}.fold{fold_i}.test_f1.fold{fold_i}", f1, step=sents_nb
+                )
+
+            # clear the context selectors off memory (otherwise,
+            # ``train_set`` and ``test_set`` keep a reference to them and
+            # they are not collected by the gc)
+            train_set.context_selectors = []
+            test_set.context_selectors = []
+            gc.collect()
