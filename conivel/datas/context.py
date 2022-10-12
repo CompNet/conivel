@@ -340,7 +340,7 @@ class NeuralContextSelector(ContextSelector):
 
         super().__init__(sents_nb)
 
-    @lru_cache(maxsize=None)
+    # @lru_cache(maxsize=None)
     def __call__(
         self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
