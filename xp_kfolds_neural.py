@@ -231,9 +231,7 @@ def main(
                 _run.log_scalar(
                     f"run{run_i}.fold{fold_i}.test_recall", recall, step=sents_nb
                 )
-                _run.log_scalar(
-                    f"run{run_i}.fold{fold_i}.test_f1.fold{fold_i}", f1, step=sents_nb
-                )
+                _run.log_scalar(f"run{run_i}.fold{fold_i}.test_f1", f1, step=sents_nb)
 
             # clear the context selectors off memory (otherwise,
             # ``train_set`` and ``test_set`` keep a reference to them and
