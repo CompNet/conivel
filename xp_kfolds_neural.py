@@ -1,13 +1,14 @@
 import os, gc, copy
-from typing import Dict, List, Optional, Union
+from typing import List, Optional
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
-from transformers import BertForTokenClassification  # type: ignore
-import torch
+from transformers import BertForTokenClassification
+from conivel.datas.dataset import NERDataset  # type: ignore
 from conivel.datas.dekker import DekkerDataset
+from conivel.datas.the_hunger_games import TheHungerGamesDataset
 from conivel.datas.context import NeuralContextSelector, context_selector_name_to_class
 from conivel.predict import predict
 from conivel.score import score_ner
@@ -53,6 +54,7 @@ def config():
     # number of experiment repeats
     runs_nb: int = 5
 
+    # -- retrieval heuristic
     # pre-retrieval heuristic name
     # only officially supports 'random', 'sameword' and 'bm25' for
     # now
@@ -71,6 +73,9 @@ def config():
     # usefulness threshold for context retrieval examples (examples
     # with abs(usefulness) lower than this value are discarded)
     ctx_retrieval_usefulness_threshold: float = 0.1
+    # wether to use The Hunger Games dataset for context retrieval
+    # dataset generation
+    ctx_retrieval_dataset_generation_use_the_hunger_games: bool = False
 
     # -- NER trainng parameters
     # list of number of sents to test
@@ -97,6 +102,7 @@ def main(
     ctx_retrieval_epochs_nb: int,
     ctx_retrieval_lr: float,
     ctx_retrieval_usefulness_threshold: float,
+    ctx_retrieval_dataset_generation_use_the_hunger_games: bool,
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
@@ -128,6 +134,11 @@ def main(
             ctx_retrieval_ner_train_set, ctx_retrieval_gen_set = train_set.kfolds(
                 2, shuffle=False
             )[0]
+            if ctx_retrieval_dataset_generation_use_the_hunger_games:
+                the_hunger_games_set = TheHungerGamesDataset()
+                ctx_retrieval_gen_set = NERDataset.concatenated(
+                    [ctx_retrieval_gen_set, the_hunger_games_set]
+                )
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ctx_retrieval_training"):
 
