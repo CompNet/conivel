@@ -76,6 +76,10 @@ def config():
     # wether to use The Hunger Games dataset for context retrieval
     # dataset generation
     ctx_retrieval_dataset_generation_use_the_hunger_games: bool = False
+    # number of weights bins to use to adapt the MSELoss when
+    # training the neural context retriever. If ``None``, do not
+    # weight the MSELoss
+    ctx_retrieval_weights_bins_nb: Optional[int] = None
 
     # -- NER trainng parameters
     # list of number of sents to test
@@ -103,6 +107,7 @@ def main(
     ctx_retrieval_lr: float,
     ctx_retrieval_usefulness_threshold: float,
     ctx_retrieval_dataset_generation_use_the_hunger_games: bool,
+    ctx_retrieval_weights_bins_nb: Optional[int],
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
@@ -181,7 +186,8 @@ def main(
                     ctx_retrieval_epochs_nb,
                     batch_size,
                     ctx_retrieval_lr,
-                    _run,
+                    weights_bins_nb=ctx_retrieval_weights_bins_nb,
+                    _run=_run,
                 )
                 if save_models:
                     sacred_archive_huggingface_model(

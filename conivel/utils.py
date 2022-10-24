@@ -311,3 +311,27 @@ def sacred_archive_huggingface_model(run: Run, model: PreTrainedModel, model_nam
 def gpu_memory_usage() -> float:
     mem_infos = torch.cuda.mem_get_info()
     return 1 - mem_infos[0] / mem_infos[1]  # type: ignore
+
+
+def bin_weighted_mse_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    bins_weights: torch.Tensor,
+    bins_edges: torch.Tensor,
+) -> torch.Tensor:
+    """
+    :param pred: ``(batch_size)``
+    :param target: ``(batch_size)``
+    :param bins_weights: ``(bins_nb)``
+    :param bins_edges: ``(bins_nb+1)``
+    :return: the loss with shape ``(1)``
+    """
+    assert pred.shape == target.shape
+
+    # (batch_size, bins_nb)
+    target_bins_lim = target[..., None] <= bins_edges[:-1]
+    # (batch_size)
+    bins_idx = torch.argmax(target_bins_lim.int(), dim=1)
+    # (batch_size)
+    weights = bins_weights[bins_idx]
+    return (weights * (target - pred) ** 2).mean()

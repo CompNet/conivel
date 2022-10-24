@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union, cast
-import random
+import random, functools
 from functools import lru_cache
 from dataclasses import dataclass
 import nltk
@@ -12,7 +12,7 @@ from tqdm import tqdm
 from rank_bm25 import BM25Okapi
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
-from conivel.utils import get_tokenizer
+from conivel.utils import get_tokenizer, bin_weighted_mse_loss
 from conivel.predict import predict
 
 
@@ -340,7 +340,6 @@ class NeuralContextSelector(ContextSelector):
 
         super().__init__(sents_nb)
 
-    # @lru_cache(maxsize=None)
     def __call__(
         self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
@@ -580,6 +579,7 @@ class NeuralContextSelector(ContextSelector):
         epochs_nb: int,
         batch_size: int,
         learning_rate: float,
+        weights_bins_nb: Optional[int] = None,
         _run: Optional[Run] = None,
     ) -> BertForSequenceClassification:
         """Instantiate and train a context classifier.
@@ -590,6 +590,8 @@ class NeuralContextSelector(ContextSelector):
             selection dataset.
         :param epochs_nb: number of training epochs.
         :param batch_size:
+        :param weights_bins_nb: number of loss weight bins.  If
+            ``None``, the MSELoss will not be weighted.
         :param _run: current sacred run.  If not ``None``, will be
             used to record training metrics.
 
@@ -602,6 +604,23 @@ class NeuralContextSelector(ContextSelector):
         )  # type: ignore
         ctx_classifier = cast(BertForSequenceClassification, ctx_classifier)
         ctx_classifier = ctx_classifier.to(device)
+
+        if not weights_bins_nb is None:
+            examples_usefulnesses = torch.tensor(
+                [ex.usefulness for ex in ctx_dataset.examples]
+            )
+            # ``(bins_nb)``, ``(bins_nb)``
+            bins_count, bins_edges = torch.histogram(
+                examples_usefulnesses, weights_bins_nb
+            )
+            # ``(bins_nb)``
+            bins_weights = (torch.max(bins_count) + 1) / (bins_count + 1)
+
+            loss_fn = functools.partial(
+                bin_weighted_mse_loss, bins_weights=bins_weights, bins_edges=bins_edges
+            )
+        else:
+            loss_fn = torch.nn.MSELoss()
 
         optimizer = torch.optim.AdamW(ctx_classifier.parameters(), lr=learning_rate)
 
@@ -626,16 +645,18 @@ class NeuralContextSelector(ContextSelector):
                     X["input_ids"],
                     token_type_ids=X["token_type_ids"],
                     attention_mask=X["attention_mask"],
-                    labels=X["labels"],
                 )
-                out.loss.backward()
+
+                loss = loss_fn(out.logits[:, 0], X["labels"])
+                loss.backward()
+
                 optimizer.step()
 
                 if not _run is None:
-                    _run.log_scalar("neural_selector_training.loss", out.loss.item())
+                    _run.log_scalar("neural_selector_training.loss", loss.item())
 
-                data_tqdm.set_description(f"loss : {out.loss.item():.3f}")
-                epoch_losses.append(out.loss.item())
+                data_tqdm.set_description(f"loss : {loss.item():.3f}")
+                epoch_losses.append(loss.item())
 
             mean_epoch_loss = sum(epoch_losses) / len(epoch_losses)
             tqdm.write(f"epoch mean loss : {mean_epoch_loss:.3f}")
