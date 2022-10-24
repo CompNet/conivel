@@ -208,7 +208,7 @@ def main(
                 label2id=train_set.tag_to_id,
                 id2label={v: k for k, v in train_set.tag_to_id.items()},
             )
-            with RunLogScope(_run, f"run{run_i}.{fold_i}.ner"):
+            with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner"):
                 ner_model = train_ner_model(
                     ner_model,
                     train_set,
