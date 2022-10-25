@@ -608,12 +608,16 @@ class NeuralContextSelector(ContextSelector):
         if not weights_bins_nb is None:
             examples_usefulnesses = torch.tensor(
                 [ex.usefulness for ex in ctx_dataset.examples]
-            ).to(device)
-            # ``(bins_nb)``, ``(bins_nb)``
+            )
+            # torch.histogram is not implemented on CUDA, so we avoid
+            # sending tensors to GPU until after this computation
+            # (bins_nb), (bins_nb)
             bins_count, bins_edges = torch.histogram(
                 examples_usefulnesses, weights_bins_nb
             )
-            # ``(bins_nb)``
+            bins_count = bins_count.to(device)
+            bins_edges = bins_edges.to(device)
+            # (bins_nb)
             bins_weights = (torch.max(bins_count) + 1) / (bins_count + 1)
 
             loss_fn = functools.partial(
