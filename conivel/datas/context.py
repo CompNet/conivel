@@ -340,6 +340,45 @@ class NeuralContextSelector(ContextSelector):
 
         super().__init__(sents_nb)
 
+    def predict(
+        self,
+        dataset: Union[ContextSelectionDataset, List[ContextSelectionExample]],
+        device_str: Literal["cuda", "cpu", "auto"] = "auto",
+    ) -> torch.Tensor:
+        """
+        :param dataset: A list of :class:`ContextSelectionExample`
+        :param device_str: torch device
+
+        :return: A tensor of shape ``(len(dataset))`` of scores, each
+                 between -1 and 1
+        """
+        if isinstance(dataset, list):
+            dataset = ContextSelectionDataset(dataset, self.tokenizer)
+
+        if device_str == "auto":
+            device_str = "cuda" if torch.cuda.is_available() else "cpu"
+        device = torch.device(device_str)
+        self.ctx_classifier = self.ctx_classifier.to(device)  # type: ignore
+
+        data_collator = DataCollatorWithPadding(dataset.tokenizer)  # type: ignore
+        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, collate_fn=data_collator)  # type: ignore
+
+        # inference using self.ctx_classifier
+        self.ctx_classifier = self.ctx_classifier.eval()
+        with torch.no_grad():
+            scores = torch.zeros((0,)).to(device)
+            for X in dataloader:
+                X = X.to(device)
+                # out.logits is of shape (batch_size, 1)
+                out = self.ctx_classifier(
+                    X["input_ids"],
+                    token_type_ids=X["token_type_ids"],
+                    attention_mask=X["attention_mask"],
+                )
+                scores = torch.cat([scores, out.logits[:, 0]], dim=0)
+
+        return scores
+
     def __call__(
         self, sent_idx: int, document: Tuple[NERSentence, ...]
     ) -> Tuple[List[NERSentence], List[NERSentence]]:
@@ -359,45 +398,21 @@ class NeuralContextSelector(ContextSelector):
             return ([], [])
 
         # prepare datas for inference
-        dataset = ContextSelectionDataset(
-            [
-                ContextSelectionExample(sent.tokens, ctx_sent.tokens, "left", None)
-                for ctx_sent in left_ctx
-            ]
-            + [
-                ContextSelectionExample(sent.tokens, ctx_sent.tokens, "right", None)
-                for ctx_sent in right_ctx
-            ],
-            self.tokenizer,
-        )
-        data_collator = DataCollatorWithPadding(dataset.tokenizer)  # type: ignore
-        dataloader = DataLoader(
-            dataset, batch_size=self.batch_size, shuffle=False, collate_fn=data_collator
-        )
+        dataset = [
+            ContextSelectionExample(sent.tokens, ctx_sent.tokens, "left", None)
+            for ctx_sent in left_ctx
+        ] + [
+            ContextSelectionExample(sent.tokens, ctx_sent.tokens, "right", None)
+            for ctx_sent in right_ctx
+        ]
+        scores = self.predict(dataset)
 
-        # inference using self.ctx_classifier
-        self.ctx_classifier = self.ctx_classifier.eval()
-        with torch.no_grad():
-            scores = torch.zeros((0,)).to(device)
-            for X in dataloader:
-                X = X.to(device)
-                # out.logits is of shape (batch_size, 1)
-                out = self.ctx_classifier(
-                    X["input_ids"],
-                    token_type_ids=X["token_type_ids"],
-                    attention_mask=X["attention_mask"],
-                )
-                scores = torch.cat([scores, out.logits[:, 0]], dim=0)
+        topk = torch.topk(scores, min(self.sents_nb, scores.shape[0]), dim=0)  # type: ignore
+        best_ctx_idxs = topk.indices[topk.values > 0]
+        left_ctx_idxs_mask = best_ctx_idxs < len(left_ctx)
 
-            # now scores should be of shape
-            # (self.heuristic_retrieval_sents_nb). We keep the top
-            # `self.sents_nb` sentences that are positive.
-            topk = torch.topk(scores, min(self.sents_nb, scores.shape[0]), dim=0)
-            best_ctx_idxs = topk.indices[topk.values > 0]
-            left_ctx_idxs_mask = best_ctx_idxs < len(left_ctx)
-
-            left_ctx_idxs = best_ctx_idxs[left_ctx_idxs_mask].sort().values
-            right_ctx_idxs = best_ctx_idxs[~left_ctx_idxs_mask].sort().values
+        left_ctx_idxs = best_ctx_idxs[left_ctx_idxs_mask].sort().values
+        right_ctx_idxs = best_ctx_idxs[~left_ctx_idxs_mask].sort().values
 
         return (
             [ctx_sents[ctx_idx] for ctx_idx in left_ctx_idxs],
