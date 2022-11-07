@@ -1,4 +1,5 @@
 import os, gc, copy
+from pickle import FALSE
 from typing import List, Optional
 from sacred import Experiment
 from sacred.commands import print_config
@@ -70,9 +71,13 @@ def config():
     ctx_retrieval_epochs_nb: int = 3
     # learning rate for context retrieval training
     ctx_retrieval_lr: float = 2e-5
-    # usefulness threshold for context retrieval examples (examples
-    # with abs(usefulness) lower than this value are discarded)
+    # usefulness threshold for context retrieval examples. Passed to
+    # :func:`NeuralContextSelector.generate_context_dataset`
     ctx_retrieval_usefulness_threshold: float = 0.1
+    # wether to skip examples generated from a sentence if NER
+    # predictions for that sentence is correct. Passed to
+    # :func:`NeuralContextSelector.generate_context_dataset`
+    ctx_retrieval_skip_correct: bool = False
     # wether to use The Hunger Games dataset for context retrieval
     # dataset generation
     ctx_retrieval_dataset_generation_use_the_hunger_games: bool = False
@@ -106,6 +111,7 @@ def main(
     ctx_retrieval_epochs_nb: int,
     ctx_retrieval_lr: float,
     ctx_retrieval_usefulness_threshold: float,
+    ctx_retrieval_skip_correct: bool,
     ctx_retrieval_dataset_generation_use_the_hunger_games: bool,
     ctx_retrieval_weights_bins_nb: Optional[int],
     sents_nb_list: List[int],
@@ -167,6 +173,7 @@ def main(
                     retrieval_heuristic,
                     retrieval_heuristic_gen_kwargs,
                     examples_usefulness_threshold=ctx_retrieval_usefulness_threshold,
+                    skip_correct=ctx_retrieval_skip_correct,
                     _run=_run,
                 )
                 sacred_archive_jsonifiable_as_file(

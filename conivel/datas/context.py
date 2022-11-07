@@ -461,6 +461,7 @@ class NeuralContextSelector(ContextSelector):
         heuristic_context_selector_kwargs: Dict[str, Any],
         max_examples_nb: Optional[int] = None,
         examples_usefulness_threshold: float = 0.0,
+        skip_correct: bool = False,
         _run: Optional[Run] = None,
     ) -> ContextSelectionDataset:
         """Generate a context selection training dataset.
@@ -495,9 +496,11 @@ class NeuralContextSelector(ContextSelector):
         :param max_examples_nb: max number of examples in the
             generated dataset.  If ``None``, no limit is applied.
         :param examples_usefulness_threshold: threshold to select
-            example.  an example is considered only if the absolute
-            value of its usefulness is greater or equal to this
-            threshold.
+            example.  Examples generated from a source sentence are
+            kept if one of these examples usefulness is greater than
+            this threshold.
+        :param skip_correct: if ``True``, will skip example generation
+            for sentences for which NER predictions are correct.
         :param _run: The current sacred run.  If not ``None``, will be
             used to record generation metrics.
 
@@ -518,9 +521,13 @@ class NeuralContextSelector(ContextSelector):
         )
 
         ctx_selection_examples = []
-        for sent_i, (sent, pred_scores) in tqdm(
-            enumerate(zip(train_dataset.sents(), preds.scores)), total=len(preds.tags)
+        for sent_i, (sent, pred_tags, pred_scores) in tqdm(
+            enumerate(zip(train_dataset.sents(), preds.tags, preds.scores)),
+            total=len(preds.tags),
         ):
+            if skip_correct and pred_tags == sent.tags:
+                continue
+
             document = train_dataset.document_for_sent(sent_i)
 
             pred_error = NeuralContextSelector._pred_error(
