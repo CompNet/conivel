@@ -563,15 +563,22 @@ class NeuralContextSelector(ContextSelector):
                 additional_outputs={"scores"},
             )
             assert not preds_ctx.scores is None
+
+            usefulnesses = []
+            context_sides = []
             for i, (preds_scores_ctx, ctx_sent) in enumerate(
                 zip(preds_ctx.scores, left_ctx_sents + right_ctx_sents)
             ):
                 pred_ctx_error = NeuralContextSelector._pred_error(
                     sent, preds_scores_ctx, train_dataset.tag_to_id
                 )
-                usefulness = pred_error - pred_ctx_error
-                if abs(usefulness) >= examples_usefulness_threshold:
-                    context_side = "left" if i < len(left_ctx_sents) else "right"
+                usefulnesses.append(pred_error - pred_ctx_error)
+                context_sides.append("left" if i < len(left_ctx_sents) else "right")
+
+            if any([u > examples_usefulness_threshold for u in usefulnesses]):
+                for usefulness, context_side, ctx_sent in zip(
+                    usefulnesses, context_sides, left_ctx_sents + right_ctx_sents
+                ):
                     ctx_selection_examples.append(
                         ContextSelectionExample(
                             sent.tokens, ctx_sent.tokens, context_side, usefulness
