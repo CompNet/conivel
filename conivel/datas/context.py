@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union, cast
-from collections import Counter
-import random
+import random, functools
 from functools import lru_cache
 from dataclasses import dataclass
 import nltk
@@ -248,8 +247,8 @@ class ContextSelectionExample:
     context: List[str]
     #: context side (doest the context comes from the left or the right of ``sent`` ?)
     context_side: Literal["left", "right"]
-    #: usefulness of the exemple, either 0 or 1
-    usefulness: Optional[int]
+    #: usefulness of the exemple, between -1 and 1.
+    usefulness: Optional[float]
 
 
 class ContextSelectionDataset(Dataset):
@@ -345,7 +344,6 @@ class NeuralContextSelector(ContextSelector):
         self,
         dataset: Union[ContextSelectionDataset, List[ContextSelectionExample]],
         device_str: Literal["cuda", "cpu", "auto"] = "auto",
-        quiet: bool = True,
     ) -> torch.Tensor:
         """
         :param dataset: A list of :class:`ContextSelectionExample`
@@ -368,18 +366,18 @@ class NeuralContextSelector(ContextSelector):
         # inference using self.ctx_classifier
         self.ctx_classifier = self.ctx_classifier.eval()
         with torch.no_grad():
-            preds = torch.zeros((0,)).to(device)
-            for X in tqdm(dataloader, disable=quiet):
+            scores = torch.zeros((0,)).to(device)
+            for X in dataloader:
                 X = X.to(device)
-                # out.logits is of shape (batch_size, 2)
+                # out.logits is of shape (batch_size, 1)
                 out = self.ctx_classifier(
                     X["input_ids"],
                     token_type_ids=X["token_type_ids"],
                     attention_mask=X["attention_mask"],
                 )
-                preds = torch.cat([preds, torch.argmax(out.logits, dim=1)], dim=0)
+                scores = torch.cat([scores, out.logits[:, 0]], dim=0)
 
-        return preds
+        return scores
 
     def __call__(
         self, sent_idx: int, document: Tuple[NERSentence, ...]
@@ -407,10 +405,10 @@ class NeuralContextSelector(ContextSelector):
             ContextSelectionExample(sent.tokens, ctx_sent.tokens, "right", None)
             for ctx_sent in right_ctx
         ]
-        # (n)
-        preds = self.predict(dataset)
+        scores = self.predict(dataset)
 
-        best_ctx_idxs = (preds == 1).nonzero()[:, 0]
+        topk = torch.topk(scores, min(self.sents_nb, scores.shape[0]), dim=0)  # type: ignore
+        best_ctx_idxs = topk.indices[topk.values > 0]
         left_ctx_idxs_mask = best_ctx_idxs < len(left_ctx)
 
         left_ctx_idxs = best_ctx_idxs[left_ctx_idxs_mask].sort().values
@@ -462,7 +460,7 @@ class NeuralContextSelector(ContextSelector):
         heuristic_context_selector: str,
         heuristic_context_selector_kwargs: Dict[str, Any],
         max_examples_nb: Optional[int] = None,
-        filter_correct_sentences: bool = False,
+        examples_usefulness_threshold: float = 0.0,
         _run: Optional[Run] = None,
     ) -> ContextSelectionDataset:
         """Generate a context selection training dataset.
@@ -510,31 +508,24 @@ class NeuralContextSelector(ContextSelector):
             ner_model,
             train_dataset,
             batch_size=batch_size,
+            additional_outputs={"scores"},
         )
+        assert not preds.scores is None
 
         ctx_selector_class = context_selector_name_to_class[heuristic_context_selector]
         preliminary_ctx_selector = ctx_selector_class(
             **heuristic_context_selector_kwargs
         )
 
-        def pred_did_help(
-            sent: NERSentence, original_pred: List[str], ctx_pred: List[str]
-        ) -> int:
-            if original_pred == sent.tags:
-                return 0
-            original_common_tags = sum(
-                [1 if t == o else 0 for t, o in zip(sent.tags, original_pred)]
-            )
-            ctx_common_tags = sum(
-                [1 if t == c else 0 for t, c in zip(sent.tags, ctx_pred)]
-            )
-            return 1 if ctx_common_tags > original_common_tags else 0
-
         ctx_selection_examples = []
-        for sent_i, (sent, sent_pred) in tqdm(
-            enumerate(zip(train_dataset.sents(), preds.tags)), total=len(preds.tags)
+        for sent_i, (sent, pred_scores) in tqdm(
+            enumerate(zip(train_dataset.sents(), preds.scores)), total=len(preds.tags)
         ):
             document = train_dataset.document_for_sent(sent_i)
+
+            pred_error = NeuralContextSelector._pred_error(
+                sent, pred_scores, train_dataset.tag_to_id
+            )
 
             # did we already retrieve enough examples ?
             if (
@@ -569,24 +560,18 @@ class NeuralContextSelector(ContextSelector):
                 ),
                 quiet=True,
                 batch_size=batch_size,
+                additional_outputs={"scores"},
             )
-            usefulnesses = []
-            context_sides = []
-            for i, (ctx_pred, ctx_sent) in enumerate(
-                zip(preds_ctx.tags, left_ctx_sents + right_ctx_sents)
+            assert not preds_ctx.scores is None
+            for i, (preds_scores_ctx, ctx_sent) in enumerate(
+                zip(preds_ctx.scores, left_ctx_sents + right_ctx_sents)
             ):
-                usefulnesses.append(pred_did_help(sent, sent_pred, ctx_pred))
-                context_sides.append("left" if i < len(left_ctx_sents) else "right")
-
-            # WIP: only add examples if at least one of then was
-            # useful (in hope that this will filter out sentences that
-            # do not need additional context)
-            if not filter_correct_sentences or any(
-                [usefulness == 1 for usefulness in usefulnesses]
-            ):
-                for usefulness, context_side, ctx_sent in zip(
-                    usefulnesses, context_sides, left_ctx_sents + right_ctx_sents
-                ):
+                pred_ctx_error = NeuralContextSelector._pred_error(
+                    sent, preds_scores_ctx, train_dataset.tag_to_id
+                )
+                usefulness = pred_error - pred_ctx_error
+                if abs(usefulness) >= examples_usefulness_threshold:
+                    context_side = "left" if i < len(left_ctx_sents) else "right"
                     ctx_selection_examples.append(
                         ContextSelectionExample(
                             sent.tokens, ctx_sent.tokens, context_side, usefulness
@@ -609,7 +594,7 @@ class NeuralContextSelector(ContextSelector):
         epochs_nb: int,
         batch_size: int,
         learning_rate: float,
-        use_weights: bool = False,
+        weights_bins_nb: Optional[int] = None,
         _run: Optional[Run] = None,
     ) -> BertForSequenceClassification:
         """Instantiate and train a context classifier.
@@ -620,7 +605,8 @@ class NeuralContextSelector(ContextSelector):
             selection dataset.
         :param epochs_nb: number of training epochs.
         :param batch_size:
-        :param use_weights:
+        :param weights_bins_nb: number of loss weight bins.  If
+            ``None``, the MSELoss will not be weighted.
         :param _run: current sacred run.  If not ``None``, will be
             used to record training metrics.
 
@@ -628,18 +614,32 @@ class NeuralContextSelector(ContextSelector):
         """
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        ctx_classifier = BertForSequenceClassification.from_pretrained("bert-base-cased", num_labels=2)  # type: ignore
+        ctx_classifier = BertForSequenceClassification.from_pretrained(
+            "bert-base-cased", problem_type="regression", num_labels=1
+        )  # type: ignore
         ctx_classifier = cast(BertForSequenceClassification, ctx_classifier)
         ctx_classifier = ctx_classifier.to(device)
 
-        if not use_weights:
-            loss_fn = torch.nn.CrossEntropyLoss()
+        if not weights_bins_nb is None:
+            examples_usefulnesses = torch.tensor(
+                [ex.usefulness for ex in ctx_dataset.examples]
+            )
+            # torch.histogram is not implemented on CUDA, so we avoid
+            # sending tensors to GPU until after this computation
+            # (bins_nb), (bins_nb)
+            bins_count, bins_edges = torch.histogram(
+                examples_usefulnesses, weights_bins_nb
+            )
+            bins_count = bins_count.to(device)
+            bins_edges = bins_edges.to(device)
+            # (bins_nb)
+            bins_weights = (torch.max(bins_count) + 1) / (bins_count + 1)
+
+            loss_fn = functools.partial(
+                bin_weighted_mse_loss, bins_weights=bins_weights, bins_edges=bins_edges
+            )
         else:
-            print("using weights !")
-            counter = Counter([e.usefulness for e in ctx_dataset.examples])
-            max_occ = counter[max(counter)]  # type: ignore
-            weight = torch.tensor([max_occ / counter[cls] for cls in [0, 1]]).to(device)
-            loss_fn = torch.nn.CrossEntropyLoss(weight=weight)
+            loss_fn = torch.nn.MSELoss()
 
         optimizer = torch.optim.AdamW(ctx_classifier.parameters(), lr=learning_rate)
 
@@ -666,7 +666,7 @@ class NeuralContextSelector(ContextSelector):
                     attention_mask=X["attention_mask"],
                 )
 
-                loss = loss_fn(out.logits, X["labels"])
+                loss = loss_fn(out.logits[:, 0], X["labels"])
                 loss.backward()
 
                 optimizer.step()
