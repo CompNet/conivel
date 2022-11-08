@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Tuple, TypeVar, List, Optional
+from typing import Any, Dict, Tuple, TypeVar, List, Optional
 import copy, time, os, uuid, shutil, json
 from types import MethodType
 from dataclasses import dataclass
@@ -7,7 +7,8 @@ from more_itertools import windowed
 import torch
 from transformers import PreTrainedModel  # type: ignore
 from sacred.run import Run
-from transformers.utils.dummy_tokenizers_objects import BertTokenizerFast
+from transformers import BertForTokenClassification  # type: ignore
+from transformers import BertTokenizerFast  # type: ignore
 
 
 @dataclass(frozen=True)
@@ -335,3 +336,20 @@ def bin_weighted_mse_loss(
     # (batch_size)
     weights = bins_weights[bins_idx]
     return (weights * (target - pred) ** 2).mean()
+
+
+def pretrained_bert_for_token_classification(
+    model_str: str, tag_to_id: Dict[str, int]
+) -> BertForTokenClassification:
+    """Load a :class:`BertForTokenClassification` model configured
+    with the right number of classes.
+
+    :param model_str:
+    :param tag_to_id:
+    """
+    return BertForTokenClassification.from_pretrained(
+        model_str,
+        num_labels=len(tag_to_id),
+        label2id=tag_to_id,
+        id2label={v: k for k, v in tag_to_id.items()},
+    )
