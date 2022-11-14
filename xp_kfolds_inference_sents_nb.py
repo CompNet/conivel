@@ -66,7 +66,7 @@ def config():
     # context retrieval dataset
     retrieval_heuristic_gen_kwargs: dict
     # inference sents_nb to test
-    retrieval_heuristic_inference_sents_nb_list: List[int]
+    retrieval_heuristic_inference_sents_nb_list: list
 
     # -- context retrieval parameters
     # number of epochs for context retrieval training
