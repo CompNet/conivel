@@ -239,6 +239,7 @@ def main(
                     retrieval_heuristic_inference_kwargs,
                     batch_size,
                     sents_nb,
+                    use_cache=True,
                 )
                 ctx_test_set = neural_context_retriever(test_set)
 

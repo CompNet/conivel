@@ -1,3 +1,4 @@
+import contextlib
 from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union, cast
 import random, functools
 from functools import lru_cache
@@ -255,7 +256,7 @@ class BM25ContextRetriever(ContextRetriever):
         ]
 
 
-@dataclass
+@dataclass(frozen=True)
 class ContextRetrievalExample:
     """A context selection example, to be used for training a context selector."""
 
@@ -267,6 +268,11 @@ class ContextRetrievalExample:
     context_side: Literal["left", "right"]
     #: usefulness of the exemple, between -1 and 1.
     usefulness: Optional[float]
+
+    def __hash__(self) -> int:
+        return hash(
+            (tuple(self.sent), tuple(self.context), self.context_side, self.usefulness)
+        )
 
 
 class ContextRetrievalDataset(Dataset):
@@ -327,6 +333,7 @@ class NeuralContextRetriever(ContextRetriever):
         heuristic_context_selector_kwargs: Dict[str, Any],
         batch_size: int,
         sents_nb: int,
+        use_cache: bool = False,
     ) -> None:
         """
         :param pretrained_model_name: pretrained model name, used to
@@ -338,6 +345,9 @@ class NeuralContextRetriever(ContextRetriever):
             heuristic context retriever at instantiation time
         :param batch_size: batch size used at inference
         :param sents_nb: max number of sents to retrieve
+        :param use_cache: if ``True``,
+            :func:`NeuralContextRetriever.predict` will use an
+            internal cache to speed up computations.
         """
         if isinstance(pretrained_model, str):
             self.ctx_classifier = BertForSequenceClassification.from_pretrained(
@@ -356,7 +366,20 @@ class NeuralContextRetriever(ContextRetriever):
 
         self.batch_size = batch_size
 
+        self._predict_cache = {}
+        self.use_cache = use_cache
+
         super().__init__(sents_nb)
+
+    def clear_predict_cache_(self):
+        """Clear the prediction cache"""
+        self._predict_cache = {}
+
+    def _predict_cache_get(self, x: ContextRetrievalExample) -> Optional[float]:
+        return self._predict_cache.get(x)
+
+    def _predict_cache_register_(self, x: ContextRetrievalExample, score: float):
+        self._predict_cache[x] = score
 
     def predict(
         self,
@@ -378,6 +401,21 @@ class NeuralContextRetriever(ContextRetriever):
         device = torch.device(device_str)
         self.ctx_classifier = self.ctx_classifier.to(device)  # type: ignore
 
+        if self.use_cache:
+            out_scores = [self._predict_cache_get(e) for e in dataset.examples]
+            out_scores = torch.tensor(
+                [s if not s is None else 0.0 for s in out_scores]
+            ).to(device)
+            # restrict datset to uncached examples
+            uncached_idxs = [i for i, s in enumerate(out_scores) if s is None]
+            dataset = ContextRetrievalDataset(
+                [e for e, s in zip(dataset.examples, out_scores) if s is None],
+                tokenizer=dataset.tokenizer,
+            )
+        else:
+            out_scores = torch.tensor([0.0] * len(dataset.examples)).to(device)
+            uncached_idxs = [i for i in range(len(dataset.examples))]
+
         data_collator = DataCollatorWithPadding(dataset.tokenizer)  # type: ignore
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, collate_fn=data_collator)  # type: ignore
 
@@ -395,7 +433,14 @@ class NeuralContextRetriever(ContextRetriever):
                 )
                 scores = torch.cat([scores, out.logits[:, 0]], dim=0)
 
-        return scores
+        out_scores[uncached_idxs] = scores
+
+        # register scores in cache
+        if self.use_cache:
+            for ex, score in zip(dataset.examples, out_scores):
+                self._predict_cache_register_(ex, score.item())
+
+        return out_scores
 
     def retrieve(
         self, sent_idx: int, document: List[NERSentence]
