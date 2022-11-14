@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union, cast
 import random, functools
 from functools import lru_cache
 from dataclasses import dataclass
+from git import exc
 import nltk
 from sacred.run import Run
 import torch
@@ -16,45 +17,71 @@ from conivel.utils import get_tokenizer, bin_weighted_mse_loss
 from conivel.predict import predict
 
 
-class ContextSelector:
-    """"""
+@dataclass
+class ContextRetrievalMatch:
+    sentence: NERSentence
+    sentence_idx: int
+    side: Literal["left", "right"]
+    score: Optional[float]
+
+
+class ContextRetriever:
+    """
+    :ivar sents_nb: maximum number of sents to retrieve
+    """
 
     def __init__(self, sents_nb: Union[int, List[int]], **kwargs) -> None:
         self.sents_nb = sents_nb
 
-    def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence, ...]
-    ) -> Tuple[List[NERSentence], List[NERSentence]]:
+    def __call__(self, dataset: NERDataset) -> NERDataset:
+        """retrieve context for each sentence of a :class:`NERDataset`"""
+        new_docs = []
+        for document in dataset.documents:
+            new_doc = []
+            for sent_i, sent in enumerate(document):
+                retrieval_matchs = self.retrieve(sent_i, document)
+                new_doc.append(
+                    NERSentence(
+                        sent.tokens,
+                        sent.tags,
+                        [m.sentence for m in retrieval_matchs if m.side == "left"],
+                        [m.sentence for m in retrieval_matchs if m.side == "right"],
+                    )
+                )
+            new_docs.append(new_doc)
+        return NERDataset(new_docs, tags=dataset.tags, tokenizer=dataset.tokenizer)
+
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
         """Select context for a sentence in a document
 
         :param sent_idx: the index of the sentence in the document
         :param document: document in where to find the context
-
-        :return: a tuple with the left and right context of the input
-                 sent.  Sents must be returned *in order* according to
-                 the original text.
         """
         raise NotImplemented
 
 
-context_selector_name_to_class: Dict[str, Type[ContextSelector]] = {}
+def sent_with_ctx_from_matchs(
+    sent: NERSentence, ctx_matchs: List[ContextRetrievalMatch]
+) -> List[NERSentence]:
+    return [
+        NERSentence(
+            sent.tokens,
+            sent.tags,
+            left_context=[ctx_match.sentence] if ctx_match.side == "left" else [],
+            right_context=[ctx_match.sentence] if ctx_match.side == "right" else [],
+        )
+        for ctx_match in ctx_matchs
+    ]
 
 
-class RandomContextSelector(ContextSelector):
+class RandomContextRetriever(ContextRetriever):
     """A context selector choosing context at random in a document."""
 
-    def __init__(self, sents_nb: Union[int, List[int]]):
-        """
-        :param sents_nb: number of context sentences to select.  If a
-            list, the number of context sentences to select will be
-            picked randomly among this list at call time.
-        """
-        super().__init__(sents_nb)
-
-    def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence, ...]
-    ) -> Tuple[List[NERSentence], List[NERSentence]]:
-        """ """
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
 
@@ -64,16 +91,15 @@ class RandomContextSelector(ContextSelector):
         )
         selected_sents_idx = sorted(selected_sents_idx)
 
-        return (
-            [document[i] for i in selected_sents_idx if i < sent_idx],
-            [document[i] for i in selected_sents_idx if i > sent_idx],
-        )
+        return [
+            ContextRetrievalMatch(
+                document[i], i, "left" if i < sent_idx else "right", None
+            )
+            for i in selected_sents_idx
+        ]
 
 
-context_selector_name_to_class["random"] = RandomContextSelector
-
-
-class SameWordSelector(ContextSelector):
+class SameNounRetriever(ContextRetriever):
     """A context selector that randomly choose a sentence having a
     common name with the current sentence.
 
@@ -89,10 +115,9 @@ class SameWordSelector(ContextSelector):
         nltk.download("averaged_perceptron_tagger")
         super().__init__(sents_nb)
 
-    def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence, ...]
-    ) -> Tuple[List[NERSentence], List[NERSentence]]:
-        """ """
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
 
@@ -114,16 +139,15 @@ class SameWordSelector(ContextSelector):
         )
         selected_sents_idx = sorted(selected_sents_idx)
 
-        return (
-            [document[i] for i in selected_sents_idx if i < sent_idx],
-            [document[i] for i in selected_sents_idx if i > sent_idx],
-        )
+        return [
+            ContextRetrievalMatch(
+                document[i], i, "left" if i < sent_idx else "right", None
+            )
+            for i in selected_sents_idx
+        ]
 
 
-context_selector_name_to_class["sameword"] = SameWordSelector
-
-
-class NeighborsContextSelector(ContextSelector):
+class NeighborsContextRetriever(ContextRetriever):
     """A context selector that chooses nearby sentences."""
 
     def __init__(self, sents_nb: Union[int, List[int]]):
@@ -138,65 +162,64 @@ class NeighborsContextSelector(ContextSelector):
 
         super().__init__(sents_nb)
 
-    def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence, ...]
-    ) -> Tuple[List[NERSentence], List[NERSentence]]:
-        """ """
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
 
         left_sents_nb = sents_nb // 2
         right_sents_nb = sents_nb // 2
 
-        return (
-            list(document[max(0, sent_idx - left_sents_nb) : sent_idx]),
-            list(document[sent_idx + 1 : sent_idx + 1 + right_sents_nb]),
-        )
+        left_ctx = [
+            ContextRetrievalMatch(document[i], i, "left", None)
+            for i in range(max(0, sent_idx - left_sents_nb), sent_idx)
+        ]
+        right_ctx = [
+            ContextRetrievalMatch(document[i], i, "right", None)
+            for i in range(sent_idx + 1, sent_idx + 1 + right_sents_nb)
+        ]
+
+        return left_ctx + right_ctx
 
 
-context_selector_name_to_class["neighbors"] = NeighborsContextSelector
-
-
-class LeftContextSelector(ContextSelector):
+class LeftContextRetriever(ContextRetriever):
     """"""
 
     def __init__(self, sents_nb: Union[int, List[int]]):
         super().__init__(sents_nb)
 
-    def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence, ...]
-    ) -> Tuple[List[NERSentence], List[NERSentence]]:
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
 
-        return (list(document[max(0, sent_idx - sents_nb) : sent_idx]), [])
+        return [
+            ContextRetrievalMatch(document[i], i, "left", None)
+            for i in range(max(0, sent_idx - sents_nb), sent_idx)
+        ]
 
 
-context_selector_name_to_class["left"] = LeftContextSelector
-
-
-class RightContextSelector(ContextSelector):
+class RightContextRetriever(ContextRetriever):
     """"""
 
     def __init__(self, sents_nb: Union[int, List[int]]):
         super().__init__(sents_nb)
 
-    def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence, ...]
-    ) -> Tuple[List[NERSentence], List[NERSentence]]:
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
 
-        return (
-            [],
-            list(document[sent_idx + 1 : sent_idx + 1 + sents_nb]),
-        )
+        return [
+            ContextRetrievalMatch(document[i], i, "right", None)
+            for i in range(sent_idx + 1, sent_idx + 1 + sents_nb)
+        ]
 
 
-context_selector_name_to_class["right"] = RightContextSelector
-
-
-class BM25ContextSelector(ContextSelector):
+class BM25ContextRetriever(ContextRetriever):
     """A context selector that selects sentences according to BM25 ranking formula."""
 
     def __init__(self, sents_nb: Union[int, List[int]]) -> None:
@@ -208,37 +231,32 @@ class BM25ContextSelector(ContextSelector):
         super().__init__(sents_nb)
 
     @staticmethod
-    @lru_cache(maxsize=None)
-    def _get_bm25_model(document: Tuple[NERSentence, ...]) -> BM25Okapi:
+    def _get_bm25_model(document: List[NERSentence]) -> BM25Okapi:
         return BM25Okapi([sent.tokens for sent in document])
 
-    def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence, ...]
-    ) -> Tuple[List[NERSentence], List[NERSentence]]:
-        """"""
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
 
-        bm25_model = BM25ContextSelector._get_bm25_model(document)
+        bm25_model = BM25ContextRetriever._get_bm25_model(document)
         query = document[sent_idx].tokens
         sent_scores = bm25_model.get_scores(query)
         sent_scores[sent_idx] = -1  # don't retrieve self
-        best_idxs = list(
-            torch.topk(torch.tensor(sent_scores), k=sents_nb, dim=0)
-            .indices.sort()
-            .values
+        topk_values, topk_indexs = torch.topk(
+            torch.tensor(sent_scores), k=sents_nb, dim=0
         )
-        return (
-            [document[i] for i in best_idxs if i < sent_idx],
-            [document[i] for i in best_idxs if i > sent_idx],
-        )
-
-
-context_selector_name_to_class["bm25"] = BM25ContextSelector
+        return [
+            ContextRetrievalMatch(
+                document[index], index, "left" if index < sent_idx else "right", value
+            )
+            for value, index in zip(topk_values.tolist(), topk_indexs.tolist())
+        ]
 
 
 @dataclass
-class ContextSelectionExample:
+class ContextRetrievalExample:
     """A context selection example, to be used for training a context selector."""
 
     #: sentence on which NER is performed
@@ -251,12 +269,12 @@ class ContextSelectionExample:
     usefulness: Optional[float]
 
 
-class ContextSelectionDataset(Dataset):
+class ContextRetrievalDataset(Dataset):
     """"""
 
     def __init__(
         self,
-        examples: List[ContextSelectionExample],
+        examples: List[ContextRetrievalExample],
         tokenizer: Optional[BertTokenizerFast] = None,
     ) -> None:
         self.examples = examples
@@ -299,7 +317,7 @@ class ContextSelectionDataset(Dataset):
         return [vars(example) for example in self.examples]
 
 
-class NeuralContextSelector(ContextSelector):
+class NeuralContextRetriever(ContextRetriever):
     """A context selector powered by BERT"""
 
     def __init__(
@@ -331,7 +349,7 @@ class NeuralContextSelector(ContextSelector):
 
         self.tokenizer = get_tokenizer()
 
-        selector_class = context_selector_name_to_class[heuristic_context_selector]
+        selector_class = context_retriever_name_to_class[heuristic_context_selector]
         self.heuristic_context_selector = selector_class(
             **heuristic_context_selector_kwargs
         )
@@ -342,7 +360,7 @@ class NeuralContextSelector(ContextSelector):
 
     def predict(
         self,
-        dataset: Union[ContextSelectionDataset, List[ContextSelectionExample]],
+        dataset: Union[ContextRetrievalDataset, List[ContextRetrievalExample]],
         device_str: Literal["cuda", "cpu", "auto"] = "auto",
     ) -> torch.Tensor:
         """
@@ -353,7 +371,7 @@ class NeuralContextSelector(ContextSelector):
                  between -1 and 1
         """
         if isinstance(dataset, list):
-            dataset = ContextSelectionDataset(dataset, self.tokenizer)
+            dataset = ContextRetrievalDataset(dataset, self.tokenizer)
 
         if device_str == "auto":
             device_str = "cuda" if torch.cuda.is_available() else "cpu"
@@ -379,10 +397,9 @@ class NeuralContextSelector(ContextSelector):
 
         return scores
 
-    def __call__(
-        self, sent_idx: int, document: Tuple[NERSentence, ...]
-    ) -> Tuple[List[NERSentence], List[NERSentence]]:
-        """"""
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.ctx_classifier = self.ctx_classifier.to(device)  # type: ignore
 
@@ -390,48 +407,46 @@ class NeuralContextSelector(ContextSelector):
 
         # get self.heuristic_retrieval_sents_nb potentially important
         # context sentences
-        left_ctx, right_ctx = self.heuristic_retrieve_ctx(sent_idx, document)
-        ctx_sents = left_ctx + right_ctx
+        ctx_matchs = self.heuristic_retrieve_ctx(sent_idx, document)
+        ctx_sents = sent_with_ctx_from_matchs(sent, ctx_matchs)
 
         # no context retrieved by heuristic : nothing to do
         if len(ctx_sents) == 0:
-            return ([], [])
+            return []
 
         # prepare datas for inference
-        dataset = [
-            ContextSelectionExample(sent.tokens, ctx_sent.tokens, "left", None)
-            for ctx_sent in left_ctx
-        ] + [
-            ContextSelectionExample(sent.tokens, ctx_sent.tokens, "right", None)
-            for ctx_sent in right_ctx
+        ctx_dataset = [
+            ContextRetrievalExample(
+                sent.tokens, ctx_match.sentence.tokens, ctx_match.side, None
+            )
+            for ctx_match in ctx_matchs
         ]
-        scores = self.predict(dataset)
+        scores = self.predict(ctx_dataset)
 
         topk = torch.topk(scores, min(self.sents_nb, scores.shape[0]), dim=0)  # type: ignore
         best_ctx_idxs = topk.indices[topk.values > 0]
-        left_ctx_idxs_mask = best_ctx_idxs < len(left_ctx)
 
-        left_ctx_idxs = best_ctx_idxs[left_ctx_idxs_mask].sort().values
-        right_ctx_idxs = best_ctx_idxs[~left_ctx_idxs_mask].sort().values
-
-        return (
-            [ctx_sents[ctx_idx] for ctx_idx in left_ctx_idxs],
-            [ctx_sents[ctx_idx] for ctx_idx in right_ctx_idxs],
-        )
+        return [
+            ContextRetrievalMatch(
+                ctx_sents[i],
+                ctx_matchs[i].sentence_idx,
+                ctx_matchs[i].side,
+                topk.values[i].item(),
+            )
+            for i in best_ctx_idxs.tolist()
+        ]
 
     def heuristic_retrieve_ctx(
-        self, sent_idx: int, document: Tuple[NERSentence, ...]
-    ) -> Tuple[List[NERSentence], List[NERSentence]]:
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
         """Retrieve potentially useful context sentences to help
         predict sent at index ``sent_idx``.
 
         :param sent_idx: index of the sent for which NER predictions
             are made.
         :param document: the predicted sentence's document.
-
-        :return: ``(left_context, right_context)``
         """
-        return self.heuristic_context_selector(sent_idx, document)
+        return self.heuristic_context_selector.retrieve(sent_idx, document)
 
     @staticmethod
     def _pred_error(
@@ -463,7 +478,7 @@ class NeuralContextSelector(ContextSelector):
         examples_usefulness_threshold: float = 0.0,
         skip_correct: bool = False,
         _run: Optional[Run] = None,
-    ) -> ContextSelectionDataset:
+    ) -> ContextRetrievalDataset:
         """Generate a context selection training dataset.
 
         The process is as follows :
@@ -515,7 +530,7 @@ class NeuralContextSelector(ContextSelector):
         )
         assert not preds.scores is None
 
-        ctx_selector_class = context_selector_name_to_class[heuristic_context_selector]
+        ctx_selector_class = context_retriever_name_to_class[heuristic_context_selector]
         preliminary_ctx_selector = ctx_selector_class(
             **heuristic_context_selector_kwargs
         )
@@ -530,7 +545,7 @@ class NeuralContextSelector(ContextSelector):
 
             document = train_dataset.document_for_sent(sent_i)
 
-            pred_error = NeuralContextSelector._pred_error(
+            pred_error = NeuralContextRetriever._pred_error(
                 sent, pred_scores, train_dataset.tag_to_id
             )
 
@@ -544,24 +559,15 @@ class NeuralContextSelector(ContextSelector):
 
             # retrieve n context sentences
             index_in_doc = train_dataset.sent_document_index(sent_i)
-            left_ctx_sents, right_ctx_sents = preliminary_ctx_selector(
-                index_in_doc, tuple(document)
-            )
-            sent_and_ctx = [
-                NERSentence(sent.tokens, sent.tags, left_context=[ctx_sent])
-                for ctx_sent in left_ctx_sents
-            ]
-            sent_and_ctx += [
-                NERSentence(sent.tokens, sent.tags, right_context=[ctx_sent])
-                for ctx_sent in right_ctx_sents
-            ]
+            ctx_matchs = preliminary_ctx_selector.retrieve(index_in_doc, document)
+            ctx_sents = sent_with_ctx_from_matchs(sent, ctx_matchs)
 
             # generate examples by making new predictions with context
             # sentences
             preds_ctx = predict(
                 ner_model,
                 NERDataset(
-                    [sent_and_ctx],
+                    [ctx_sents],
                     train_dataset.tags,
                     tokenizer=train_dataset.tokenizer,
                 ),
@@ -573,21 +579,19 @@ class NeuralContextSelector(ContextSelector):
 
             usefulnesses = []
             context_sides = []
-            for i, (preds_scores_ctx, ctx_sent) in enumerate(
-                zip(preds_ctx.scores, left_ctx_sents + right_ctx_sents)
-            ):
-                pred_ctx_error = NeuralContextSelector._pred_error(
+            for preds_scores_ctx, ctx_match in zip(preds_ctx.scores, ctx_matchs):
+                pred_ctx_error = NeuralContextRetriever._pred_error(
                     sent, preds_scores_ctx, train_dataset.tag_to_id
                 )
                 usefulnesses.append(pred_error - pred_ctx_error)
-                context_sides.append("left" if i < len(left_ctx_sents) else "right")
+                context_sides.append(ctx_match.side)
 
             if any([u > examples_usefulness_threshold for u in usefulnesses]):
                 for usefulness, context_side, ctx_sent in zip(
-                    usefulnesses, context_sides, left_ctx_sents + right_ctx_sents
+                    usefulnesses, context_sides, ctx_sents
                 ):
                     ctx_selection_examples.append(
-                        ContextSelectionExample(
+                        ContextRetrievalExample(
                             sent.tokens, ctx_sent.tokens, context_side, usefulness
                         )
                     )
@@ -600,11 +604,11 @@ class NeuralContextSelector(ContextSelector):
             for ex in ctx_selection_examples:
                 _run.log_scalar("context_dataset_generation.usefulness", ex.usefulness)
 
-        return ContextSelectionDataset(ctx_selection_examples)
+        return ContextRetrievalDataset(ctx_selection_examples)
 
     @staticmethod
     def train_context_selector(
-        ctx_dataset: ContextSelectionDataset,
+        ctx_dataset: ContextRetrievalDataset,
         epochs_nb: int,
         batch_size: int,
         learning_rate: float,
@@ -701,4 +705,12 @@ class NeuralContextSelector(ContextSelector):
         return ctx_classifier
 
 
-context_selector_name_to_class["neural"] = NeuralContextSelector
+context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
+    "neural": NeuralContextRetriever,
+    "neighbors": NeighborsContextRetriever,
+    "left": LeftContextRetriever,
+    "right": RightContextRetriever,
+    "bm25": BM25ContextRetriever,
+    "samenoun": SameNounRetriever,
+    "random": RandomContextRetriever,
+}

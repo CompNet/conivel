@@ -1,13 +1,12 @@
-from typing import Dict, List, Optional
-import os, copy, shutil
+from typing import List, Optional
+import os
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
-from transformers import BertForTokenClassification  # type: ignore
 from conivel.datas.dekker import DekkerDataset
-from conivel.datas.context import context_selector_name_to_class
+from conivel.datas.context import context_retriever_name_to_class
 from conivel.predict import predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
@@ -15,6 +14,7 @@ from conivel.utils import (
     RunLogScope,
     gpu_memory_usage,
     sacred_archive_huggingface_model,
+    pretrained_bert_for_token_classification,
 )
 
 
@@ -89,27 +89,21 @@ def main(
 
         for fold_i, (train_set, test_set) in enumerate(kfolds):
 
-            train_set.context_selectors = [
-                context_selector_name_to_class[context_retriever](
-                    sents_nb=sents_nb_list,
-                    **context_retriever_kwargs,
-                )
-            ]
+            ctx_retriever = context_retriever_name_to_class[context_retriever](
+                sents_nb=sents_nb_list, **context_retriever_kwargs
+            )
+            ctx_train_set = ctx_retriever(train_set)
 
             # train
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}"):
 
-                model = BertForTokenClassification.from_pretrained(
-                    "bert-base-cased",
-                    num_labels=train_set.tags_nb,
-                    label2id=train_set.tag_to_id,
-                    id2label={v: k for k, v in train_set.tag_to_id.items()},
+                model = pretrained_bert_for_token_classification(
+                    "bert-base-cased", ctx_train_set.tag_to_id
                 )
-
                 model = train_ner_model(
                     model,
-                    train_set,
-                    train_set,
+                    ctx_train_set,
+                    ctx_train_set,
                     _run=_run,
                     epochs_nb=ner_epochs_nb,
                     batch_size=batch_size,
@@ -122,15 +116,14 @@ def main(
 
                 _run.log_scalar("gpu_usage", gpu_memory_usage())
 
-                test_set.context_selectors = [
-                    context_selector_name_to_class[context_retriever](
-                        sents_nb=sents_nb, **context_retriever_kwargs
-                    )
-                ]
+                ctx_retriever = context_retriever_name_to_class[context_retriever](
+                    sents_nb=sents_nb, **context_retriever_kwargs
+                )
+                ctx_test_set = ctx_retriever(test_set)
 
                 # test
-                test_preds = predict(model, test_set, batch_size=batch_size).tags
-                precision, recall, f1 = score_ner(test_set.sents(), test_preds)
+                test_preds = predict(model, ctx_test_set, batch_size=batch_size).tags
+                precision, recall, f1 = score_ner(ctx_test_set.sents(), test_preds)
                 _run.log_scalar(
                     f"run{run_i}.fold{fold_i}.test_precision",
                     precision,

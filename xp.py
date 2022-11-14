@@ -9,7 +9,7 @@ from sacred.utils import apply_backspaces_and_linefeeds
 from transformers import BertForTokenClassification  # type: ignore
 from conivel.datas.conll import CoNLLDataset
 from conivel.datas.dekker import DekkerDataset
-from conivel.datas.context import context_selector_name_to_class
+from conivel.datas.context import context_retriever_name_to_class
 from conivel.predict import predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
@@ -49,7 +49,7 @@ def main(
     print_config(_run)
 
     selectors = [
-        context_selector_name_to_class[key](**value)
+        context_retriever_name_to_class[key](**value)
         for key, value in context_selectors.items()
     ]
 

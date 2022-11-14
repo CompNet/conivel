@@ -11,7 +11,7 @@ from conivel.datas import NERSentence, align_tokens_labels_
 from conivel.utils import flattened, get_tokenizer
 
 if TYPE_CHECKING:
-    from conivel.datas.context import ContextSelector
+    from conivel.datas.context import ContextRetriever
 
 
 class NERDataset(Dataset):
@@ -27,7 +27,7 @@ class NERDataset(Dataset):
         self,
         documents: List[List[NERSentence]],
         tags: Optional[Set[str]] = None,
-        context_selectors: Optional[List[ContextSelector]] = None,
+        context_selectors: Optional[List[ContextRetriever]] = None,
         tokenizer: Optional[BertTokenizerFast] = None,
     ) -> None:
         """
@@ -209,27 +209,14 @@ class NERDataset(Dataset):
         sents = self.sents()
         sent = sents[index]
 
-        # retrieve context using context selectors
-        if len(self.context_selectors) > 0:
-            document = self.document_for_sent(index)
-            lcontexts = []
-            rcontexts = []
-            for selector in self.context_selectors:
-                lcontext, rcontext = selector(
-                    self.sent_document_index(index), tuple(document)
-                )
-                lcontexts += lcontext
-                rcontexts += rcontext
-        else:
-            lcontexts = sent.left_context
-            rcontexts = sent.right_context
-
         # add a dummy sentence with a separator if needed to inform
         # the model that sentences on the left and right are
         # contextuals
-        if len(lcontexts) > 0:
-            lcontexts = lcontexts + [NERSentence(["[SEP]"], ["O"])]
-        if len(rcontexts) > 0:
+        lcontexts = sent.left_context
+        rcontexts = sent.right_context
+        if len(sent.left_context) > 0:
+            lcontexts = sent.left_context + [NERSentence(["[SEP]"], ["O"])]
+        if len(sent.right_context) > 0:
             rcontexts = [NERSentence(["[SEP]"], ["O"])] + rcontexts
 
         # construct a new sentence with the retrieved context

@@ -1,16 +1,17 @@
 import os, gc, copy
-from pickle import FALSE
 from typing import List, Optional
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
-from transformers import BertForTokenClassification
-from conivel.datas.dataset import NERDataset  # type: ignore
+from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.the_hunger_games import TheHungerGamesDataset
-from conivel.datas.context import NeuralContextSelector, context_selector_name_to_class
+from conivel.datas.context import (
+    NeuralContextRetriever,
+    context_retriever_name_to_class,
+)
 from conivel.predict import predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
@@ -19,6 +20,7 @@ from conivel.utils import (
     sacred_archive_huggingface_model,
     sacred_archive_jsonifiable_as_file,
     gpu_memory_usage,
+    pretrained_bert_for_token_classification,
 )
 
 
@@ -134,13 +136,9 @@ def main(
                 continue
 
             # train context selector
-            ner_model = BertForTokenClassification.from_pretrained(
-                "bert-base-cased",
-                num_labels=train_set.tags_nb,
-                label2id=train_set.tag_to_id,
-                id2label={v: k for k, v in train_set.tag_to_id.items()},
+            ner_model = pretrained_bert_for_token_classification(
+                "bert-base-cased", train_set.tag_to_id
             )
-
             # HACK: split the training dataset in 2
             ctx_retrieval_ner_train_set, ctx_retrieval_gen_set = train_set.kfolds(
                 2, shuffle=False
@@ -166,7 +164,7 @@ def main(
 
                 # generate a context retrieval dataset using the other
                 # half of the training set
-                ctx_retrieval_dataset = NeuralContextSelector.generate_context_dataset(
+                ctx_retrieval_dataset = NeuralContextRetriever.generate_context_dataset(
                     ner_model,
                     ctx_retrieval_gen_set,
                     batch_size,
@@ -188,7 +186,7 @@ def main(
 
                 # train a context retriever using the previously generated
                 # context retrieval dataset
-                ctx_retriever_model = NeuralContextSelector.train_context_selector(
+                ctx_retriever_model = NeuralContextRetriever.train_context_selector(
                     ctx_retrieval_dataset,
                     ctx_retrieval_epochs_nb,
                     batch_size,
@@ -209,23 +207,20 @@ def main(
                 retrieval_heuristic_inference_kwargs
             )
             train_set_heuristic_kwargs["sents_nb"] = sents_nb_list
-            train_set_heuristic = context_selector_name_to_class[retrieval_heuristic](
+            train_set_heuristic = context_retriever_name_to_class[retrieval_heuristic](
                 **train_set_heuristic_kwargs
             )
-            train_set.context_selectors = [train_set_heuristic]
+            ctx_train_set = train_set_heuristic(train_set)
 
             # train ner model on train_set
-            ner_model = BertForTokenClassification.from_pretrained(
-                "bert-base-cased",
-                num_labels=train_set.tags_nb,
-                label2id=train_set.tag_to_id,
-                id2label={v: k for k, v in train_set.tag_to_id.items()},
+            ner_model = pretrained_bert_for_token_classification(
+                "bert-base-cased", train_set.tag_to_id
             )
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner"):
                 ner_model = train_ner_model(
                     ner_model,
-                    train_set,
-                    train_set,
+                    ctx_train_set,
+                    ctx_train_set,
                     _run=_run,
                     epochs_nb=ner_epochs_nb,
                     batch_size=batch_size,
@@ -238,16 +233,16 @@ def main(
 
                 _run.log_scalar("gpu_usage", gpu_memory_usage())
 
-                neural_context_retriever = NeuralContextSelector(
+                neural_context_retriever = NeuralContextRetriever(
                     ctx_retriever_model,
                     retrieval_heuristic,
                     retrieval_heuristic_inference_kwargs,
                     batch_size,
                     sents_nb,
                 )
-                test_set.context_selectors = [neural_context_retriever]
+                ctx_test_set = neural_context_retriever(test_set)
 
-                test_preds = predict(ner_model, test_set).tags
+                test_preds = predict(ner_model, ctx_test_set).tags
                 precision, recall, f1 = score_ner(test_set.sents(), test_preds)
                 _run.log_scalar(
                     f"run{run_i}.fold{fold_i}.test_precision", precision, step=sents_nb
@@ -256,10 +251,3 @@ def main(
                     f"run{run_i}.fold{fold_i}.test_recall", recall, step=sents_nb
                 )
                 _run.log_scalar(f"run{run_i}.fold{fold_i}.test_f1", f1, step=sents_nb)
-
-            # clear the context selectors off memory (otherwise,
-            # ``train_set`` and ``test_set`` keep a reference to them and
-            # they are not collected by the gc)
-            train_set.context_selectors = []
-            test_set.context_selectors = []
-            gc.collect()
