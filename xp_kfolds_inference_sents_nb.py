@@ -230,6 +230,7 @@ def main(
                     {"sents_nb": inference_sents_nb},
                     batch_size,
                     1,
+                    use_cache=True,
                 )
                 ctx_test_set = neural_context_retriever(test_set)
 
