@@ -454,10 +454,9 @@ class NeuralContextRetriever(ContextRetriever):
         # get self.heuristic_retrieval_sents_nb potentially important
         # context sentences
         ctx_matchs = self.heuristic_retrieve_ctx(sent_idx, document)
-        ctx_sents = sent_with_ctx_from_matchs(sent, ctx_matchs)
 
         # no context retrieved by heuristic : nothing to do
-        if len(ctx_sents) == 0:
+        if len(ctx_matchs) == 0:
             return []
 
         # prepare datas for inference
@@ -474,7 +473,7 @@ class NeuralContextRetriever(ContextRetriever):
 
         return [
             ContextRetrievalMatch(
-                ctx_sents[i],
+                ctx_matchs[i].sentence,
                 ctx_matchs[i].sentence_idx,
                 ctx_matchs[i].side,
                 float(scores[i].item()),
