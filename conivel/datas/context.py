@@ -410,7 +410,7 @@ class NeuralContextRetriever(ContextRetriever):
                 tokenizer=dataset.tokenizer,
             )
             out_scores = torch.tensor(
-                [s if not s is None else 0.0 for s in out_scores]
+                [s if not s is None else -1.0 for s in out_scores]
             ).to(device)
         else:
             out_scores = torch.tensor([0.0] * len(dataset.examples)).to(device)
@@ -431,7 +431,8 @@ class NeuralContextRetriever(ContextRetriever):
                     token_type_ids=X["token_type_ids"],
                     attention_mask=X["attention_mask"],
                 )
-                scores = torch.cat([scores, out.logits[:, 0]], dim=0)
+                pred = torch.sigmoid(out.logits) * 2 - 1
+                scores = torch.cat([scores, pred[:, 0]], dim=0)
 
         out_scores[uncached_idxs] = scores
 
@@ -728,8 +729,9 @@ class NeuralContextRetriever(ContextRetriever):
                     token_type_ids=X["token_type_ids"],
                     attention_mask=X["attention_mask"],
                 )
+                pred = torch.sigmoid(out.logits) * 2 - 1
 
-                loss = loss_fn(out.logits[:, 0], X["labels"])
+                loss = loss_fn(pred[:, 0], X["labels"])
                 loss.backward()
 
                 optimizer.step()
