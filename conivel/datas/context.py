@@ -476,7 +476,7 @@ class NeuralContextRetriever(ContextRetriever):
                 ctx_sents[i],
                 ctx_matchs[i].sentence_idx,
                 ctx_matchs[i].side,
-                topk.values[i].item(),
+                float(scores[i].item()),
             )
             for i in best_ctx_idxs.tolist()
         ]
