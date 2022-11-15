@@ -403,15 +403,15 @@ class NeuralContextRetriever(ContextRetriever):
 
         if self.use_cache:
             out_scores = [self._predict_cache_get(e) for e in dataset.examples]
-            out_scores = torch.tensor(
-                [s if not s is None else 0.0 for s in out_scores]
-            ).to(device)
             # restrict datset to uncached examples
             uncached_idxs = [i for i, s in enumerate(out_scores) if s is None]
             dataset = ContextRetrievalDataset(
                 [e for e, s in zip(dataset.examples, out_scores) if s is None],
                 tokenizer=dataset.tokenizer,
             )
+            out_scores = torch.tensor(
+                [s if not s is None else 0.0 for s in out_scores]
+            ).to(device)
         else:
             out_scores = torch.tensor([0.0] * len(dataset.examples)).to(device)
             uncached_idxs = [i for i in range(len(dataset.examples))]
