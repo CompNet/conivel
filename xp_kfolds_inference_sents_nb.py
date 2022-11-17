@@ -222,16 +222,18 @@ def main(
 
             _run.log_scalar("gpu_usage", gpu_memory_usage())
 
+            neural_context_retriever = NeuralContextRetriever(
+                ctx_retriever_model,
+                retrieval_heuristic,
+                {"sents_nb": retrieval_heuristic_inference_sents_nb_list[0]},
+                batch_size,
+                1,
+                use_cache=True,
+            )
+
             for inference_sents_nb in retrieval_heuristic_inference_sents_nb_list:
 
-                neural_context_retriever = NeuralContextRetriever(
-                    ctx_retriever_model,
-                    retrieval_heuristic,
-                    {"sents_nb": inference_sents_nb},
-                    batch_size,
-                    1,
-                    use_cache=True,
-                )
+                neural_context_retriever.set_heuristic_sents_nb_(inference_sents_nb)
                 ctx_test_set = neural_context_retriever(test_set)
 
                 test_preds = predict(ner_model, ctx_test_set).tags

@@ -381,6 +381,9 @@ class NeuralContextRetriever(ContextRetriever):
     def _predict_cache_register_(self, x: ContextRetrievalExample, score: float):
         self._predict_cache[x] = score
 
+    def set_heuristic_sents_nb_(self, sents_nb: int):
+        self.heuristic_context_selector.sents_nb = sents_nb
+
     def predict(
         self,
         dataset: Union[ContextRetrievalDataset, List[ContextRetrievalExample]],
