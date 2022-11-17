@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from more_itertools import windowed
 import torch
 from transformers import PreTrainedModel  # type: ignore
+from transformers import BertTokenizerFast  # type: ignore
 from sacred.run import Run
 from transformers import BertForTokenClassification  # type: ignore
 from transformers import BertTokenizerFast  # type: ignore
@@ -43,11 +44,21 @@ def flattened(lst: List[List[T]]) -> List[T]:
     return out_lst
 
 
-def get_tokenizer(retries_nb: int = 10) -> "BertTokenizerFast":
-    """resiliently try to get a tokenizer from the transformers library"""
-    from transformers import BertTokenizerFast  # type: ignore
+tokenizer = None
 
-    tokenizer = None
+
+def get_tokenizer(retries_nb: int = 10) -> "BertTokenizerFast":
+    """Resiliently try to get a tokenizer from the transformers
+    library
+
+    the tokenizer is a singleton, so that it is not reloaded everytime
+    one needs a tokenizer.
+    """
+    global tokenizer
+
+    if not tokenizer is None:
+        return tokenizer
+
     for i in range(retries_nb):
         try:
             tokenizer = BertTokenizerFast.from_pretrained("bert-base-cased")
