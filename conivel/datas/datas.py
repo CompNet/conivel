@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Dict, Literal, Set, Union, Optional
+from typing import List, Dict, Literal, Set, Tuple, Union, Optional
 from dataclasses import dataclass, field
 
 from itertools import chain
@@ -48,6 +48,9 @@ class NERSentence:
             + ("r",)
             + tuple(self.right_context)
         )
+
+    def __getitem__(self, idx: int) -> Tuple[str, str]:
+        return (self.tokens[idx], self.tags[idx])
 
     def tags_set(self) -> Set[str]:
         tags = set(self.tags)
