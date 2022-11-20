@@ -1,15 +1,23 @@
-import os
+from collections import defaultdict
+import os, glob
+from typing import List, Optional, Set, Dict
 from sacred import Experiment
 from sacred.run import Run
 from sacred.commands import print_config
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
-from transformers import BertForTokenClassification  # type: ignore
-from conivel.datas.dekker.dekker import DekkerDataset
+from conivel.datas.dataset import NERDataset
+from conivel.datas.dekker import load_book
 from conivel.predict import predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
-from conivel.utils import RunLogScope, gpu_memory_usage
+from conivel.utils import (
+    NEREntity,
+    entities_from_bio_tags,
+    flattened,
+    pretrained_bert_for_token_classification,
+    sacred_archive_jsonifiable_as_file,
+)
 
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -25,74 +33,76 @@ if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
 
 @ex.config
 def config():
-    repeats_nb: int = 5
-    low_epochs_nb: int
-    high_epochs_nb: int
+    dataset_path: str
+    epochs_nb: int
     batch_size: int
+    runs_nb: int
+    # Optional[List[str]]
+    keep_only_classes: Optional[list] = None
 
 
 @ex.automain
 def main(
-    _run: Run, repeats_nb: int, low_epochs_nb: int, high_epochs_nb: int, batch_size: int
+    _run: Run,
+    # path to Dekker et al dataset - use .annotated files for now
+    # since ORG/LOC classes are important here
+    dataset_path: str,
+    epochs_nb: int,
+    batch_size: int,
+    runs_nb: int,
+    keep_only_classes: Optional[List[str]],
 ):
     print_config(_run)
 
-    train_set, test_set = DekkerDataset().kfolds(5, False)[0]
+    entity_to_recall: Dict[NEREntity, List[bool]] = defaultdict(list)
 
-    for repeat_i in range(repeats_nb):
+    for run_i in range(runs_nb):
 
-        with RunLogScope(_run, f"low_run{repeat_i}"):
+        dataset_path = dataset_path.rstrip("/")
+        # TODO: file names
+        paths = glob.glob(f"{dataset_path}/*.conll.annotated")
+        # TODO: hardcoded train/test split for now
+        koc = set(keep_only_classes) if not keep_only_classes is None else None
+        train_dataset = NERDataset(
+            [load_book(path, keep_only_classes=koc) for path in paths[:8]]
+        )
+        test_dataset = NERDataset(
+            [load_book(path, keep_only_classes=koc) for path in paths[8:]]
+        )
 
-            ner_model = BertForTokenClassification.from_pretrained(
-                "bert-base-cased",
-                num_labels=train_set.tags_nb,
-                label2id=train_set.tag_to_id,
-                id2label={v: k for k, v in train_set.tag_to_id.items()},
-            )
+        model = pretrained_bert_for_token_classification(
+            "bert-base-cased", train_dataset.tag_to_id
+        )
+        model = train_ner_model(
+            model,
+            train_dataset,
+            train_dataset,
+            _run,
+            epochs_nb=epochs_nb,
+            batch_size=batch_size,
+        )
 
-            ner_model = train_ner_model(
-                ner_model,
-                train_set,
-                train_set,
-                _run,
-                low_epochs_nb,
-                batch_size=batch_size,
-                learning_rate=2e-5,
-            )
+        preds = predict(model, test_dataset, batch_size=batch_size)
+        precision, recall, f1 = score_ner(test_dataset.sents(), preds.tags)
+        _run.log_scalar("precision", precision)
+        _run.log_scalar("recall", recall)
+        _run.log_scalar("f1", f1)
 
-        test_preds = predict(ner_model, test_set).tags
-        precision, recall, f1 = score_ner(test_set.sents(), test_preds)
-        _run.log_scalar(f"low_test_precision", precision)
-        _run.log_scalar(f"low_test_recall", recall)
-        _run.log_scalar(f"low_test_f1", f1)
+        tokens = flattened([sent.tokens for sent in test_dataset.sents()])
+        true_tags = flattened([sent.tags for sent in test_dataset.sents()])
+        true_entities = entities_from_bio_tags(tokens, true_tags)
+        pred_entities = entities_from_bio_tags(tokens, flattened(preds.tags))
 
-        _run.log_scalar("gpu_usage", gpu_memory_usage())
+        for true_ent in true_entities:
+            entity_to_recall[true_ent].append(true_ent in pred_entities)
 
-    for repeat_i in range(repeats_nb):
+    def stability(entity_was_recalled: List[bool]) -> float:
+        recalls_nb = len([e for e in entity_was_recalled if e])
+        no_recalls_nb = len(entity_was_recalled) - recalls_nb
+        return abs(recalls_nb - no_recalls_nb) / len(entity_was_recalled)
 
-        with RunLogScope(_run, f"high_run{repeat_i}"):
-
-            ner_model = BertForTokenClassification.from_pretrained(
-                "bert-base-cased",
-                num_labels=train_set.tags_nb,
-                label2id=train_set.tag_to_id,
-                id2label={v: k for k, v in train_set.tag_to_id.items()},
-            )
-
-            ner_model = train_ner_model(
-                ner_model,
-                train_set,
-                train_set,
-                _run,
-                high_epochs_nb,
-                batch_size=batch_size,
-                learning_rate=2e-5,
-            )
-
-        test_preds = predict(ner_model, test_set).tags
-        precision, recall, f1 = score_ner(test_set.sents(), test_preds)
-        _run.log_scalar(f"high_test_precision", precision)
-        _run.log_scalar(f"high_test_recall", recall)
-        _run.log_scalar(f"high_test_f1", f1)
-
-        _run.log_scalar("gpu_usage", gpu_memory_usage())
+    entity_to_stability = [
+        {"entity": vars(ent), "stability": stability(was_recalled)}
+        for ent, was_recalled in entity_to_recall.items()
+    ]
+    sacred_archive_jsonifiable_as_file(_run, entity_to_stability, "entity_to_stability")
