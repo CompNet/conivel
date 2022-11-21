@@ -234,7 +234,7 @@ def main(
                 retrieval_heuristic,
                 retrieval_heuristic_inference_kwargs,
                 batch_size,
-                sents_nb,
+                1,
                 use_cache=True,
             )
 
