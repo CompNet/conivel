@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Set
 import os, glob, re
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
@@ -29,7 +29,14 @@ book_groups = {
 }
 
 
-def load_book(path: str) -> List[NERSentence]:
+def load_book(
+    path: str, keep_only_classes: Optional[Set[str]] = None
+) -> List[NERSentence]:
+    """
+    :param path: book path
+    :param keep_only_classes: if not ``None``, only keep tags from the
+        given NER classes
+    """
 
     # load tokens and tags from CoNLL formatted file
     tokens = []
@@ -46,6 +53,9 @@ def load_book(path: str) -> List[NERSentence]:
                 print(f"line content was : '{line}'")
                 print("trying to proceed...")
                 continue
+
+            if not keep_only_classes is None and not tag == "O":
+                tag = tag if tag[2:] in keep_only_classes else "O"
 
             tokens.append(token)
             tags.append(tag)
@@ -85,6 +95,7 @@ class DekkerDataset(NERDataset):
         self,
         directory: Optional[str] = None,
         book_group: Optional[str] = None,
+        keep_only_classes: Optional[Set[str]] = None,
         **kwargs,
     ):
         """"""
@@ -107,6 +118,6 @@ class DekkerDataset(NERDataset):
                 if not name in book_groups[book_group]:
                     continue
 
-            documents.append(load_book(book_path))
+            documents.append(load_book(book_path, keep_only_classes=keep_only_classes))
 
         super().__init__(documents, **kwargs)
