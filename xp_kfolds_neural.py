@@ -274,47 +274,32 @@ def main(
                 f1_matrix[run_i][fold_i][sents_nb_i] = f1
 
         # mean metrics for the current run
-        for name, matrix in metrics_matrices:
-            sacred_log_series(
-                _run,
-                f"run{run_i}.mean_test_{name}",
-                np.mean(matrix[run_i], axis=0),  # (sents_nb_list)
-                steps=sents_nb_list,
-            )
-            sacred_log_series(
-                _run,
-                f"run{run_i}.stdev_test_{name}",
-                np.std(matrix[run_i], axis=0),  # (sents_nb_list)
-                steps=sents_nb_list,
-            )
+        for metrics_name, matrix in metrics_matrices:
+            for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
+                sacred_log_series(
+                    _run,
+                    f"run{run_i}.{op_name}_test_{metrics_name}",
+                    op(matrix[run_i], axis=0),  # (sents_nb_list)
+                    steps=sents_nb_list,
+                )
 
     # folds mean metrics
     for fold_i in range(folds_nb):
-        for name, matrix in metrics_matrices:
-            sacred_log_series(
-                _run,
-                f"fold{fold_i}.mean_test_{name}",
-                np.mean(matrix[:, fold_i, :], axis=0),  # (sents_nb_list)
-                steps=sents_nb_list,
-            )
-            sacred_log_series(
-                _run,
-                f"fold{fold_i}.stdev_test_{name}",
-                np.std(matrix[:, fold_i, :], axis=0),  # (sents_nb_list)
-                steps=sents_nb_list,
-            )
+        for metrics_name, matrix in metrics_matrices:
+            for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
+                sacred_log_series(
+                    _run,
+                    f"fold{fold_i}.{op_name}_test_{metrics_name}",
+                    op(matrix[:, fold_i, :], axis=0),  # (sents_nb_list)
+                    steps=sents_nb_list,
+                )
 
     # global mean metrics
     for name, matrix in metrics_matrices:
-        sacred_log_series(
-            _run,
-            f"mean_test_{name}",
-            np.mean(matrix, axis=(0, 1)),  # (sents_nb)
-            steps=sents_nb_list,
-        )
-        sacred_log_series(
-            _run,
-            f"stdev_test_{name}",
-            np.std(matrix, axis=(0, 1)),  # (sents_nb)
-            steps=sents_nb_list,
-        )
+        for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
+            sacred_log_series(
+                _run,
+                f"{op_name}_test_{name}",
+                op(matrix, axis=(0, 1)),  # (sents_nb)
+                steps=sents_nb_list,
+            )
