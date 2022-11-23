@@ -5,6 +5,7 @@ from sacred.commands import print_config
 from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
+import numpy as np
 from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.the_hunger_games import TheHungerGamesDataset
@@ -19,6 +20,7 @@ from conivel.utils import (
     RunLogScope,
     sacred_archive_huggingface_model,
     sacred_archive_jsonifiable_as_file,
+    sacred_log_series,
     gpu_memory_usage,
     pretrained_bert_for_token_classification,
 )
@@ -127,6 +129,19 @@ def main(
     kfolds = dekker_dataset.kfolds(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
+    folds_nb = max(len(folds_list) if not folds_list is None else 0, len(kfolds))
+
+    # metrics matrices
+    # each matrix is of shape (runs_nb, folds_nb, sents_nb)
+    # these are used to record mean metrics across folds, runs...
+    precision_matrix = np.zeros((runs_nb, folds_nb, len(sents_nb_list)))
+    recall_matrix = np.zeros((runs_nb, folds_nb, len(sents_nb_list)))
+    f1_matrix = np.zeros((runs_nb, folds_nb, len(sents_nb_list)))
+    metrics_matrices = [
+        ("precision", precision_matrix),
+        ("recall", recall_matrix),
+        ("f1", f1_matrix),
+    ]
 
     for run_i in range(runs_nb):
 
@@ -196,7 +211,7 @@ def main(
                 )
                 if save_models:
                     sacred_archive_huggingface_model(
-                        _run, ctx_retriever_model, "ctx_retriever_model"
+                        _run, ctx_retriever_model, "ctx_retriever_model"  # type: ignore
                     )
 
             # PERFORMANCE HACK: only use the retrieval heuristic at
@@ -227,7 +242,7 @@ def main(
                     learning_rate=ner_lr,
                 )
                 if save_models:
-                    sacred_archive_huggingface_model(_run, ner_model, "ner_model")
+                    sacred_archive_huggingface_model(_run, ner_model, "ner_model")  # type: ignore
 
             neural_context_retriever = NeuralContextRetriever(
                 ctx_retriever_model,
@@ -238,7 +253,7 @@ def main(
                 use_cache=True,
             )
 
-            for sents_nb in sents_nb_list:
+            for sents_nb_i, sents_nb in enumerate(sents_nb_list):
 
                 _run.log_scalar("gpu_usage", gpu_memory_usage())
 
@@ -250,7 +265,56 @@ def main(
                 _run.log_scalar(
                     f"run{run_i}.fold{fold_i}.test_precision", precision, step=sents_nb
                 )
+                precision_matrix[run_i][fold_i][sents_nb_i] = precision
                 _run.log_scalar(
                     f"run{run_i}.fold{fold_i}.test_recall", recall, step=sents_nb
                 )
+                recall_matrix[run_i][fold_i][sents_nb_i] = recall
                 _run.log_scalar(f"run{run_i}.fold{fold_i}.test_f1", f1, step=sents_nb)
+                f1_matrix[run_i][fold_i][sents_nb_i] = f1
+
+        # mean metrics for the current run
+        for name, matrix in metrics_matrices:
+            sacred_log_series(
+                _run,
+                f"run{run_i}.mean_test_{name}",
+                np.mean(matrix[run_i], axis=0),  # (sents_nb_list)
+                steps=sents_nb_list,
+            )
+            sacred_log_series(
+                _run,
+                f"run{run_i}.stdev_test_{name}",
+                np.std(matrix[run_i], axis=0),  # (sents_nb_list)
+                steps=sents_nb_list,
+            )
+
+    # folds mean metrics
+    for fold_i in range(folds_nb):
+        for name, matrix in metrics_matrices:
+            sacred_log_series(
+                _run,
+                f"fold{fold_i}.mean_test_{name}",
+                np.mean(matrix[:, fold_i, :], axis=0),  # (sents_nb_list)
+                steps=sents_nb_list,
+            )
+            sacred_log_series(
+                _run,
+                f"fold{fold_i}.stdev_test_{name}",
+                np.std(matrix[:, fold_i, :], axis=0),  # (sents_nb_list)
+                steps=sents_nb_list,
+            )
+
+    # global mean metrics
+    for name, matrix in metrics_matrices:
+        sacred_log_series(
+            _run,
+            f"mean_test_{name}",
+            np.mean(matrix, axis=(0, 1)),  # (sents_nb)
+            steps=sents_nb_list,
+        )
+        sacred_log_series(
+            _run,
+            f"stdev_test_{name}",
+            np.std(matrix, axis=(0, 1)),  # (sents_nb)
+            steps=sents_nb_list,
+        )

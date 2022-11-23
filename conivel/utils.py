@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Any, Dict, Tuple, TypeVar, List, Optional
+from numbers import Number
+from typing import Any, Dict, Iterable, Tuple, TypeVar, List, Optional
 import copy, time, os, uuid, shutil, json
 from types import MethodType
 from dataclasses import dataclass
@@ -318,6 +319,20 @@ def sacred_archive_huggingface_model(run: Run, model: PreTrainedModel, model_nam
     sacred_archive_dir(
         run, tmp_model_name, dir_archive_name=model_name, and_delete=True
     )
+
+
+def sacred_log_series(
+    _run: Run, name: str, series: Iterable[Number], steps: Optional[List[int]] = None
+):
+    """Log the given 1D series to the given sacred run
+
+    :param _run:
+    :param name: metrics name
+    :param series: series to log
+    """
+    for elt_i, elt in enumerate(series):
+        step = steps[elt_i] if not steps is None else None
+        _run.log_scalar(name, elt, step)
 
 
 def gpu_memory_usage() -> float:
