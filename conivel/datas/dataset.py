@@ -10,9 +10,6 @@ from transformers.tokenization_utils_base import BatchEncoding
 from conivel.datas import NERSentence, align_tokens_labels_
 from conivel.utils import flattened, get_tokenizer
 
-if TYPE_CHECKING:
-    from conivel.datas.context import ContextRetriever
-
 
 class NERDataset(Dataset):
     """
@@ -20,20 +17,17 @@ class NERDataset(Dataset):
     :ivar tags: the set of all possible entity classes
     :ivar tags_nb: number of tags
     :ivar tags_to_id: `Dict[tag: str, id: int]`
-    :ivar context_selectors:
     """
 
     def __init__(
         self,
         documents: List[List[NERSentence]],
         tags: Optional[Set[str]] = None,
-        context_selectors: Optional[List[ContextRetriever]] = None,
         tokenizer: Optional[BertTokenizerFast] = None,
     ) -> None:
         """
         :param documents:
         :param tags:
-        :param context_selectors:
         """
         self.documents = documents
 
@@ -50,8 +44,6 @@ class NERDataset(Dataset):
             tag: i for i, tag in enumerate(sorted(list(self.tags)))
         }
         self.id_to_tag = {v: k for k, v in self.tag_to_id.items()}
-
-        self.context_selectors = [] if context_selectors is None else context_selectors
 
         if tokenizer is None:
             tokenizer = get_tokenizer()
@@ -116,11 +108,32 @@ class NERDataset(Dataset):
 
         return [
             (
-                NERDataset(train, self.tags, self.context_selectors, self.tokenizer),
-                NERDataset(test, self.tags, self.context_selectors, self.tokenizer),
+                NERDataset(train, self.tags, self.tokenizer),
+                NERDataset(test, self.tags, self.tokenizer),
             )
             for train, test in folds
         ]
+
+    def split(self, ratio: float) -> Tuple[NERDataset, NERDataset]:
+        """Split a dataset in two
+
+        :param ratio: split ratio, between 0 and 1
+
+        :return: two datasets, the 1st having ``int(len(self.documents) * ratio)``
+                 documents.
+        """
+        return (
+            NERDataset(
+                self.documents[: int(ratio * len(self.documents))],
+                self.tags,
+                self.tokenizer,
+            ),
+            NERDataset(
+                self.documents[int(ratio * len(self.documents)) :],
+                self.tags,
+                self.tokenizer,
+            ),
+        )
 
     @staticmethod
     def concatenated(datasets: List[NERDataset]) -> NERDataset:
@@ -134,10 +147,6 @@ class NERDataset(Dataset):
         """
         if len(datasets) == 1:
             return datasets[0]
-
-        # check that all datasets have same context selectors
-        for d1, d2 in itertools.combinations(datasets, 2):
-            assert d1.context_selectors == d2.context_selectors
 
         # try to "smartly" select a tokenizer by taking the first
         # tokenizer from ``datasets`` that is not ``None``
