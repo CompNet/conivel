@@ -322,6 +322,11 @@ class ContextRetrievalDataset(Dataset):
     def to_jsonifiable(self) -> List[dict]:
         return [vars(example) for example in self.examples]
 
+    def labels(self) -> Optional[List[float]]:
+        if any([ex.usefulness is None for ex in self.examples]):
+            return None
+        return [ex.usefulness for ex in self.examples]  # type: ignore
+
 
 class NeuralContextRetriever(ContextRetriever):
     """A context selector powered by BERT"""
