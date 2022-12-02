@@ -244,7 +244,7 @@ def main(
                 class_labels = [1 if label > 0.5 else 0 for label in labels]
                 class_preds = [1 if pred > 0.5 else 0 for pred in preds]
                 precision, recall, f1, _ = precision_recall_fscore_support(
-                    class_labels, class_preds
+                    class_labels, class_preds, average="binary"
                 )
                 precision_matrix[run_i][fold_i] = precision
                 recall_matrix[run_i][fold_i] = recall
