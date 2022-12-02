@@ -90,9 +90,7 @@ def config():
     # weight the MSELoss
     ctx_retrieval_weights_bins_nb: Optional[int] = None
 
-    # -- NER trainng parameters
-    # list of number of sents to test
-    sents_nb_list: list
+    # -- NER training parameters
     # number of epochs for NER training
     ner_epochs_nb: int = 2
 
@@ -228,6 +226,7 @@ def main(
                     )
                 )
                 preds = ctx_retriever.predict(test_ctx_retrieval_dataset)
+                preds = preds.cpu()
 
                 labels = test_ctx_retrieval_dataset.labels()
                 assert not labels is None
