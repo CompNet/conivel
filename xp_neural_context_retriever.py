@@ -92,7 +92,7 @@ def config():
 
     # -- NER training parameters
     # number of epochs for NER training
-    ner_epochs_nb: int = 2
+    ner_epochs_nb: int = 3
 
 
 @ex.automain
@@ -223,6 +223,7 @@ def main(
                         retrieval_heuristic,
                         {"sents_nb": 1},
                         _run=_run,
+                        skip_correct=True,
                     )
                 )
                 preds = ctx_retriever.predict(test_ctx_retrieval_dataset)
