@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
@@ -22,7 +22,6 @@ from conivel.utils import (
     RunLogScope,
     sacred_archive_huggingface_model,
     sacred_archive_jsonifiable_as_file,
-    sacred_log_series,
     gpu_memory_usage,
     pretrained_bert_for_token_classification,
 )
@@ -132,7 +131,7 @@ def main(
     precision_matrix = np.zeros((runs_nb, folds_nb))
     recall_matrix = np.zeros((runs_nb, folds_nb))
     f1_matrix = np.zeros((runs_nb, folds_nb))
-    metrics_matrices = [
+    metrics_matrices: List[Tuple[str, np.ndarray]] = [
         ("r2_score", r2_matrix),
         ("mean_absolute_error", error_matrix),
         ("precision", precision_matrix),
@@ -169,10 +168,10 @@ def main(
                     ner_model,
                     ctx_retrieval_ner_train_set,
                     ctx_retrieval_ner_train_set,
-                    _run,
-                    ner_epochs_nb,
-                    batch_size,
-                    ctx_retrieval_lr,
+                    _run=_run,
+                    epochs_nb=ner_epochs_nb,
+                    batch_size=batch_size,
+                    learning_rate=ctx_retrieval_lr,
                 )
 
                 # generate a context retrieval dataset using the other
@@ -202,6 +201,7 @@ def main(
                     ctx_retrieval_lr,
                     weights_bins_nb=ctx_retrieval_weights_bins_nb,
                     _run=_run,
+                    log_full_loss=True,
                 )
                 ctx_retriever = NeuralContextRetriever(
                     ctx_retriever_model,
@@ -258,7 +258,6 @@ def main(
         for metrics_name, matrix in metrics_matrices:
             for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
                 _run.log_scalar(
-                    _run,
                     f"run{run_i}.{op_name}_test_{metrics_name}",
                     op(matrix[run_i], axis=0),
                 )
@@ -268,7 +267,6 @@ def main(
         for metrics_name, matrix in metrics_matrices:
             for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
                 _run.log_scalar(
-                    _run,
                     f"fold{fold_i}.{op_name}_test_{metrics_name}",
                     op(matrix[:, fold_i], axis=0),
                 )
@@ -277,7 +275,6 @@ def main(
     for name, matrix in metrics_matrices:
         for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
             _run.log_scalar(
-                _run,
                 f"{op_name}_test_{name}",
                 op(matrix, axis=(0, 1)),
             )

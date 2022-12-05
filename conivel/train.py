@@ -29,6 +29,7 @@ def train_ner_model(
     custom_weights: Optional[List[float]] = None,
     quiet: bool = False,
     ignored_valid_classes: Optional[Set[str]] = None,
+    log_full_loss: bool = False,
 ) -> BertForTokenClassification:
     """
     :param train_dataset:
@@ -100,7 +101,7 @@ def train_ner_model(
 
             if not quiet:
                 data_tqdm.set_description(f"loss : {loss.item():.3f}")
-            if not _run is None:
+            if not _run is None and log_full_loss:
                 _run.log_scalar("ner_training.loss", loss.item())
             epoch_losses.append(loss.item())
 

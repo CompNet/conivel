@@ -667,6 +667,7 @@ class NeuralContextRetriever(ContextRetriever):
         learning_rate: float,
         weights_bins_nb: Optional[int] = None,
         _run: Optional[Run] = None,
+        log_full_loss: bool = False,
     ) -> BertForSequenceClassification:
         """Instantiate and train a context classifier.
 
@@ -680,6 +681,8 @@ class NeuralContextRetriever(ContextRetriever):
             ``None``, the MSELoss will not be weighted.
         :param _run: current sacred run.  If not ``None``, will be
             used to record training metrics.
+        :param log_full_loss: if ``True``, log the loss at each batch
+            (otherwise, only log mean epochs loss)
 
         :return: a trained ``BertForSequenceClassification``
         """
@@ -743,7 +746,7 @@ class NeuralContextRetriever(ContextRetriever):
 
                 optimizer.step()
 
-                if not _run is None:
+                if not _run is None and log_full_loss:
                     _run.log_scalar("neural_selector_training.loss", loss.item())
 
                 data_tqdm.set_description(f"loss : {loss.item():.3f}")
