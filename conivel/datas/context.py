@@ -1,9 +1,6 @@
-import contextlib
-from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Type, Union, cast
 import random, functools
-from functools import lru_cache
 from dataclasses import dataclass
-from git import exc
 import nltk
 from sacred.run import Run
 import torch
@@ -34,10 +31,10 @@ class ContextRetriever:
     def __init__(self, sents_nb: Union[int, List[int]], **kwargs) -> None:
         self.sents_nb = sents_nb
 
-    def __call__(self, dataset: NERDataset) -> NERDataset:
+    def __call__(self, dataset: NERDataset, silent: bool = True) -> NERDataset:
         """retrieve context for each sentence of a :class:`NERDataset`"""
         new_docs = []
-        for document in dataset.documents:
+        for document in tqdm(dataset.documents, disable=silent):
             new_doc = []
             for sent_i, sent in enumerate(document):
                 retrieval_matchs = self.retrieve(sent_i, document)
@@ -643,9 +640,14 @@ class NeuralContextRetriever(ContextRetriever):
                 for usefulness, context_side, ctx_sent in zip(
                     usefulnesses, context_sides, ctx_sents
                 ):
+                    context_tokens = (
+                        ctx_sent.left_context[0].tokens
+                        if len(ctx_sent.left_context) == 1
+                        else ctx_sent.right_context[0].tokens
+                    )
                     ctx_selection_examples.append(
                         ContextRetrievalExample(
-                            sent.tokens, ctx_sent.tokens, context_side, usefulness
+                            sent.tokens, context_tokens, context_side, usefulness
                         )
                     )
 
@@ -760,6 +762,64 @@ class NeuralContextRetriever(ContextRetriever):
                 )
 
         return ctx_classifier
+
+
+class IdealNeuralContextRetriever(ContextRetriever):
+    """
+    A context retriever that always return the ``sents_nb`` most
+    helpful contexts retrieved by its ``preliminary_ctx_selector``
+    according to its given ``ner_model``
+    """
+
+    def __init__(
+        self,
+        sents_nb: Union[int, List[int]],
+        preliminary_ctx_selector: ContextRetriever,
+        ner_model: BertForTokenClassification,
+        batch_size: int,
+    ) -> None:
+        self.preliminary_ctx_selector = preliminary_ctx_selector
+        self.ner_model = ner_model
+        self.batch_size = batch_size
+        super().__init__(sents_nb)
+
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
+        if isinstance((sents_nb := self.sents_nb), list):
+            sents_nb = random.choice(sents_nb)
+
+        contexts = self.preliminary_ctx_selector.retrieve(sent_idx, document)
+
+        sent = document[sent_idx]
+        sent_with_ctx = sent_with_ctx_from_matchs(sent, contexts)
+
+        tags = {"O", "B-PER", "I-PER"}
+        tag_to_id = {tag: i for i, tag in enumerate(sorted(tags))}
+
+        ctx_preds = predict(
+            self.ner_model,
+            NERDataset([sent_with_ctx], tags),
+            quiet=True,
+            batch_size=self.batch_size,
+            additional_outputs={"scores"},
+        )
+        assert not ctx_preds.scores is None
+
+        context_and_err = [
+            (
+                context,
+                NeuralContextRetriever._pred_error(sent, scores, tag_to_id),
+            )
+            for context, scores in zip(contexts, ctx_preds.scores)
+        ]
+
+        ok_contexts_and_err = list(sorted(context_and_err, key=lambda cd: cd[1]))[
+            :sents_nb
+        ]
+        ok_contexts = [context for context, _ in ok_contexts_and_err]
+
+        return ok_contexts
 
 
 context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
