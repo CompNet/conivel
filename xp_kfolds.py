@@ -1,5 +1,6 @@
 from typing import List, Optional
 import os
+import numpy as np
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
@@ -14,6 +15,7 @@ from conivel.utils import (
     RunLogScope,
     gpu_memory_usage,
     sacred_archive_huggingface_model,
+    sacred_log_series,
     pretrained_bert_for_token_classification,
 )
 
@@ -85,6 +87,15 @@ def main(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
 
+    precision_matrix = np.zeros((runs_nb, k, len(sents_nb_list)))
+    recall_matrix = np.zeros((runs_nb, k, len(sents_nb_list)))
+    f1_matrix = np.zeros((runs_nb, k, len(sents_nb_list)))
+    metrics_matrices = [
+        ("precision", precision_matrix),
+        ("recall", recall_matrix),
+        ("f1", f1_matrix),
+    ]
+
     for run_i in range(runs_nb):
 
         for fold_i, (train_set, test_set) in enumerate(kfolds):
@@ -112,7 +123,7 @@ def main(
                 if save_models:
                     sacred_archive_huggingface_model(_run, model, "model")  # type: ignore
 
-            for sents_nb in sents_nb_list:
+            for sents_nb_i, sents_nb in enumerate(sents_nb_list):
 
                 _run.log_scalar("gpu_usage", gpu_memory_usage())
 
@@ -129,7 +140,41 @@ def main(
                     precision,
                     step=sents_nb,
                 )
+                precision_matrix[run_i][fold_i][sents_nb_i] = precision
                 _run.log_scalar(
                     f"run{run_i}.fold{fold_i}.test_recall", recall, step=sents_nb
                 )
+                recall_matrix[run_i][fold_i][sents_nb_i] = recall
                 _run.log_scalar(f"run{run_i}.fold{fold_i}.test_f1", f1, step=sents_nb)
+                f1_matrix[run_i][fold_i][sents_nb_i] = f1
+
+        # mean metrics for the current run
+        for metrics_name, matrix in metrics_matrices:
+            for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
+                sacred_log_series(
+                    _run,
+                    f"run{run_i}.{op_name}_test_{metrics_name}",
+                    op(matrix[run_i], axis=0),  # (sents_nb_list)
+                    steps=sents_nb_list,
+                )
+
+    # folds mean metrics
+    for fold_i in range(k):
+        for metrics_name, matrix in metrics_matrices:
+            for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
+                sacred_log_series(
+                    _run,
+                    f"fold{fold_i}.{op_name}_test_{metrics_name}",
+                    op(matrix[:, fold_i, :], axis=0),  # (sents_nb_list)
+                    steps=sents_nb_list,
+                )
+
+    # global mean metrics
+    for name, matrix in metrics_matrices:
+        for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
+            sacred_log_series(
+                _run,
+                f"{op_name}_test_{name}",
+                op(matrix, axis=(0, 1)),  # (sents_nb)
+                steps=sents_nb_list,
+            )
