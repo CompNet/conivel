@@ -89,6 +89,11 @@ def config():
     # training the neural context retriever. If ``None``, do not
     # weight the MSELoss
     ctx_retrieval_weights_bins_nb: Optional[int] = None
+    # percentage of train set that will be used to train the NER model
+    # used to generate the context retrieval model. The percentage
+    # allocated to generate context retrieval examples will be 1 -
+    # that ratio.
+    ctx_retrieval_train_gen_ratio: float = 0.5
 
     # -- NER trainng parameters
     # list of number of sents to test
@@ -118,6 +123,7 @@ def main(
     ctx_retrieval_skip_correct: bool,
     ctx_retrieval_dataset_generation_use_the_hunger_games: bool,
     ctx_retrieval_weights_bins_nb: Optional[int],
+    ctx_retrieval_train_gen_ratio: float,
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
@@ -154,10 +160,9 @@ def main(
             ner_model = pretrained_bert_for_token_classification(
                 "bert-base-cased", train_set.tag_to_id
             )
-            # HACK: split the training dataset in 2
-            ctx_retrieval_ner_train_set, ctx_retrieval_gen_set = train_set.kfolds(
-                2, shuffle=False
-            )[0]
+            ctx_retrieval_ner_train_set, ctx_retrieval_gen_set = train_set.split(
+                ctx_retrieval_train_gen_ratio
+            )
             if ctx_retrieval_dataset_generation_use_the_hunger_games:
                 the_hunger_games_set = TheHungerGamesDataset()
                 ctx_retrieval_gen_set = NERDataset.concatenated(

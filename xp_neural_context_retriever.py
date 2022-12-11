@@ -88,6 +88,11 @@ def config():
     # training the neural context retriever. If ``None``, do not
     # weight the MSELoss
     ctx_retrieval_weights_bins_nb: Optional[int] = None
+    # percentage of train set that will be used to train the NER model
+    # used to generate the context retrieval model. The percentage
+    # allocated to generate context retrieval examples will be 1 -
+    # that ratio.
+    ctx_retrieval_train_gen_ratio: float = 0.5
 
     # -- NER training parameters
     # number of epochs for NER training
@@ -112,6 +117,7 @@ def main(
     ctx_retrieval_skip_correct: bool,
     ctx_retrieval_dataset_generation_use_the_hunger_games: bool,
     ctx_retrieval_weights_bins_nb: Optional[int],
+    ctx_retrieval_train_gen_ratio: float,
     ner_epochs_nb: int,
 ):
     assert retrieval_heuristic in ["random", "bm25", "sameword"]
@@ -153,7 +159,9 @@ def main(
                 "bert-base-cased", train_set.tag_to_id
             )
 
-            ctx_retrieval_ner_train_set, ctx_retrieval_gen_set = train_set.split(0.5)
+            ctx_retrieval_ner_train_set, ctx_retrieval_gen_set = train_set.split(
+                ctx_retrieval_train_gen_ratio
+            )
 
             if ctx_retrieval_dataset_generation_use_the_hunger_games:
                 the_hunger_games_set = TheHungerGamesDataset()
@@ -169,7 +177,7 @@ def main(
                     ctx_retrieval_ner_train_set,
                     ctx_retrieval_ner_train_set,
                     _run=_run,
-                    epochs_nb=ner_epochs_nb,
+                    epochs_nb=1,  # only 1 epoch training to allow the model to make mistakes
                     batch_size=batch_size,
                     learning_rate=ctx_retrieval_lr,
                 )
