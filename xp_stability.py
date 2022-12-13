@@ -116,7 +116,9 @@ def main(
         )
 
         preds = predict(model, test_dataset, batch_size=batch_size)
-        precision, recall, f1 = score_ner(test_dataset.sents(), preds.tags)
+        precision, recall, f1 = score_ner(
+            test_dataset.sents(), preds.tags, ignored_classes={"LOC", "ORG", "MISC"}
+        )
         _run.log_scalar("precision", precision)
         precision_matrix[run_i] = precision
         _run.log_scalar("recall", recall)
