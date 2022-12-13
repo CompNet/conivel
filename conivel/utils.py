@@ -1,5 +1,6 @@
 from __future__ import annotations
 from numbers import Number
+import pickle
 from typing import Any, Dict, Iterable, Tuple, TypeVar, List, Optional
 import copy, time, os, uuid, shutil, json
 from types import MethodType
@@ -256,6 +257,23 @@ class RunLogScope:
     def __exit__(self, type, value, traceback):
         self.unpatch_log_scalar()
         self.unpatch_add_artifact()
+
+
+def sacred_archive_picklable_as_file(run: Run, picklable: Any, name: str):
+    """Archive a picklable object as a file
+
+    :param run: current sacred run
+    :param picklable: picklable object
+    :param name: name of the archived file, without the extension
+    """
+    # shhh, it's too unlikely to fail to design something more complex
+    tmp_name = str(uuid.uuid4())
+    with open(tmp_name, "wb") as f:
+        pickle.dump(picklable, f)
+
+    run.add_artifact(tmp_name, f"{name}.pickle")
+
+    os.remove(tmp_name)
 
 
 def sacred_archive_jsonifiable_as_file(run: Run, jsonifiable: Any, name: str):
