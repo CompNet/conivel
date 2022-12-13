@@ -47,10 +47,10 @@ def load_dekker(
     paths = glob.glob(f"{dataset_path}/*.conll.annotated")
     # TODO: hardcoded train/test split for now
     train_dataset = NERDataset(
-        [load_book(path, keep_only_classes=keep_only_classes) for path in paths[:8]]
+        [load_book(path, keep_only_classes=keep_only_classes) for path in paths[:11]]
     )
     test_dataset = NERDataset(
-        [load_book(path, keep_only_classes=keep_only_classes) for path in paths[8:]]
+        [load_book(path, keep_only_classes=keep_only_classes) for path in paths[11:]]
     )
     return train_dataset, test_dataset
 
