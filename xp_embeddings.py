@@ -106,6 +106,15 @@ def main(
     )
     assert not preds.embeddings is None
 
+    # reload test dataset without class restriction to analyse the
+    # embeddings of all entities even if we did not train on them
+    if dataset_name == "dekker":
+        _, test_dataset = load_dekker(dataset_path, None)
+    elif dataset_name == "conll":
+        test_dataset = CoNLLDataset.test_dataset()
+    else:
+        raise RuntimeError(f"Unknown dataset {dataset_name}")
+
     entities_embeddings = {}
     for sent, sent_embeddings in zip(test_dataset.sents(), preds.embeddings):
         sent_entities = entities_from_bio_tags(sent.tokens, sent.tags)
