@@ -1,5 +1,6 @@
 from typing import List, Optional, Tuple, Literal, Set
-import os, glob, pickle
+import os, glob
+import torch
 from sacred import Experiment
 from sacred.run import Run
 from sacred.commands import print_config
@@ -109,8 +110,8 @@ def main(
     for sent, sent_embeddings in zip(test_dataset.sents(), preds.embeddings):
         sent_entities = entities_from_bio_tags(sent.tokens, sent.tags)
         for entity in sent_entities:
-            entities_embeddings[entity] = sent_embeddings[
-                entity.start_idx : entity.end_idx + 1
-            ]
+            entities_embeddings[entity] = torch.mean(
+                sent_embeddings[entity.start_idx : entity.end_idx + 1], dim=0
+            )
 
     sacred_archive_picklable_as_file(_run, entities_embeddings, "entities_embeddings")
