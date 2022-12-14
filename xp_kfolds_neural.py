@@ -1,5 +1,5 @@
 import os, gc, copy
-from typing import List, Optional
+from typing import List, Literal, Optional
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
@@ -94,6 +94,8 @@ def config():
     # allocated to generate context retrieval examples will be 1 -
     # that ratio.
     ctx_retrieval_train_gen_ratio: float = 0.5
+    # one of 'score', 'combine_rank'
+    ctx_retrieval_ranking_method: str = "score"
 
     # -- NER trainng parameters
     # list of number of sents to test
@@ -124,6 +126,7 @@ def main(
     ctx_retrieval_dataset_generation_use_the_hunger_games: bool,
     ctx_retrieval_weights_bins_nb: Optional[int],
     ctx_retrieval_train_gen_ratio: float,
+    ctx_retrieval_ranking_method: Literal["score", "combine_rank"],
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
@@ -256,6 +259,7 @@ def main(
                 batch_size,
                 1,
                 use_cache=True,
+                ranking_method=ctx_retrieval_ranking_method,
             )
 
             for sents_nb_i, sents_nb in enumerate(sents_nb_list):

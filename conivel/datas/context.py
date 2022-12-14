@@ -336,20 +336,37 @@ class NeuralContextRetriever(ContextRetriever):
         batch_size: int,
         sents_nb: int,
         use_cache: bool = False,
+        ranking_method: Literal["score", "combine_rank"] = "score",
     ) -> None:
         """
         :param pretrained_model_name: pretrained model name, used to
             load a :class:`transformers.BertForSequenceClassification`
+
         :param heuristic_context_selector: name of the context
             selector to use as retrieval heuristic, from
             ``context_selector_name_to_class``
+
         :param heuristic_context_selector_kwargs: kwargs to pass the
             heuristic context retriever at instantiation time
+
         :param batch_size: batch size used at inference
+
         :param sents_nb: max number of sents to retrieve
+
         :param use_cache: if ``True``,
             :func:`NeuralContextRetriever.predict` will use an
             internal cache to speed up computations.
+
+        :param ranking_method: the ranking method to use to retrieve
+            context
+
+                - ``'score'``: retrieve the ``sents_nb`` best examples
+
+                - ``combine_rank``: Combine ranks of the neural
+                  selector and of the underlying
+                  ``heuristic_context_selector`` to return
+                  ``sents_nb`` examples.only usable if the underlying
+                  ``heuristic_context_selector`` returns scores.
         """
         if isinstance(pretrained_model, str):
             self.ctx_classifier = BertForSequenceClassification.from_pretrained(
@@ -367,6 +384,8 @@ class NeuralContextRetriever(ContextRetriever):
         )
 
         self.batch_size = batch_size
+
+        self.ranking_method = ranking_method
 
         self._predict_cache = {}
         self.use_cache = use_cache
@@ -473,8 +492,22 @@ class NeuralContextRetriever(ContextRetriever):
         ]
         scores = self.predict(ctx_dataset)
 
-        topk = torch.topk(scores, min(self.sents_nb, scores.shape[0]), dim=0)  # type: ignore
-        best_ctx_idxs = topk.indices[topk.values > 0]
+        if self.ranking_method == "score":
+            topk = torch.topk(scores, min(self.sents_nb, scores.shape[0]), dim=0)  # type: ignore
+            best_ctx_idxs = topk.indices[topk.values > 0].tolist()
+        elif self.ranking_method == "combine_rank":
+            assert all([not m.score is None for m in ctx_matchs])
+            ctx_matchs_scores = torch.tensor([m.score for m in ctx_matchs])
+            ctx_matchs_ranks = torch.arange(0, ctx_matchs_scores.shape[0])[
+                torch.argsort(-ctx_matchs_scores)
+            ]
+            scores_ranks = torch.arange(0, scores.shape[0])[torch.argsort(-scores)]
+            mean_ranks = torch.mean(
+                torch.stack((ctx_matchs_ranks.float(), scores_ranks.float())), dim=0
+            )
+            best_ctx_idxs = torch.argsort(mean_ranks)[: self.sents_nb].tolist()
+        else:
+            raise RuntimeError(f"unknown ranking method: {self.ranking_method}")
 
         return [
             ContextRetrievalMatch(
@@ -483,7 +516,7 @@ class NeuralContextRetriever(ContextRetriever):
                 ctx_matchs[i].side,
                 float(scores[i].item()),
             )
-            for i in best_ctx_idxs.tolist()
+            for i in best_ctx_idxs
         ]
 
     def heuristic_retrieve_ctx(
