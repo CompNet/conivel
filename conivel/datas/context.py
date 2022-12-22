@@ -816,6 +816,9 @@ class IdealNeuralContextRetriever(ContextRetriever):
         self.batch_size = batch_size
         super().__init__(sents_nb)
 
+    def set_heuristic_sents_nb_(self, sents_nb: int):
+        self.preliminary_ctx_selector.sents_nb = sents_nb
+
     def retrieve(
         self, sent_idx: int, document: List[NERSentence]
     ) -> List[ContextRetrievalMatch]:

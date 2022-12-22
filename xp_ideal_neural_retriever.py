@@ -6,11 +6,9 @@ from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 import numpy as np
-from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
-from conivel.datas.the_hunger_games import TheHungerGamesDataset
 from conivel.datas.context import (
-    NeuralContextRetriever,
+    IdealNeuralContextRetriever,
     context_retriever_name_to_class,
 )
 from conivel.predict import predict
@@ -19,7 +17,6 @@ from conivel.train import train_ner_model
 from conivel.utils import (
     RunLogScope,
     sacred_archive_huggingface_model,
-    sacred_archive_jsonifiable_as_file,
     sacred_log_series,
     gpu_memory_usage,
     pretrained_bert_for_token_classification,
@@ -64,38 +61,8 @@ def config():
     # only officially supports 'random', 'sameword' and 'bm25' for
     # now
     retrieval_heuristic: str = "random"
-    # parameters for the retrieval heuristic used when generating a
-    # context retrieval dataset
-    retrieval_heuristic_gen_kwargs: dict
     # parameters for the retrieval heuristic used at inference time
     retrieval_heuristic_inference_kwargs: dict
-
-    # -- context retrieval parameters
-    # number of epochs for context retrieval training
-    ctx_retrieval_epochs_nb: int = 3
-    # learning rate for context retrieval training
-    ctx_retrieval_lr: float = 2e-5
-    # usefulness threshold for context retrieval examples. Passed to
-    # :func:`NeuralContextSelector.generate_context_dataset`
-    ctx_retrieval_usefulness_threshold: float = 0.1
-    # wether to skip examples generated from a sentence if NER
-    # predictions for that sentence is correct. Passed to
-    # :func:`NeuralContextSelector.generate_context_dataset`
-    ctx_retrieval_skip_correct: bool = False
-    # wether to use The Hunger Games dataset for context retrieval
-    # dataset generation
-    ctx_retrieval_dataset_generation_use_the_hunger_games: bool = False
-    # number of weights bins to use to adapt the MSELoss when
-    # training the neural context retriever. If ``None``, do not
-    # weight the MSELoss
-    ctx_retrieval_weights_bins_nb: Optional[int] = None
-    # percentage of train set that will be used to train the NER model
-    # used to generate the context retrieval model. The percentage
-    # allocated to generate context retrieval examples will be 1 -
-    # that ratio.
-    ctx_retrieval_train_gen_ratio: float = 0.5
-    # one of 'score', 'combine_rank'
-    ctx_retrieval_ranking_method: str = "score"
 
     # -- NER training parameters
     # list of number of sents to test
@@ -117,16 +84,7 @@ def main(
     save_models: bool,
     runs_nb: int,
     retrieval_heuristic: str,
-    retrieval_heuristic_gen_kwargs: dict,
     retrieval_heuristic_inference_kwargs: dict,
-    ctx_retrieval_epochs_nb: int,
-    ctx_retrieval_lr: float,
-    ctx_retrieval_usefulness_threshold: float,
-    ctx_retrieval_skip_correct: bool,
-    ctx_retrieval_dataset_generation_use_the_hunger_games: bool,
-    ctx_retrieval_weights_bins_nb: Optional[int],
-    ctx_retrieval_train_gen_ratio: float,
-    ctx_retrieval_ranking_method: Literal["score", "combine_rank"],
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
@@ -159,69 +117,6 @@ def main(
             if not folds_list is None and not fold_i in folds_list:
                 continue
 
-            # train context selector
-            ner_model = pretrained_bert_for_token_classification(
-                "bert-base-cased", train_set.tag_to_id
-            )
-            ctx_retrieval_ner_train_set, ctx_retrieval_gen_set = train_set.split(
-                ctx_retrieval_train_gen_ratio
-            )
-            if ctx_retrieval_dataset_generation_use_the_hunger_games:
-                the_hunger_games_set = TheHungerGamesDataset()
-                ctx_retrieval_gen_set = NERDataset.concatenated(
-                    [ctx_retrieval_gen_set, the_hunger_games_set]
-                )
-
-            with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ctx_retrieval_training"):
-
-                # train a NER model on half the training dataset
-                ner_model = train_ner_model(
-                    ner_model,
-                    ctx_retrieval_ner_train_set,
-                    ctx_retrieval_ner_train_set,
-                    _run,
-                    ner_epochs_nb,
-                    batch_size,
-                    ctx_retrieval_lr,
-                )
-
-                # generate a context retrieval dataset using the other
-                # half of the training set
-                ctx_retrieval_dataset = NeuralContextRetriever.generate_context_dataset(
-                    ner_model,
-                    ctx_retrieval_gen_set,
-                    batch_size,
-                    retrieval_heuristic,
-                    retrieval_heuristic_gen_kwargs,
-                    examples_usefulness_threshold=ctx_retrieval_usefulness_threshold,
-                    skip_correct=ctx_retrieval_skip_correct,
-                    _run=_run,
-                )
-                sacred_archive_jsonifiable_as_file(
-                    _run,
-                    ctx_retrieval_dataset.to_jsonifiable(),
-                    "ctx_retrieval_dataset",
-                )
-
-                # NER model is not needed anymore : free the GPU of it
-                del ner_model
-                gc.collect()
-
-                # train a context retriever using the previously generated
-                # context retrieval dataset
-                ctx_retriever_model = NeuralContextRetriever.train_context_selector(
-                    ctx_retrieval_dataset,
-                    ctx_retrieval_epochs_nb,
-                    batch_size,
-                    ctx_retrieval_lr,
-                    weights_bins_nb=ctx_retrieval_weights_bins_nb,
-                    _run=_run,
-                )
-                if save_models:
-                    sacred_archive_huggingface_model(
-                        _run, ctx_retriever_model, "ctx_retriever_model"  # type: ignore
-                    )
-
             # PERFORMANCE HACK: only use the retrieval heuristic at
             # training time. At training time, the number of sentences
             # retrieved is random between ``min(sents_nb_list)`` and
@@ -252,14 +147,13 @@ def main(
                 if save_models:
                     sacred_archive_huggingface_model(_run, ner_model, "ner_model")  # type: ignore
 
-            neural_context_retriever = NeuralContextRetriever(
-                ctx_retriever_model,
-                retrieval_heuristic,
-                retrieval_heuristic_inference_kwargs,
-                batch_size,
+            neural_context_retriever = IdealNeuralContextRetriever(
                 1,
-                use_cache=True,
-                ranking_method=ctx_retrieval_ranking_method,
+                context_retriever_name_to_class[retrieval_heuristic](
+                    **retrieval_heuristic_inference_kwargs
+                ),
+                ner_model,
+                batch_size,
             )
 
             for sents_nb_i, sents_nb in enumerate(sents_nb_list):
