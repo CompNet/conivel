@@ -93,6 +93,11 @@ def config():
     # allocated to generate context retrieval examples will be 1 -
     # that ratio.
     ctx_retrieval_train_gen_ratio: float = 0.5
+    # wether to use
+    # :func:`NeuralContextSelector.balance_context_dataset` to balance
+    # the context retrieval dataset after generation. if ``True``,
+    # ``ctx_retrieval_skip_correct`` should be ``False``.
+    ctx_retrieval_balance: bool = False
 
     # -- NER training parameters
     # number of epochs for NER training
@@ -118,6 +123,7 @@ def main(
     ctx_retrieval_dataset_generation_use_the_hunger_games: bool,
     ctx_retrieval_weights_bins_nb: Optional[int],
     ctx_retrieval_train_gen_ratio: float,
+    ctx_retrieval_balance: bool,
     ner_epochs_nb: int,
 ):
     assert retrieval_heuristic in ["random", "bm25", "sameword"]
@@ -194,6 +200,12 @@ def main(
                     skip_correct=ctx_retrieval_skip_correct,
                     _run=_run,
                 )
+                if ctx_retrieval_balance:
+                    ctx_retrieval_dataset = (
+                        NeuralContextRetriever.balance_context_dataset(
+                            ctx_retrieval_dataset, 3
+                        )
+                    )
                 sacred_archive_jsonifiable_as_file(
                     _run,
                     ctx_retrieval_dataset.to_jsonifiable(),
@@ -237,30 +249,30 @@ def main(
                 preds = ctx_retriever.predict(test_ctx_retrieval_dataset)
                 preds = preds.cpu()
 
-                labels = test_ctx_retrieval_dataset.labels()
-                assert not labels is None
+            labels = test_ctx_retrieval_dataset.labels()
+            assert not labels is None
 
-                # regression metrics
-                r2 = r2_score(labels, preds)
-                error = mean_absolute_error(labels, preds)
-                r2_matrix[run_i][fold_i] = r2
-                error_matrix[run_i][fold_i] = error
-                _run.log_scalar(f"run{run_i}.fold{fold_i}.r2_score", r2)
-                _run.log_scalar(f"run{run_i}.fold{fold_i}.mean_absolute_error", error)
+            # regression metrics
+            r2 = r2_score(labels, preds)
+            error = mean_absolute_error(labels, preds)
+            r2_matrix[run_i][fold_i] = r2
+            error_matrix[run_i][fold_i] = error
+            _run.log_scalar(f"run{run_i}.fold{fold_i}.r2_score", r2)
+            _run.log_scalar(f"run{run_i}.fold{fold_i}.mean_absolute_error", error)
 
-                # turn the problem into classification to get
-                # more familiar classification metrics
-                class_labels = [1 if label > 0.5 else 0 for label in labels]
-                class_preds = [1 if pred > 0.5 else 0 for pred in preds]
-                precision, recall, f1, _ = precision_recall_fscore_support(
-                    class_labels, class_preds, average="binary"
-                )
-                precision_matrix[run_i][fold_i] = precision
-                recall_matrix[run_i][fold_i] = recall
-                f1_matrix[run_i][fold_i] = f1
-                _run.log_scalar(f"run{run_i}.fold{fold_i}.precision", precision)
-                _run.log_scalar(f"run{run_i}.fold{fold_i}.recall", recall)
-                _run.log_scalar(f"run{run_i}.fold{fold_i}.f1", f1)
+            # turn the problem into classification to get
+            # more familiar classification metrics
+            class_labels = [1 if label > 0.5 else 0 for label in labels]
+            class_preds = [1 if pred > 0.5 else 0 for pred in preds]
+            precision, recall, f1, _ = precision_recall_fscore_support(
+                class_labels, class_preds, average="binary"
+            )
+            precision_matrix[run_i][fold_i] = precision
+            recall_matrix[run_i][fold_i] = recall
+            f1_matrix[run_i][fold_i] = f1
+            _run.log_scalar(f"run{run_i}.fold{fold_i}.precision", precision)
+            _run.log_scalar(f"run{run_i}.fold{fold_i}.recall", recall)
+            _run.log_scalar(f"run{run_i}.fold{fold_i}.f1", f1)
 
         # mean metrics for the current run
         for metrics_name, matrix in metrics_matrices:

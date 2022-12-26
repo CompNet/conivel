@@ -3,6 +3,7 @@ import random, functools
 from dataclasses import dataclass
 import nltk
 from sacred.run import Run
+import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import BertForTokenClassification, BertForSequenceClassification, BertTokenizerFast, DataCollatorWithPadding  # type: ignore
@@ -11,7 +12,7 @@ from tqdm import tqdm
 from rank_bm25 import BM25Okapi
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
-from conivel.utils import get_tokenizer, bin_weighted_mse_loss
+from conivel.utils import flattened, get_tokenizer, bin_weighted_mse_loss
 from conivel.predict import predict
 
 
@@ -263,12 +264,23 @@ class ContextRetrievalExample:
     context: List[str]
     #: context side (doest the context comes from the left or the right of ``sent`` ?)
     context_side: Literal["left", "right"]
-    #: usefulness of the exemple, between -1 and 1.
-    usefulness: Optional[float]
+    #: usefulness of the exemple, between -1 and 1. Can be ``None``
+    # when the usefulness is not known.
+    usefulness: Optional[float] = None
+    #: wether the prediction for the ``sent`` of this example was
+    # correct or not before applying ``context``. Is ``None`` when not
+    # applicable.
+    sent_was_correctly_predicted: Optional[bool] = None
 
     def __hash__(self) -> int:
         return hash(
-            (tuple(self.sent), tuple(self.context), self.context_side, self.usefulness)
+            (
+                tuple(self.sent),
+                tuple(self.context),
+                self.context_side,
+                self.usefulness,
+                self.sent_was_correctly_predicted,
+            )
         )
 
 
@@ -660,6 +672,8 @@ class NeuralContextRetriever(ContextRetriever):
             )
             assert not preds_ctx.scores is None
 
+            # get usefulnesses context sides for all retrieved context
+            # sentences
             usefulnesses = []
             context_sides = []
             for preds_scores_ctx, ctx_match in zip(preds_ctx.scores, ctx_matchs):
@@ -669,6 +683,9 @@ class NeuralContextRetriever(ContextRetriever):
                 usefulnesses.append(pred_error - pred_ctx_error)
                 context_sides.append(ctx_match.side)
 
+            # if one of the context usefulness is greater then
+            # examples_usefulness_threshold, add all of them to the
+            # list of generated examples
             if any([u > examples_usefulness_threshold for u in usefulnesses]):
                 for usefulness, context_side, ctx_sent in zip(
                     usefulnesses, context_sides, ctx_sents
@@ -680,10 +697,15 @@ class NeuralContextRetriever(ContextRetriever):
                     )
                     ctx_selection_examples.append(
                         ContextRetrievalExample(
-                            sent.tokens, context_tokens, context_side, usefulness
+                            sent.tokens,
+                            context_tokens,
+                            context_side,
+                            usefulness,
+                            sent.tags == pred_tags,
                         )
                     )
 
+        # logging
         if not _run is None:
             _run.log_scalar(
                 "context_dataset_generation.examples_nb", len(ctx_selection_examples)
@@ -693,6 +715,59 @@ class NeuralContextRetriever(ContextRetriever):
                 _run.log_scalar("context_dataset_generation.usefulness", ex.usefulness)
 
         return ContextRetrievalDataset(ctx_selection_examples)
+
+    @staticmethod
+    def balance_context_dataset(
+        dataset: ContextRetrievalDataset, bins_nb: int
+    ) -> ContextRetrievalDataset:
+        """Balance the given dataset, by trying to make sure that:
+
+            1. The number of examples ``sent`` that have been
+               corrected by their ``context`` is equal to the number
+               of examples ``sent`` that heven't been corrected by
+               their ``context``.
+
+            2. Examples bins formed using their usefulness have the
+               same number of examples.
+
+        :param dataset:
+        :param bins_nb: number of bins to form
+
+        :return: a balanced dataset
+        """
+        assert len(dataset) > 0
+
+        # filtering to have the same number of examples with a correct
+        # original prediction and without
+        correctly_predicted = [
+            ex for ex in dataset.examples if ex.sent_was_correctly_predicted
+        ]
+        incorrectly_predicted = [
+            ex for ex in dataset.examples if not ex.sent_was_correctly_predicted
+        ]
+        assert len(correctly_predicted) > 0 and len(incorrectly_predicted) > 0
+        min_len = min([len(correctly_predicted), len(incorrectly_predicted)])
+        examples = correctly_predicted[:min_len] + incorrectly_predicted[:min_len]
+
+        # binning
+        # NOTE: assume that min usefulness is -1 and max usefulness is 1
+        bins_size = 2.0 / bins_nb
+        bin_right_edges = np.arange(-1 + bins_size, 1 + bins_size, bins_size)
+        bins = []
+        already_added_examples = set()
+        for bin_right_edge in bin_right_edges:
+            bin_examples = [
+                ex for ex in examples if ex.usefulness < bin_right_edge  # type: ignore
+            ]
+            bins.append(list(set(bin_examples) - already_added_examples))
+            already_added_examples = already_added_examples.union(bin_examples)
+
+        # balancing bins. Each bin will have the number of examples of
+        # the bin with the least examples.
+        min_bin_len = min([len(b) for b in bins if not len(b) == 0])
+        bins = [b[:min_bin_len] for b in bins]
+
+        return ContextRetrievalDataset(flattened(bins))
 
     @staticmethod
     def train_context_selector(
