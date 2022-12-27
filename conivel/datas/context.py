@@ -9,6 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import BertForTokenClassification, BertForSequenceClassification, BertTokenizerFast, DataCollatorWithPadding  # type: ignore
 from transformers.tokenization_utils_base import BatchEncoding
 from tqdm import tqdm
+from sklearn.metrics import r2_score
 from rank_bm25 import BM25Okapi
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
@@ -835,6 +836,7 @@ class NeuralContextRetriever(ContextRetriever):
         for _ in range(epochs_nb):
 
             epoch_losses = []
+            epoch_preds = []
             ctx_classifier = ctx_classifier.train()
 
             data_tqdm = tqdm(dataloader)
@@ -849,6 +851,7 @@ class NeuralContextRetriever(ContextRetriever):
                     token_type_ids=X["token_type_ids"],
                     attention_mask=X["attention_mask"],
                 )
+                # (batch_size, 1)
                 pred = torch.sigmoid(out.logits) * 2 - 1
 
                 loss = loss_fn(pred[:, 0], X["labels"])
@@ -862,11 +865,19 @@ class NeuralContextRetriever(ContextRetriever):
                 data_tqdm.set_description(f"loss : {loss.item():.3f}")
                 epoch_losses.append(loss.item())
 
+                epoch_preds += pred[:, 0].tolist()
+
             mean_epoch_loss = sum(epoch_losses) / len(epoch_losses)
             tqdm.write(f"epoch mean loss : {mean_epoch_loss:.3f}")
             if not _run is None:
+                # mean loss
                 _run.log_scalar(
                     "neural_selector_training.mean_epoch_loss", mean_epoch_loss
+                )
+                # r2 score
+                _run.log_scalar(
+                    "neural_selector_training.r2_score",
+                    r2_score(ctx_dataset.labels(), epoch_preds),
                 )
 
         return ctx_classifier

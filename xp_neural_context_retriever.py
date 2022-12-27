@@ -22,6 +22,7 @@ from conivel.utils import (
     RunLogScope,
     sacred_archive_huggingface_model,
     sacred_archive_jsonifiable_as_file,
+    sacred_log_series,
     gpu_memory_usage,
     pretrained_bert_for_token_classification,
 )
@@ -205,6 +206,15 @@ def main(
                         NeuralContextRetriever.balance_context_dataset(
                             ctx_retrieval_dataset, 3
                         )
+                    )
+                    _run.log_scalar(
+                        "context_dataset_generation.balanced_examples_nb",
+                        len(ctx_retrieval_dataset),
+                    )
+                    sacred_log_series(
+                        _run,
+                        "context_dataset_generation.balanced_usefulness",
+                        [ex.usefulness for ex in ctx_retrieval_dataset.examples],  # type: ignore
                     )
                 sacred_archive_jsonifiable_as_file(
                     _run,
