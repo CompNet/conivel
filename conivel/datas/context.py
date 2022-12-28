@@ -764,9 +764,9 @@ class NeuralContextRetriever(ContextRetriever):
             already_added_examples = already_added_examples.union(bin_examples)
 
         # balancing bins. Each bin will have the number of examples of
-        # the bin with the least examples.
-        min_bin_len = min([len(b) for b in bins if not len(b) == 0])
-        bins = [b[:min_bin_len] for b in bins]
+        # the bin with the second more examples.
+        max_bin_len = sorted([len(b) for b in bins])[-2]
+        bins = [b[:max_bin_len] for b in bins]
 
         return ContextRetrievalDataset(flattened(bins))
 

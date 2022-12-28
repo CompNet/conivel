@@ -204,7 +204,7 @@ def main(
                 if ctx_retrieval_balance:
                     ctx_retrieval_dataset = (
                         NeuralContextRetriever.balance_context_dataset(
-                            ctx_retrieval_dataset, 3
+                            ctx_retrieval_dataset, 7
                         )
                     )
                     _run.log_scalar(
