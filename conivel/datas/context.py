@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import BertForTokenClassification, BertForSequenceClassification, BertTokenizerFast, DataCollatorWithPadding  # type: ignore
 from transformers.tokenization_utils_base import BatchEncoding
 from tqdm import tqdm
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 from rank_bm25 import BM25Okapi
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
@@ -830,7 +830,7 @@ class NeuralContextRetriever(ContextRetriever):
 
         data_collator = DataCollatorWithPadding(ctx_dataset.tokenizer)  # type: ignore
         dataloader = DataLoader(
-            ctx_dataset, batch_size=batch_size, shuffle=True, collate_fn=data_collator
+            ctx_dataset, batch_size=batch_size, shuffle=False, collate_fn=data_collator
         )
 
         for _ in range(epochs_nb):
@@ -874,10 +874,18 @@ class NeuralContextRetriever(ContextRetriever):
                 _run.log_scalar(
                     "neural_selector_training.mean_epoch_loss", mean_epoch_loss
                 )
-                # r2 score
+                # metrics
                 _run.log_scalar(
                     "neural_selector_training.r2_score",
                     r2_score(ctx_dataset.labels(), epoch_preds),
+                )
+                _run.log_scalar(
+                    "neural_selector_training.mean_absolute_error",
+                    mean_absolute_error(ctx_dataset.labels(), epoch_preds),
+                )
+                _run.log_scalar(
+                    "neural_selector_training.mean_squared_error",
+                    mean_squared_error(ctx_dataset.labels(), epoch_preds),
                 )
 
         return ctx_classifier
