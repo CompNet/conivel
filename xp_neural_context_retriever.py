@@ -99,6 +99,11 @@ def config():
     # the context retrieval dataset after generation. if ``True``,
     # ``ctx_retrieval_skip_correct`` should be ``False``.
     ctx_retrieval_balance: bool = False
+    # number of bins when using
+    # :func:`NeuralContextSelector.balance_context_dataset`. Should be
+    # ``None`` if ``ctx_retrieval_balance`` is ``False``, and set if
+    # the latter is ``True``.
+    ctx_retrieval_balance_bins_nb: Optional[int] = None
 
     # -- NER training parameters
     # number of epochs for NER training
@@ -125,6 +130,7 @@ def main(
     ctx_retrieval_weights_bins_nb: Optional[int],
     ctx_retrieval_train_gen_ratio: float,
     ctx_retrieval_balance: bool,
+    ctx_retrieval_balance_bins_nb: Optional[int],
     ner_epochs_nb: int,
 ):
     assert retrieval_heuristic in ["random", "bm25", "sameword"]
@@ -202,9 +208,10 @@ def main(
                     _run=_run,
                 )
                 if ctx_retrieval_balance:
+                    assert not ctx_retrieval_balance_bins_nb is None
                     ctx_retrieval_dataset = (
                         NeuralContextRetriever.balance_context_dataset(
-                            ctx_retrieval_dataset, 7
+                            ctx_retrieval_dataset, ctx_retrieval_balance_bins_nb
                         )
                     )
                     _run.log_scalar(
