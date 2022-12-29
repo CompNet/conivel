@@ -830,13 +830,14 @@ class NeuralContextRetriever(ContextRetriever):
 
         data_collator = DataCollatorWithPadding(ctx_dataset.tokenizer)  # type: ignore
         dataloader = DataLoader(
-            ctx_dataset, batch_size=batch_size, shuffle=False, collate_fn=data_collator
+            ctx_dataset, batch_size=batch_size, shuffle=True, collate_fn=data_collator
         )
 
         for _ in range(epochs_nb):
 
             epoch_losses = []
             epoch_preds = []
+            epoch_labels = []
             ctx_classifier = ctx_classifier.train()
 
             data_tqdm = tqdm(dataloader)
@@ -866,6 +867,7 @@ class NeuralContextRetriever(ContextRetriever):
                 epoch_losses.append(loss.item())
 
                 epoch_preds += pred[:, 0].tolist()
+                epoch_labels += X["labels"].tolist()
 
             mean_epoch_loss = sum(epoch_losses) / len(epoch_losses)
             tqdm.write(f"epoch mean loss : {mean_epoch_loss:.3f}")
@@ -877,15 +879,15 @@ class NeuralContextRetriever(ContextRetriever):
                 # metrics
                 _run.log_scalar(
                     "neural_selector_training.r2_score",
-                    r2_score(ctx_dataset.labels(), epoch_preds),
+                    r2_score(epoch_labels, epoch_preds),
                 )
                 _run.log_scalar(
                     "neural_selector_training.mean_absolute_error",
-                    mean_absolute_error(ctx_dataset.labels(), epoch_preds),
+                    mean_absolute_error(epoch_labels, epoch_preds),
                 )
                 _run.log_scalar(
                     "neural_selector_training.mean_squared_error",
-                    mean_squared_error(ctx_dataset.labels(), epoch_preds),
+                    mean_squared_error(epoch_labels, epoch_preds),
                 )
 
         return ctx_classifier
