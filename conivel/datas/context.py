@@ -9,11 +9,15 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import BertForTokenClassification, BertForSequenceClassification, BertTokenizerFast, DataCollatorWithPadding  # type: ignore
 from transformers.tokenization_utils_base import BatchEncoding
 from tqdm import tqdm
-from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+from sklearn.metrics import precision_recall_fscore_support
 from rank_bm25 import BM25Okapi
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
-from conivel.utils import flattened, get_tokenizer, bin_weighted_mse_loss
+from conivel.utils import (
+    flattened,
+    get_tokenizer,
+    pretrained_bert_for_token_classification,
+)
 from conivel.predict import predict
 
 
@@ -265,9 +269,9 @@ class ContextRetrievalExample:
     context: List[str]
     #: context side (doest the context comes from the left or the right of ``sent`` ?)
     context_side: Literal["left", "right"]
-    #: usefulness of the exemple, between -1 and 1. Can be ``None``
+    #: usefulness of the exemple, either -1, 0 or 1. between -1 and 1. Can be ``None``
     # when the usefulness is not known.
-    usefulness: Optional[float] = None
+    usefulness: Optional[Literal[-1, 0, 1]] = None
     #: wether the prediction for the ``sent`` of this example was
     # correct or not before applying ``context``. Is ``None`` when not
     # applicable.
@@ -384,7 +388,7 @@ class NeuralContextRetriever(ContextRetriever):
         if isinstance(pretrained_model, str):
             self.ctx_classifier = BertForSequenceClassification.from_pretrained(
                 pretrained_model
-            )
+            )  # type: ignore
         else:
             self.ctx_classifier = pretrained_model
         self.ctx_classifier = cast(BertForSequenceClassification, self.ctx_classifier)
@@ -545,23 +549,18 @@ class NeuralContextRetriever(ContextRetriever):
         return self.heuristic_context_selector.retrieve(sent_idx, document)
 
     @staticmethod
-    def _pred_error(
-        sent: NERSentence, pred_scores: torch.Tensor, tag_to_id: Dict[str, int]
-    ) -> float:
+    def _pred_error(sent: NERSentence, pred: List[str]) -> int:
         """Compute error between a reference sentence and a prediction
 
         :param sent: reference sentence
-        :param pred_scores: ``(sentence_size, vocab_size)``
+        :param preds: list of tags of shape ``(sentence_size)``
         :param tag_to_id: a mapping from a tag to its id in the
             vocabulary.
 
-        :return: an error between 0 and 1
+        :return: the number of incorrect tags in ``preds``
         """
-        errs = []
-        for tag_i, tag in enumerate(sent.tags):
-            tag_score = pred_scores[tag_i][tag_to_id[tag]].item()
-            errs.append(1 - tag_score)
-        return max(errs)
+        assert len(pred) == len(sent.tags)
+        return sum([1 if t != p else 0 for p, t in zip(pred, sent.tags)])
 
     @staticmethod
     def generate_context_dataset(
@@ -570,9 +569,6 @@ class NeuralContextRetriever(ContextRetriever):
         batch_size: int,
         heuristic_context_selector: str,
         heuristic_context_selector_kwargs: Dict[str, Any],
-        max_examples_nb: Optional[int] = None,
-        examples_usefulness_threshold: float = 0.0,
-        skip_correct: bool = False,
         _run: Optional[Run] = None,
     ) -> ContextRetrievalDataset:
         """Generate a context selection training dataset.
@@ -604,27 +600,13 @@ class NeuralContextRetriever(ContextRetriever):
             ``context_selector_name_to_class``
         :param heuristic_context_selector_kwargs: kwargs to pass the
             heuristic context retriever at instantiation time
-        :param max_examples_nb: max number of examples in the
-            generated dataset.  If ``None``, no limit is applied.
-        :param examples_usefulness_threshold: threshold to select
-            example.  Examples generated from a source sentence are
-            kept if one of these examples usefulness is greater than
-            this threshold.
-        :param skip_correct: if ``True``, will skip example generation
-            for sentences for which NER predictions are correct.
         :param _run: The current sacred run.  If not ``None``, will be
             used to record generation metrics.
 
         :return: a ``ContextSelectionDataset`` that can be used to
                  train a context selector.
         """
-        preds = predict(
-            ner_model,
-            train_dataset,
-            batch_size=batch_size,
-            additional_outputs={"scores"},
-        )
-        assert not preds.scores is None
+        preds = predict(ner_model, train_dataset, batch_size=batch_size)
 
         ctx_selector_class = context_retriever_name_to_class[heuristic_context_selector]
         preliminary_ctx_selector = ctx_selector_class(
@@ -632,26 +614,13 @@ class NeuralContextRetriever(ContextRetriever):
         )
 
         ctx_selection_examples = []
-        for sent_i, (sent, pred_tags, pred_scores) in tqdm(
-            enumerate(zip(train_dataset.sents(), preds.tags, preds.scores)),
+        for sent_i, (sent, pred_tags) in tqdm(
+            enumerate(zip(train_dataset.sents(), preds.tags)),
             total=len(preds.tags),
         ):
-            if skip_correct and pred_tags == sent.tags:
-                continue
-
             document = train_dataset.document_for_sent(sent_i)
 
-            pred_error = NeuralContextRetriever._pred_error(
-                sent, pred_scores, train_dataset.tag_to_id
-            )
-
-            # did we already retrieve enough examples ?
-            if (
-                not max_examples_nb is None
-                and len(ctx_selection_examples) >= max_examples_nb
-            ):
-                ctx_selection_examples = ctx_selection_examples[:max_examples_nb]
-                break
+            pred_error = NeuralContextRetriever._pred_error(sent, pred_tags)
 
             # retrieve n context sentences
             index_in_doc = train_dataset.sent_document_index(sent_i)
@@ -669,42 +638,25 @@ class NeuralContextRetriever(ContextRetriever):
                 ),
                 quiet=True,
                 batch_size=batch_size,
-                additional_outputs={"scores"},
             )
-            assert not preds_ctx.scores is None
 
-            # get usefulnesses context sides for all retrieved context
-            # sentences
-            usefulnesses = []
-            context_sides = []
-            for preds_scores_ctx, ctx_match in zip(preds_ctx.scores, ctx_matchs):
-                pred_ctx_error = NeuralContextRetriever._pred_error(
-                    sent, preds_scores_ctx, train_dataset.tag_to_id
+            for ctx_match, ctx_pred in zip(ctx_matchs, preds_ctx.tags):
+                pred_ctx_error = NeuralContextRetriever._pred_error(sent, ctx_pred)
+                if pred_ctx_error > pred_error:
+                    usefulness = -1
+                elif pred_ctx_error < pred_error:
+                    usefulness = 1
+                else:
+                    usefulness = 0
+                ctx_selection_examples.append(
+                    ContextRetrievalExample(
+                        sent.tokens,
+                        ctx_match.sentence.tokens,
+                        ctx_match.side,
+                        usefulness,
+                        sent.tags == ctx_pred,
+                    )
                 )
-                usefulnesses.append(pred_error - pred_ctx_error)
-                context_sides.append(ctx_match.side)
-
-            # if one of the context usefulness is greater then
-            # examples_usefulness_threshold, add all of them to the
-            # list of generated examples
-            if any([u > examples_usefulness_threshold for u in usefulnesses]):
-                for usefulness, context_side, ctx_sent in zip(
-                    usefulnesses, context_sides, ctx_sents
-                ):
-                    context_tokens = (
-                        ctx_sent.left_context[0].tokens
-                        if len(ctx_sent.left_context) == 1
-                        else ctx_sent.right_context[0].tokens
-                    )
-                    ctx_selection_examples.append(
-                        ContextRetrievalExample(
-                            sent.tokens,
-                            context_tokens,
-                            context_side,
-                            usefulness,
-                            sent.tags == pred_tags,
-                        )
-                    )
 
         # logging
         if not _run is None:
@@ -776,7 +728,6 @@ class NeuralContextRetriever(ContextRetriever):
         epochs_nb: int,
         batch_size: int,
         learning_rate: float,
-        weights_bins_nb: Optional[int] = None,
         _run: Optional[Run] = None,
         log_full_loss: bool = False,
     ) -> BertForSequenceClassification:
@@ -799,32 +750,13 @@ class NeuralContextRetriever(ContextRetriever):
         """
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        ctx_classifier = BertForSequenceClassification.from_pretrained(
-            "bert-base-cased", problem_type="regression", num_labels=1
-        )  # type: ignore
+        ctx_classifier = pretrained_bert_for_token_classification(
+            "bert-base-cased", {str(i): i for i in [-1, 0, 1]}
+        )
         ctx_classifier = cast(BertForSequenceClassification, ctx_classifier)
         ctx_classifier = ctx_classifier.to(device)
 
-        if not weights_bins_nb is None:
-            examples_usefulnesses = torch.tensor(
-                [ex.usefulness for ex in ctx_dataset.examples]
-            )
-            # torch.histogram is not implemented on CUDA, so we avoid
-            # sending tensors to GPU until after this computation
-            # (bins_nb), (bins_nb)
-            bins_count, bins_edges = torch.histogram(
-                examples_usefulnesses, weights_bins_nb
-            )
-            bins_count = bins_count.to(device)
-            bins_edges = bins_edges.to(device)
-            # (bins_nb)
-            bins_weights = (torch.max(bins_count) + 1) / (bins_count + 1)
-
-            loss_fn = functools.partial(
-                bin_weighted_mse_loss, bins_weights=bins_weights, bins_edges=bins_edges
-            )
-        else:
-            loss_fn = torch.nn.MSELoss()
+        loss_fn = torch.nn.CrossEntropyLoss()
 
         optimizer = torch.optim.AdamW(ctx_classifier.parameters(), lr=learning_rate)
 
@@ -852,10 +784,7 @@ class NeuralContextRetriever(ContextRetriever):
                     token_type_ids=X["token_type_ids"],
                     attention_mask=X["attention_mask"],
                 )
-                # (batch_size, 1)
-                pred = torch.sigmoid(out.logits) * 2 - 1
-
-                loss = loss_fn(pred[:, 0], X["labels"])
+                loss = loss_fn(out.logits, X["labels"])
                 loss.backward()
 
                 optimizer.step()
@@ -866,7 +795,7 @@ class NeuralContextRetriever(ContextRetriever):
                 data_tqdm.set_description(f"loss : {loss.item():.3f}")
                 epoch_losses.append(loss.item())
 
-                epoch_preds += pred[:, 0].tolist()
+                epoch_preds += torch.argmax(out.logits, dim=1).tolist()
                 epoch_labels += X["labels"].tolist()
 
             mean_epoch_loss = sum(epoch_losses) / len(epoch_losses)
@@ -877,18 +806,13 @@ class NeuralContextRetriever(ContextRetriever):
                     "neural_selector_training.mean_epoch_loss", mean_epoch_loss
                 )
                 # metrics
-                _run.log_scalar(
-                    "neural_selector_training.r2_score",
-                    r2_score(epoch_labels, epoch_preds),
+                # TODO:
+                p, r, f, _ = precision_recall_fscore_support(
+                    epoch_labels, epoch_preds, average="micro"
                 )
-                _run.log_scalar(
-                    "neural_selector_training.mean_absolute_error",
-                    mean_absolute_error(epoch_labels, epoch_preds),
-                )
-                _run.log_scalar(
-                    "neural_selector_training.mean_squared_error",
-                    mean_squared_error(epoch_labels, epoch_preds),
-                )
+                _run.log_scalar("neural_selector_training.epoch_precision", p)
+                _run.log_scalar("neural_selector_training.epoch_recall", r)
+                _run.log_scalar("neural_selector_training.epoch_f1", f)
 
         return ctx_classifier
 
