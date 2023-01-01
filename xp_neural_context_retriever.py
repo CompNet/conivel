@@ -225,7 +225,9 @@ def main(
             labels = test_ctx_retrieval_dataset.labels()
             assert not labels is None
 
-            precision, recall, f1, _ = precision_recall_fscore_support(labels, preds)
+            precision, recall, f1, _ = precision_recall_fscore_support(
+                labels, preds, average="micro"
+            )
             precision_matrix[run_i][fold_i] = precision
             recall_matrix[run_i][fold_i] = recall
             f1_matrix[run_i][fold_i] = f1
