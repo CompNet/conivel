@@ -1,5 +1,6 @@
+from __future__ import annotations
 from typing import Any, Dict, List, Literal, Optional, Type, Union, cast
-import random, functools
+import random
 from dataclasses import dataclass
 import nltk
 from sacred.run import Run
@@ -13,11 +14,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from rank_bm25 import BM25Okapi
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
-from conivel.utils import (
-    flattened,
-    get_tokenizer,
-    pretrained_bert_for_token_classification,
-)
+from conivel.utils import get_tokenizer
 from conivel.predict import predict
 
 
@@ -329,7 +326,9 @@ class ContextRetrievalDataset(Dataset):
         )
 
         if not example.usefulness is None:
-            batch["label"] = example.usefulness
+            # NOTE: example.usefulness is either -1, 0 or 1.
+            #       we shift that to class indices {0, 1, 2}
+            batch["label"] = example.usefulness + 1
 
         return batch
 
@@ -340,6 +339,19 @@ class ContextRetrievalDataset(Dataset):
         if any([ex.usefulness is None for ex in self.examples]):
             return None
         return [ex.usefulness for ex in self.examples]  # type: ignore
+
+    def downsampled(self, downsample_ratio: float = 0.05) -> ContextRetrievalDataset:
+        """Downsample class '0' for the dataset
+
+        :param downsample_ratio:
+        """
+        neg_examples = [e for e in self.examples if e.usefulness == -1]
+        pos_examples = [e for e in self.examples if e.usefulness == 1]
+        null_examples = [e for e in self.examples if e.usefulness == 0]
+        null_examples = null_examples[: int(downsample_ratio * len(null_examples))]
+        examples = neg_examples + pos_examples + null_examples
+        random.shuffle(examples)
+        return ContextRetrievalDataset(examples)
 
 
 class NeuralContextRetriever(ContextRetriever):
@@ -353,7 +365,6 @@ class NeuralContextRetriever(ContextRetriever):
         batch_size: int,
         sents_nb: int,
         use_cache: bool = False,
-        ranking_method: Literal["score", "combine_rank"] = "score",
     ) -> None:
         """
         :param pretrained_model_name: pretrained model name, used to
@@ -373,17 +384,6 @@ class NeuralContextRetriever(ContextRetriever):
         :param use_cache: if ``True``,
             :func:`NeuralContextRetriever.predict` will use an
             internal cache to speed up computations.
-
-        :param ranking_method: the ranking method to use to retrieve
-            context
-
-                - ``'score'``: retrieve the ``sents_nb`` best examples
-
-                - ``combine_rank``: Combine ranks of the neural
-                  selector and of the underlying
-                  ``heuristic_context_selector`` to return
-                  ``sents_nb`` examples.only usable if the underlying
-                  ``heuristic_context_selector`` returns scores.
         """
         if isinstance(pretrained_model, str):
             self.ctx_classifier = BertForSequenceClassification.from_pretrained(
@@ -401,8 +401,6 @@ class NeuralContextRetriever(ContextRetriever):
         )
 
         self.batch_size = batch_size
-
-        self.ranking_method = ranking_method
 
         self._predict_cache = {}
         self.use_cache = use_cache
@@ -431,8 +429,8 @@ class NeuralContextRetriever(ContextRetriever):
         :param dataset: A list of :class:`ContextSelectionExample`
         :param device_str: torch device
 
-        :return: A tensor of shape ``(len(dataset))`` of scores, each
-                 between -1 and 1
+        :return: A tensor of shape ``(len(dataset), 3)`` of class
+                 scores
         """
         if isinstance(dataset, list):
             dataset = ContextRetrievalDataset(dataset, self.tokenizer)
@@ -441,21 +439,6 @@ class NeuralContextRetriever(ContextRetriever):
             device_str = "cuda" if torch.cuda.is_available() else "cpu"
         device = torch.device(device_str)
         self.ctx_classifier = self.ctx_classifier.to(device)  # type: ignore
-
-        if self.use_cache:
-            out_scores = [self._predict_cache_get(e) for e in dataset.examples]
-            # restrict datset to uncached examples
-            uncached_idxs = [i for i, s in enumerate(out_scores) if s is None]
-            dataset = ContextRetrievalDataset(
-                [e for e, s in zip(dataset.examples, out_scores) if s is None],
-                tokenizer=dataset.tokenizer,
-            )
-            out_scores = torch.tensor(
-                [s if not s is None else -1.0 for s in out_scores]
-            ).to(device)
-        else:
-            out_scores = torch.tensor([0.0] * len(dataset.examples)).to(device)
-            uncached_idxs = [i for i in range(len(dataset.examples))]
 
         data_collator = DataCollatorWithPadding(dataset.tokenizer)  # type: ignore
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, collate_fn=data_collator)  # type: ignore
@@ -466,23 +449,17 @@ class NeuralContextRetriever(ContextRetriever):
             scores = torch.zeros((0,)).to(device)
             for X in dataloader:
                 X = X.to(device)
-                # out.logits is of shape (batch_size, 1)
+                # out.logits is of shape (batch_size, 3)
                 out = self.ctx_classifier(
                     X["input_ids"],
                     token_type_ids=X["token_type_ids"],
                     attention_mask=X["attention_mask"],
                 )
-                pred = torch.sigmoid(out.logits) * 2 - 1
-                scores = torch.cat([scores, pred[:, 0]], dim=0)
+                # (batch_size, 3)
+                pred = torch.softmax(out.logits, dim=1)
+                scores = torch.cat([scores, pred], dim=0)
 
-        out_scores[uncached_idxs] = scores
-
-        # register scores in cache
-        if self.use_cache:
-            for ex, score in zip(dataset.examples, out_scores):
-                self._predict_cache_register_(ex, score.item())
-
-        return out_scores
+        return scores
 
     def retrieve(
         self, sent_idx: int, document: List[NERSentence]
@@ -507,34 +484,20 @@ class NeuralContextRetriever(ContextRetriever):
             )
             for ctx_match in ctx_matchs
         ]
+        # (len(dataset), 3)
         scores = self.predict(ctx_dataset)
 
-        if self.ranking_method == "score":
-            topk = torch.topk(scores, min(self.sents_nb, scores.shape[0]), dim=0)  # type: ignore
-            best_ctx_idxs = topk.indices[topk.values > 0].tolist()
-        elif self.ranking_method == "combine_rank":
-            assert all([not m.score is None for m in ctx_matchs])
-            ctx_matchs_scores = torch.tensor([m.score for m in ctx_matchs])
-            ctx_matchs_ranks = torch.arange(0, ctx_matchs_scores.shape[0])[
-                torch.argsort(-ctx_matchs_scores)
-            ]
-            scores_ranks = torch.arange(0, scores.shape[0])[torch.argsort(-scores)]
-            mean_ranks = torch.mean(
-                torch.stack((ctx_matchs_ranks.float(), scores_ranks.float())), dim=0
-            )
-            best_ctx_idxs = torch.argsort(mean_ranks)[: self.sents_nb].tolist()
-        else:
-            raise RuntimeError(f"unknown ranking method: {self.ranking_method}")
+        # indices for examples with predicted class 1
+        selected_indices = torch.arange(0, scores.shape[0])[
+            torch.argmax(scores, dim=1) == 2
+        ].tolist()
+        # only keep selected matchs
+        ctx_matchs = [ctx_matchs[i] for i in selected_indices]
+        # assign new score
+        for i, match in zip(selected_indices, ctx_matchs):
+            match.score = scores[i, 2]
 
-        return [
-            ContextRetrievalMatch(
-                ctx_matchs[i].sentence,
-                ctx_matchs[i].sentence_idx,
-                ctx_matchs[i].side,
-                float(scores[i].item()),
-            )
-            for i in best_ctx_idxs
-        ]
+        return sorted(ctx_matchs, key=lambda m: -m.score)[: self.sents_nb]
 
     def heuristic_retrieve_ctx(
         self, sent_idx: int, document: List[NERSentence]
@@ -670,59 +633,6 @@ class NeuralContextRetriever(ContextRetriever):
         return ContextRetrievalDataset(ctx_selection_examples)
 
     @staticmethod
-    def balance_context_dataset(
-        dataset: ContextRetrievalDataset, bins_nb: int
-    ) -> ContextRetrievalDataset:
-        """Balance the given dataset, by trying to make sure that:
-
-            1. The number of examples ``sent`` that have been
-               corrected by their ``context`` is equal to the number
-               of examples ``sent`` that heven't been corrected by
-               their ``context``.
-
-            2. Examples bins formed using their usefulness have the
-               same number of examples.
-
-        :param dataset:
-        :param bins_nb: number of bins to form
-
-        :return: a balanced dataset
-        """
-        assert len(dataset) > 0
-
-        # filtering to have the same number of examples with a correct
-        # original prediction and without
-        correctly_predicted = [
-            ex for ex in dataset.examples if ex.sent_was_correctly_predicted
-        ]
-        incorrectly_predicted = [
-            ex for ex in dataset.examples if not ex.sent_was_correctly_predicted
-        ]
-        assert len(correctly_predicted) > 0 and len(incorrectly_predicted) > 0
-        min_len = min([len(correctly_predicted), len(incorrectly_predicted)])
-        examples = correctly_predicted[:min_len] + incorrectly_predicted[:min_len]
-
-        # binning
-        # NOTE: assume that min usefulness is -1 and max usefulness is 1
-        bins_size = 2.0 / bins_nb
-        bin_right_edges = np.arange(-1 + bins_size, 1 + bins_size, bins_size)
-        bins = []
-        already_added_examples = set()
-        for bin_right_edge in bin_right_edges:
-            bin_examples = [
-                ex for ex in examples if ex.usefulness < bin_right_edge  # type: ignore
-            ]
-            bins.append(list(set(bin_examples) - already_added_examples))
-            already_added_examples = already_added_examples.union(bin_examples)
-
-        # balancing bins. Each bin will have the number of examples of
-        # the bin with the second more examples.
-        max_bin_len = sorted([len(b) for b in bins])[-2]
-        bins = [b[:max_bin_len] for b in bins]
-
-        return ContextRetrievalDataset(flattened(bins))
-
-    @staticmethod
     def train_context_selector(
         ctx_dataset: ContextRetrievalDataset,
         epochs_nb: int,
@@ -730,6 +640,7 @@ class NeuralContextRetriever(ContextRetriever):
         learning_rate: float,
         _run: Optional[Run] = None,
         log_full_loss: bool = False,
+        weights: Optional[torch.Tensor] = None,
     ) -> BertForSequenceClassification:
         """Instantiate and train a context classifier.
 
@@ -745,18 +656,22 @@ class NeuralContextRetriever(ContextRetriever):
             used to record training metrics.
         :param log_full_loss: if ``True``, log the loss at each batch
             (otherwise, only log mean epochs loss)
+        :param weightd: :class:`torch.nn.CrossEntropyLoss` weights, oh
+            shape ``(3)``.
 
         :return: a trained ``BertForSequenceClassification``
         """
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        ctx_classifier = pretrained_bert_for_token_classification(
-            "bert-base-cased", {str(i): i for i in [-1, 0, 1]}
+        ctx_classifier = BertForSequenceClassification.from_pretrained(
+            "bert-base-cased", num_labels=3
         )
         ctx_classifier = cast(BertForSequenceClassification, ctx_classifier)
         ctx_classifier = ctx_classifier.to(device)
 
-        loss_fn = torch.nn.CrossEntropyLoss()
+        if not weights is None:
+            weights = weights.to(device)
+        loss_fn = torch.nn.CrossEntropyLoss(weight=weights)
 
         optimizer = torch.optim.AdamW(ctx_classifier.parameters(), lr=learning_rate)
 
