@@ -1,11 +1,12 @@
 import os, gc, copy
-from typing import List, Literal, Optional
+from typing import List, Optional
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 import numpy as np
+import torch
 from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.the_hunger_games import TheHungerGamesDataset
@@ -75,27 +76,17 @@ def config():
     ctx_retrieval_epochs_nb: int = 3
     # learning rate for context retrieval training
     ctx_retrieval_lr: float = 2e-5
-    # usefulness threshold for context retrieval examples. Passed to
-    # :func:`NeuralContextSelector.generate_context_dataset`
-    ctx_retrieval_usefulness_threshold: float = 0.1
-    # wether to skip examples generated from a sentence if NER
-    # predictions for that sentence is correct. Passed to
-    # :func:`NeuralContextSelector.generate_context_dataset`
-    ctx_retrieval_skip_correct: bool = False
     # wether to use The Hunger Games dataset for context retrieval
     # dataset generation
     ctx_retrieval_dataset_generation_use_the_hunger_games: bool = False
-    # number of weights bins to use to adapt the MSELoss when
-    # training the neural context retriever. If ``None``, do not
-    # weight the MSELoss
-    ctx_retrieval_weights_bins_nb: Optional[int] = None
     # percentage of train set that will be used to train the NER model
     # used to generate the context retrieval model. The percentage
     # allocated to generate context retrieval examples will be 1 -
     # that ratio.
     ctx_retrieval_train_gen_ratio: float = 0.5
-    # one of 'score', 'combine_rank'
-    ctx_retrieval_ranking_method: str = "score"
+    # downsampling ratio for the examples that have no impact on
+    # predictions
+    ctx_retrieval_downsampling_ratio: float = 0.05
 
     # -- NER training parameters
     # list of number of sents to test
@@ -121,12 +112,9 @@ def main(
     retrieval_heuristic_inference_kwargs: dict,
     ctx_retrieval_epochs_nb: int,
     ctx_retrieval_lr: float,
-    ctx_retrieval_usefulness_threshold: float,
-    ctx_retrieval_skip_correct: bool,
     ctx_retrieval_dataset_generation_use_the_hunger_games: bool,
-    ctx_retrieval_weights_bins_nb: Optional[int],
     ctx_retrieval_train_gen_ratio: float,
-    ctx_retrieval_ranking_method: Literal["score", "combine_rank"],
+    ctx_retrieval_downsampling_ratio: float,
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
@@ -193,10 +181,14 @@ def main(
                     batch_size,
                     retrieval_heuristic,
                     retrieval_heuristic_gen_kwargs,
-                    examples_usefulness_threshold=ctx_retrieval_usefulness_threshold,
-                    skip_correct=ctx_retrieval_skip_correct,
                     _run=_run,
                 )
+
+                # downsample the majority class (0) of the dataset
+                ctx_retrieval_dataset = ctx_retrieval_dataset.downsampled(
+                    ctx_retrieval_downsampling_ratio
+                )
+
                 sacred_archive_jsonifiable_as_file(
                     _run,
                     ctx_retrieval_dataset.to_jsonifiable(),
@@ -209,12 +201,19 @@ def main(
 
                 # train a context retriever using the previously generated
                 # context retrieval dataset
+                weights = torch.tensor(
+                    [
+                        1 / ctx_retrieval_downsampling_ratio,
+                        1.0,
+                        1 / ctx_retrieval_downsampling_ratio,
+                    ]
+                )
                 ctx_retriever_model = NeuralContextRetriever.train_context_selector(
                     ctx_retrieval_dataset,
                     ctx_retrieval_epochs_nb,
                     batch_size,
                     ctx_retrieval_lr,
-                    weights_bins_nb=ctx_retrieval_weights_bins_nb,
+                    weights=weights,
                     _run=_run,
                 )
                 if save_models:
@@ -258,8 +257,6 @@ def main(
                 retrieval_heuristic_inference_kwargs,
                 batch_size,
                 1,
-                use_cache=True,
-                ranking_method=ctx_retrieval_ranking_method,
             )
 
             for sents_nb_i, sents_nb in enumerate(sents_nb_list):
