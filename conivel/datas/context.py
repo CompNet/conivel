@@ -742,37 +742,34 @@ class IdealNeuralContextRetriever(ContextRetriever):
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
 
+        sent = document[sent_idx]
+        tags = {"O", "B-PER", "I-PER"}
+        preds = predict(
+            self.ner_model, NERDataset([[sent]], tags), quiet=True, batch_size=1
+        )
+
         contexts = self.preliminary_ctx_selector.retrieve(sent_idx, document)
 
-        sent = document[sent_idx]
         sent_with_ctx = sent_with_ctx_from_matchs(sent, contexts)
-
-        tags = {"O", "B-PER", "I-PER"}
-        tag_to_id = {tag: i for i, tag in enumerate(sorted(tags))}
 
         ctx_preds = predict(
             self.ner_model,
             NERDataset([sent_with_ctx], tags),
             quiet=True,
             batch_size=self.batch_size,
-            additional_outputs={"scores"},
         )
-        assert not ctx_preds.scores is None
 
-        context_and_err = [
-            (
-                context,
-                NeuralContextRetriever._pred_error(sent, scores, tag_to_id),
-            )
-            for context, scores in zip(contexts, ctx_preds.scores)
-        ]
+        for context, pred, ctx_pred in zip(contexts, preds.tags, ctx_preds.tags):
+            ctx_err = NeuralContextRetriever._pred_error(sent, ctx_pred)
+            err = NeuralContextRetriever._pred_error(sent, pred)
+            if ctx_err > err:
+                context.score = -1
+            elif ctx_err < err:
+                context.score = 1
+            else:
+                context.score = 0
 
-        ok_contexts_and_err = list(sorted(context_and_err, key=lambda cd: cd[1]))[
-            :sents_nb
-        ]
-        ok_contexts = [context for context, _ in ok_contexts_and_err]
-
-        return ok_contexts
+        return sorted(contexts, key=lambda c: -c.score)[:sents_nb]  # type: ignore
 
 
 context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
