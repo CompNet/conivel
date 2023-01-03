@@ -160,7 +160,7 @@ def main(
 
                 _run.log_scalar("gpu_usage", gpu_memory_usage())
 
-                neural_context_retriever.set_heuristic_sents_nb_(sents_nb)
+                neural_context_retriever.sents_nb = sents_nb
                 ctx_test_set = neural_context_retriever(test_set)
 
                 test_preds = predict(ner_model, ctx_test_set).tags
