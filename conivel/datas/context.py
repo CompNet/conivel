@@ -759,9 +759,9 @@ class IdealNeuralContextRetriever(ContextRetriever):
             batch_size=self.batch_size,
         )
 
-        for context, pred, ctx_pred in zip(contexts, preds.tags, ctx_preds.tags):
+        for context, ctx_pred in zip(contexts, ctx_preds.tags):
             ctx_err = NeuralContextRetriever._pred_error(sent, ctx_pred)
-            err = NeuralContextRetriever._pred_error(sent, pred)
+            err = NeuralContextRetriever._pred_error(sent, preds.tags[0])
             if ctx_err > err:
                 context.score = -1
             elif ctx_err < err:
