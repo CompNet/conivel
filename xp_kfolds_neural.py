@@ -96,6 +96,16 @@ def config():
     ctx_retrieval_train_gen_ratio: float = 0.5
     # one of 'score', 'combine_rank'
     ctx_retrieval_ranking_method: str = "score"
+    # wether to use
+    # :func:`NeuralContextSelector.balance_context_dataset` to balance
+    # the context retrieval dataset after generation. if ``True``,
+    # ``ctx_retrieval_skip_correct`` should be ``False``.
+    ctx_retrieval_balance: bool = False
+    # number of bins when using
+    # :func:`NeuralContextSelector.balance_context_dataset`. Should be
+    # ``None`` if ``ctx_retrieval_balance`` is ``False``, and set if
+    # the latter is ``True``.
+    ctx_retrieval_balance_bins_nb: Optional[int] = None
 
     # -- NER training parameters
     # list of number of sents to test
@@ -127,6 +137,8 @@ def main(
     ctx_retrieval_weights_bins_nb: Optional[int],
     ctx_retrieval_train_gen_ratio: float,
     ctx_retrieval_ranking_method: Literal["score", "combine_rank"],
+    ctx_retrieval_balance: bool,
+    ctx_retrieval_balance_bins_nb: Optional[int],
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
@@ -197,6 +209,22 @@ def main(
                     skip_correct=ctx_retrieval_skip_correct,
                     _run=_run,
                 )
+                if ctx_retrieval_balance:
+                    assert not ctx_retrieval_balance_bins_nb is None
+                    ctx_retrieval_dataset = (
+                        NeuralContextRetriever.balance_context_dataset(
+                            ctx_retrieval_dataset, ctx_retrieval_balance_bins_nb
+                        )
+                    )
+                    _run.log_scalar(
+                        "context_dataset_generation.balanced_examples_nb",
+                        len(ctx_retrieval_dataset),
+                    )
+                    sacred_log_series(
+                        _run,
+                        "context_dataset_generation.balanced_usefulness",
+                        [ex.usefulness for ex in ctx_retrieval_dataset.examples],  # type: ignore
+                    )
                 sacred_archive_jsonifiable_as_file(
                     _run,
                     ctx_retrieval_dataset.to_jsonifiable(),
