@@ -469,17 +469,10 @@ class NeuralContextRetriever(ContextRetriever):
         # (len(dataset), 3)
         scores = self.predict(ctx_dataset)
 
-        # indices for examples with predicted class 1
-        selected_indices = torch.arange(0, scores.shape[0])[
-            torch.argmax(scores, dim=1) == 2
-        ].tolist()
-        # only keep selected matchs
-        ctx_matchs = [ctx_matchs[i] for i in selected_indices]
-        # assign new score
-        for i, match in zip(selected_indices, ctx_matchs):
-            match.score = scores[i, 2]
+        for i, ctx_match in enumerate(ctx_matchs):
+            ctx_match.score = scores[i, 2].item()
 
-        return sorted(ctx_matchs, key=lambda m: -m.score)[: self.sents_nb]
+        return sorted(ctx_matchs, key=lambda m: -m.score)[: self.sents_nb]  # type: ignore
 
     def heuristic_retrieve_ctx(
         self, sent_idx: int, document: List[NERSentence]
