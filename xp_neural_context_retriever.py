@@ -122,10 +122,16 @@ def main(
     precision_matrix = np.zeros((runs_nb, folds_nb))
     recall_matrix = np.zeros((runs_nb, folds_nb))
     f1_matrix = np.zeros((runs_nb, folds_nb))
+    pos_precision_matrix = np.zeros((runs_nb, folds_nb))
+    pos_recall_matrix = np.zeros((runs_nb, folds_nb))
+    pos_f1_matrix = np.zeros((runs_nb, folds_nb))
     metrics_matrices: List[Tuple[str, np.ndarray]] = [
         ("precision", precision_matrix),
         ("recall", recall_matrix),
         ("f1", f1_matrix),
+        ("pos_precision", pos_precision_matrix),
+        ("pos_recall", pos_recall_matrix),
+        ("pos_f1", pos_f1_matrix),
     ]
 
     for run_i in range(runs_nb):
@@ -233,6 +239,7 @@ def main(
             labels = test_ctx_retrieval_dataset.labels()
             assert not labels is None
 
+            # micro F1
             precision, recall, f1, _ = precision_recall_fscore_support(
                 labels, preds, average="micro"
             )
@@ -242,6 +249,15 @@ def main(
             _run.log_scalar(f"run{run_i}.fold{fold_i}.precision", precision)
             _run.log_scalar(f"run{run_i}.fold{fold_i}.recall", recall)
             _run.log_scalar(f"run{run_i}.fold{fold_i}.f1", f1)
+
+            # record precision, recall and f1 of the positive class
+            precisions, recalls, f1s, _ = precision_recall_fscore_support(labels, preds)
+            pos_precision_matrix[run_i][fold_i] = precisions[2]
+            pos_recall_matrix[run_i][fold_i] = recalls[2]
+            pos_f1_matrix[run_i][fold_i] = f1s[2]
+            _run.log_scalar(f"run{run_i}.fold{fold_i}.pos_precision", precisions[2])
+            _run.log_scalar(f"run{run_i}.fold{fold_i}.pos_recall", recalls[2])
+            _run.log_scalar(f"run{run_i}.fold{fold_i}.pos_f1", f1s[2])
 
         # mean metrics for the current run
         for metrics_name, matrix in metrics_matrices:
