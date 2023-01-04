@@ -154,6 +154,7 @@ def main(
                 ),
                 ner_model,
                 batch_size,
+                dekker_dataset.tags,
             )
 
             for sents_nb_i, sents_nb in enumerate(sents_nb_list):

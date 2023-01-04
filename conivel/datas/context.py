@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Literal, Optional, Type, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Set, Type, Union, cast
 import random
 from dataclasses import dataclass
 import nltk
@@ -720,10 +720,12 @@ class IdealNeuralContextRetriever(ContextRetriever):
         preliminary_ctx_selector: ContextRetriever,
         ner_model: BertForTokenClassification,
         batch_size: int,
+        tags: Set[str],
     ) -> None:
         self.preliminary_ctx_selector = preliminary_ctx_selector
         self.ner_model = ner_model
         self.batch_size = batch_size
+        self.tags = tags
         super().__init__(sents_nb)
 
     def set_heuristic_sents_nb_(self, sents_nb: int):
@@ -736,9 +738,8 @@ class IdealNeuralContextRetriever(ContextRetriever):
             sents_nb = random.choice(sents_nb)
 
         sent = document[sent_idx]
-        tags = {"O", "B-PER", "I-PER"}
         preds = predict(
-            self.ner_model, NERDataset([[sent]], tags), quiet=True, batch_size=1
+            self.ner_model, NERDataset([[sent]], self.tags), quiet=True, batch_size=1
         )
 
         contexts = self.preliminary_ctx_selector.retrieve(sent_idx, document)
@@ -747,7 +748,7 @@ class IdealNeuralContextRetriever(ContextRetriever):
 
         ctx_preds = predict(
             self.ner_model,
-            NERDataset([sent_with_ctx], tags),
+            NERDataset([sent_with_ctx], self.tags),
             quiet=True,
             batch_size=self.batch_size,
         )
