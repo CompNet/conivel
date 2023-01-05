@@ -1,5 +1,5 @@
 import os, gc, copy
-from typing import List, Optional
+from typing import List, Literal, Optional
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
-from conivel.datas.the_hunger_games import TheHungerGamesDataset
+from conivel.datas.ontonotes import OntonotesDataset
 from conivel.datas.context import (
     NeuralContextRetriever,
     context_retriever_name_to_class,
@@ -76,9 +76,6 @@ def config():
     ctx_retrieval_epochs_nb: int = 3
     # learning rate for context retrieval training
     ctx_retrieval_lr: float = 2e-5
-    # wether to use The Hunger Games dataset for context retrieval
-    # dataset generation
-    ctx_retrieval_dataset_generation_use_the_hunger_games: bool = False
     # percentage of train set that will be used to train the NER model
     # used to generate the context retrieval model. The percentage
     # allocated to generate context retrieval examples will be 1 -
@@ -96,6 +93,12 @@ def config():
     # learning rate for NER training
     ner_lr: float = 2e-5
 
+    # --
+    # one of : 'dekker', 'ontonotes'
+    dataset_name: str = "dekker"
+    # if dataset_name == 'ontonotes'
+    dataset_path: Optional[str] = None
+
 
 @ex.automain
 def main(
@@ -112,18 +115,29 @@ def main(
     retrieval_heuristic_inference_kwargs: dict,
     ctx_retrieval_epochs_nb: int,
     ctx_retrieval_lr: float,
-    ctx_retrieval_dataset_generation_use_the_hunger_games: bool,
     ctx_retrieval_train_gen_ratio: float,
     ctx_retrieval_downsampling_ratio: float,
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
+    dataset_name: Literal["dekker", "ontonotes"],
+    dataset_path: Optional[str],
 ):
     assert retrieval_heuristic in ["random", "bm25", "sameword"]
     print_config(_run)
 
-    dekker_dataset = DekkerDataset(book_group=book_group)
-    kfolds = dekker_dataset.kfolds(
+    if dataset_name == "dekker":
+        dataset = DekkerDataset(book_group=book_group)
+    elif dataset_name == "ontonotes":
+        assert not dataset_path is None
+        dataset = OntonotesDataset(dataset_path)
+        # keep only documents with a number of tokens >= 512
+        dataset.documents = [
+            doc for doc in dataset.documents if sum([len(sent) for sent in doc]) >= 512
+        ]
+    else:
+        raise ValueError(f"unknown dataset name {dataset_name}")
+    kfolds = dataset.kfolds(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
     folds_nb = max(len(folds_list) if not folds_list is None else 0, len(kfolds))
@@ -154,11 +168,6 @@ def main(
             ctx_retrieval_ner_train_set, ctx_retrieval_gen_set = train_set.split(
                 ctx_retrieval_train_gen_ratio
             )
-            if ctx_retrieval_dataset_generation_use_the_hunger_games:
-                the_hunger_games_set = TheHungerGamesDataset()
-                ctx_retrieval_gen_set = NERDataset.concatenated(
-                    [ctx_retrieval_gen_set, the_hunger_games_set]
-                )
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ctx_retrieval_training"):
 
