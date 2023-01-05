@@ -180,6 +180,7 @@ def main(
                     ner_epochs_nb,
                     batch_size,
                     ctx_retrieval_lr,
+                    quiet=True,
                 )
 
                 # generate a context retrieval dataset using the other
@@ -190,6 +191,7 @@ def main(
                     batch_size,
                     retrieval_heuristic,
                     retrieval_heuristic_gen_kwargs,
+                    quiet=True,
                     _run=_run,
                 )
 
@@ -224,6 +226,7 @@ def main(
                     batch_size,
                     ctx_retrieval_lr,
                     weights=weights,
+                    quiet=True,
                     _run=_run,
                 )
                 if save_models:
@@ -257,6 +260,7 @@ def main(
                     epochs_nb=ner_epochs_nb,
                     batch_size=batch_size,
                     learning_rate=ner_lr,
+                    quiet=True,
                 )
                 if save_models:
                     sacred_archive_huggingface_model(_run, ner_model, "ner_model")  # type: ignore
@@ -276,7 +280,7 @@ def main(
                 neural_context_retriever.sents_nb = sents_nb
                 ctx_test_set = neural_context_retriever(test_set)
 
-                test_preds = predict(ner_model, ctx_test_set).tags
+                test_preds = predict(ner_model, ctx_test_set, quiet=True).tags
                 precision, recall, f1 = score_ner(test_set.sents(), test_preds)
                 _run.log_scalar(
                     f"run{run_i}.fold{fold_i}.test_precision", precision, step=sents_nb
