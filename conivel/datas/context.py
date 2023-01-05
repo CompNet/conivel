@@ -246,7 +246,7 @@ class BM25ContextRetriever(ContextRetriever):
         sent_scores = bm25_model.get_scores(query)
         sent_scores[sent_idx] = -1  # don't retrieve self
         topk_values, topk_indexs = torch.topk(
-            torch.tensor(sent_scores), k=sents_nb, dim=0
+            torch.tensor(sent_scores), k=min(sents_nb, len(sent_scores)), dim=0
         )
         return [
             ContextRetrievalMatch(
