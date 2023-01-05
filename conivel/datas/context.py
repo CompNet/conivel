@@ -34,10 +34,10 @@ class ContextRetriever:
     def __init__(self, sents_nb: Union[int, List[int]], **kwargs) -> None:
         self.sents_nb = sents_nb
 
-    def __call__(self, dataset: NERDataset, silent: bool = True) -> NERDataset:
+    def __call__(self, dataset: NERDataset, quiet: bool = True) -> NERDataset:
         """retrieve context for each sentence of a :class:`NERDataset`"""
         new_docs = []
-        for document in tqdm(dataset.documents, disable=silent):
+        for document in tqdm(dataset.documents, disable=quiet):
             new_doc = []
             for sent_i, sent in enumerate(document):
                 retrieval_matchs = self.retrieve(sent_i, document)
@@ -507,6 +507,7 @@ class NeuralContextRetriever(ContextRetriever):
         batch_size: int,
         heuristic_context_selector: str,
         heuristic_context_selector_kwargs: Dict[str, Any],
+        quiet: bool = False,
         _run: Optional[Run] = None,
     ) -> ContextRetrievalDataset:
         """Generate a context selection training dataset.
@@ -544,7 +545,7 @@ class NeuralContextRetriever(ContextRetriever):
         :return: a ``ContextSelectionDataset`` that can be used to
                  train a context selector.
         """
-        preds = predict(ner_model, train_dataset, batch_size=batch_size)
+        preds = predict(ner_model, train_dataset, batch_size=batch_size, quiet=quiet)
 
         ctx_selector_class = context_retriever_name_to_class[heuristic_context_selector]
         preliminary_ctx_selector = ctx_selector_class(
@@ -555,6 +556,7 @@ class NeuralContextRetriever(ContextRetriever):
         for sent_i, (sent, pred_tags) in tqdm(
             enumerate(zip(train_dataset.sents(), preds.tags)),
             total=len(preds.tags),
+            disable=quiet,
         ):
             document = train_dataset.document_for_sent(sent_i)
 
@@ -616,6 +618,7 @@ class NeuralContextRetriever(ContextRetriever):
         _run: Optional[Run] = None,
         log_full_loss: bool = False,
         weights: Optional[torch.Tensor] = None,
+        quiet: bool = False,
     ) -> BertForSequenceClassification:
         """Instantiate and train a context classifier.
 
@@ -662,7 +665,7 @@ class NeuralContextRetriever(ContextRetriever):
             epoch_labels = []
             ctx_classifier = ctx_classifier.train()
 
-            data_tqdm = tqdm(dataloader)
+            data_tqdm = tqdm(dataloader, disable=quiet)
             for X in data_tqdm:
 
                 optimizer.zero_grad()

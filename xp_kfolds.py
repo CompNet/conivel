@@ -138,6 +138,7 @@ def main(
                     epochs_nb=ner_epochs_nb,
                     batch_size=batch_size,
                     learning_rate=ner_lr,
+                    quiet=True,
                 )
                 if save_models:
                     sacred_archive_huggingface_model(_run, model, "model")  # type: ignore
