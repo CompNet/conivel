@@ -102,15 +102,14 @@ class DekkerDataset(NERDataset):
         if directory is None:
             directory = f"{script_dir}/dataset"
 
-        new_paths = glob.glob(f"{directory}/new/*.conll.fixed")
-        old_paths = glob.glob(f"{directory}/old/*.conll.fixed")
+        paths = glob.glob(f"{directory}/*.conll")
 
         def book_name(path: str) -> str:
             return re.search(r"[^.]*", (os.path.basename(path))).group(0)  # type: ignore
 
         documents = []
 
-        for book_path in new_paths + old_paths:
+        for book_path in paths:
 
             # skip book if it's not in the given book group
             if not book_group is None:
