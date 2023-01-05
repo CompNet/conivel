@@ -198,13 +198,14 @@ def main(
 
                 # train a context retriever using the previously generated
                 # context retrieval dataset
-                weights = torch.tensor(
-                    [
-                        1 / ctx_retrieval_downsampling_ratio,
-                        1.0,
-                        1 / ctx_retrieval_downsampling_ratio,
-                    ]
-                )
+                # weights = torch.tensor(
+                #     [
+                #         1 / ctx_retrieval_downsampling_ratio,
+                #         1.0,
+                #         1 / ctx_retrieval_downsampling_ratio,
+                #     ]
+                # )
+                weights = None
                 ctx_retriever_model = NeuralContextRetriever.train_context_selector(
                     ctx_retrieval_dataset,
                     ctx_retrieval_epochs_nb,
