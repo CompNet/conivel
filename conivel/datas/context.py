@@ -524,10 +524,6 @@ class NeuralContextRetriever(ContextRetriever):
                context and the prediction with context is used to
                create a sample of context retrieval.
 
-        .. note::
-
-            For now, uses ``SameWordSelector`` as sampling heuristic.
-
         :todo: make a choice on heuristic
 
         :param ner_model: an already trained NER model used to

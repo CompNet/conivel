@@ -58,7 +58,7 @@ def config():
 
     # -- retrieval heuristic
     # pre-retrieval heuristic name
-    # only officially supports 'random', 'sameword' and 'bm25' for
+    # only officially supports 'random', 'samenoun' and 'bm25' for
     # now
     retrieval_heuristic: str = "random"
     # parameters for the retrieval heuristic used at inference time
@@ -89,7 +89,7 @@ def main(
     ner_epochs_nb: int,
     ner_lr: float,
 ):
-    assert retrieval_heuristic in ["random", "bm25", "sameword"]
+    assert retrieval_heuristic in ["random", "bm25", "samenoun"]
     print_config(_run)
 
     dekker_dataset = DekkerDataset(book_group=book_group)

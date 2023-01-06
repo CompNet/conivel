@@ -60,7 +60,7 @@ def config():
 
     # -- retrieval heuristic
     # pre-retrieval heuristic name
-    # only officially supports 'random', 'sameword' and 'bm25' for
+    # only officially supports 'random', 'samenoun' and 'bm25' for
     # now
     retrieval_heuristic: str = "random"
     # parameters for the retrieval heuristic used when generating a
@@ -107,7 +107,7 @@ def main(
     dataset_name: Literal["dekker", "ontonotes"],
     dataset_path: Optional[str],
 ):
-    assert retrieval_heuristic in ["random", "bm25", "sameword"]
+    assert retrieval_heuristic in ["random", "bm25", "samenoun"]
     print_config(_run)
 
     if dataset_name == "dekker":
