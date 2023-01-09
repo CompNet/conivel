@@ -107,7 +107,6 @@ def main(
     dataset_name: Literal["dekker", "ontonotes"],
     dataset_path: Optional[str],
 ):
-    assert retrieval_heuristic in ["random", "bm25", "samenoun"]
     print_config(_run)
 
     if dataset_name == "dekker":
