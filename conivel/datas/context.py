@@ -152,10 +152,6 @@ class NeighborsContextRetriever(ContextRetriever):
     """A context selector that chooses nearby sentences."""
 
     def __init__(self, sents_nb: Union[int, List[int]]):
-        """
-        :param left_sents_nb: number of left context sentences to select
-        :param right_sents_nb: number of right context sentences to select
-        """
         if isinstance(sents_nb, int):
             assert sents_nb % 2 == 0
         elif isinstance(sents_nb, list):

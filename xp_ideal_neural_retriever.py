@@ -89,7 +89,6 @@ def main(
     ner_epochs_nb: int,
     ner_lr: float,
 ):
-    assert retrieval_heuristic in ["random", "bm25", "samenoun"]
     print_config(_run)
 
     dekker_dataset = DekkerDataset(book_group=book_group)
