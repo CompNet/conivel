@@ -172,9 +172,13 @@ class NeighborsContextRetriever(ContextRetriever):
             ContextRetrievalMatch(document[i], i, "left", None)
             for i in range(max(0, sent_idx - left_sents_nb), sent_idx)
         ]
+
         right_ctx = [
             ContextRetrievalMatch(document[i], i, "right", None)
-            for i in range(sent_idx + 1, sent_idx + 1 + right_sents_nb)
+            for i in range(
+                min(len(document) - 1, sent_idx + 1),
+                min(len(document), sent_idx + 1 + right_sents_nb),
+            )
         ]
 
         return left_ctx + right_ctx
@@ -212,7 +216,10 @@ class RightContextRetriever(ContextRetriever):
 
         return [
             ContextRetrievalMatch(document[i], i, "right", None)
-            for i in range(sent_idx + 1, sent_idx + 1 + sents_nb)
+            for i in range(
+                min(len(document) - 1, sent_idx + 1),
+                min(len(document), sent_idx + 1 + sents_nb),
+            )
         ]
 
 
