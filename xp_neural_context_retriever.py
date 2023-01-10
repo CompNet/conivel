@@ -188,6 +188,10 @@ def main(
                 ctx_retrieval_dataset = ctx_retrieval_dataset.downsampled(
                     ctx_retrieval_downsampling_ratio
                 )
+                for ex in ctx_retrieval_dataset.examples:
+                    _run.log_scalar(
+                        "context_dataset_generation.balanced_usefulness", ex.usefulness
+                    )
                 # save dataset
                 sacred_archive_jsonifiable_as_file(
                     _run,
