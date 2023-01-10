@@ -5,6 +5,7 @@ from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
+from sacred.utils import apply_backspaces_and_linefeeds
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.ontonotes import OntonotesDataset
 from conivel.predict import predict
