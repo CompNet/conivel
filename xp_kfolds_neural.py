@@ -84,6 +84,9 @@ def config():
     # downsampling ratio for the examples that have no impact on
     # predictions
     ctx_retrieval_downsampling_ratio: float = 0.05
+    # wether to use the score of the negative class when performing
+    # neural ranking
+    ctx_retrieval_use_neg_class: bool = False
 
     # -- NER training parameters
     # list of number of sents to test
@@ -117,6 +120,7 @@ def main(
     ctx_retrieval_lr: float,
     ctx_retrieval_train_gen_ratio: float,
     ctx_retrieval_downsampling_ratio: float,
+    ctx_retrieval_use_neg_class: bool,
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
@@ -270,6 +274,7 @@ def main(
                 retrieval_heuristic_inference_kwargs,
                 batch_size,
                 1,
+                use_neg_class=ctx_retrieval_use_neg_class,
             )
 
             for sents_nb_i, sents_nb in enumerate(sents_nb_list):

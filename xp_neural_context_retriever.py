@@ -7,9 +7,7 @@ from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 import torch
 import numpy as np
-from sklearn.metrics import (
-    precision_recall_fscore_support,
-)
+from sklearn.metrics import precision_recall_fscore_support, precision_recall_curve
 from conivel.datas.ontonotes import OntonotesDataset
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.context import (
@@ -22,6 +20,7 @@ from conivel.utils import (
     sacred_archive_jsonifiable_as_file,
     gpu_memory_usage,
     pretrained_bert_for_token_classification,
+    sacred_log_series,
 )
 
 
@@ -199,16 +198,22 @@ def main(
                     "ctx_retrieval_dataset",
                 )
 
-                # train a context retriever using the previously generated
-                # context retrieval dataset
-                # weights = torch.tensor(
-                #     [
-                #         1 / ctx_retrieval_downsampling_ratio,
-                #         1.0,
-                #         1 / ctx_retrieval_downsampling_ratio,
-                #     ]
-                # )
-                weights = None
+                neg_examples_nb = len(
+                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == -1]
+                )
+                null_examples_nb = len(
+                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == 0]
+                )
+                pos_examples_nb = len(
+                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == 1]
+                )
+                weights = torch.tensor(
+                    [
+                        null_examples_nb / neg_examples_nb,
+                        1.0,
+                        null_examples_nb / pos_examples_nb,
+                    ]
+                )
                 ctx_retriever_model = NeuralContextRetriever.train_context_selector(
                     ctx_retrieval_dataset,
                     ctx_retrieval_epochs_nb,
@@ -240,34 +245,59 @@ def main(
                         _run=_run,
                     )
                 )
-                preds = ctx_retriever.predict(test_ctx_retrieval_dataset)
+                # (len(test_ctx_retrieval), 3)
+                raw_preds = ctx_retriever.predict(test_ctx_retrieval_dataset)
+
                 # -1 to shift from {0, 1, 2} to {-1, 0, 1}
-                preds = torch.argmax(preds, dim=1).cpu() - 1
+                preds = torch.argmax(raw_preds, dim=1).cpu() - 1
 
-            labels = test_ctx_retrieval_dataset.labels()
-            assert not labels is None
+                labels = test_ctx_retrieval_dataset.labels()
+                assert not labels is None
 
-            # micro F1
-            precision, recall, f1, _ = precision_recall_fscore_support(
-                labels, preds, average="micro"
-            )
-            precision_matrix[run_i][fold_i] = precision
-            recall_matrix[run_i][fold_i] = recall
-            f1_matrix[run_i][fold_i] = f1
-            _run.log_scalar(f"run{run_i}.fold{fold_i}.precision", precision)
-            _run.log_scalar(f"run{run_i}.fold{fold_i}.recall", recall)
-            _run.log_scalar(f"run{run_i}.fold{fold_i}.f1", f1)
+                # * pr curves
+                #
+                #   sklearn only supports binary prcurve, se we ignore
+                #   the indexs where labels == -1 (or 1 for the
+                #   negative pr curve)
+                #
+                # ** positive pr curve
+                p, r, t = precision_recall_curve(
+                    [1 if l == 1 else 0 for l in labels], raw_preds[:, 2].cpu()
+                )
+                sacred_log_series(_run, "prcurve_pos_precision", p)
+                sacred_log_series(_run, "prcurve_pos_recall", r)
+                sacred_log_series(_run, "prcurve_pos_thresholds", t)
+                # ** negative pr curve
+                p, r, t = precision_recall_curve(
+                    [1 if l == -1 else 0 for l in labels], raw_preds[:, 0].cpu()
+                )
+                sacred_log_series(_run, "prcurve_neg_precision", p)
+                sacred_log_series(_run, "prcurve_neg_recall", r)
+                sacred_log_series(_run, "prcurve_neg_thresholds", t)
 
-            # record precision, recall and f1 of the positive class
-            precisions, recalls, f1s, _ = precision_recall_fscore_support(labels, preds)
-            pos_precision_matrix[run_i][fold_i] = precisions[2]
-            pos_recall_matrix[run_i][fold_i] = recalls[2]
-            pos_f1_matrix[run_i][fold_i] = f1s[2]
-            _run.log_scalar(f"run{run_i}.fold{fold_i}.pos_precision", precisions[2])
-            _run.log_scalar(f"run{run_i}.fold{fold_i}.pos_recall", recalls[2])
-            _run.log_scalar(f"run{run_i}.fold{fold_i}.pos_f1", f1s[2])
+                # * micro F1
+                precision, recall, f1, _ = precision_recall_fscore_support(
+                    labels, preds, average="micro"
+                )
+                precision_matrix[run_i][fold_i] = precision
+                recall_matrix[run_i][fold_i] = recall
+                f1_matrix[run_i][fold_i] = f1
+                _run.log_scalar(f"precision", precision)
+                _run.log_scalar(f"recall", recall)
+                _run.log_scalar(f"f1", f1)
 
-        # mean metrics for the current run
+                # * precision, recall and f1 of the positive class
+                precisions, recalls, f1s, _ = precision_recall_fscore_support(
+                    labels, preds
+                )
+                pos_precision_matrix[run_i][fold_i] = precisions[2]
+                pos_recall_matrix[run_i][fold_i] = recalls[2]
+                pos_f1_matrix[run_i][fold_i] = f1s[2]
+                _run.log_scalar(f"pos_precision", precisions[2])
+                _run.log_scalar(f"pos_recall", recalls[2])
+                _run.log_scalar(f"pos_f1", f1s[2])
+
+        # * mean metrics for the current run
         for metrics_name, matrix in metrics_matrices:
             for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
                 _run.log_scalar(
@@ -275,7 +305,7 @@ def main(
                     op(matrix[run_i], axis=0),
                 )
 
-    # folds mean metrics
+    # * folds mean metrics
     for fold_i in range(folds_nb):
         for metrics_name, matrix in metrics_matrices:
             for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
@@ -284,7 +314,7 @@ def main(
                     op(matrix[:, fold_i], axis=0),
                 )
 
-    # global mean metrics
+    # * global mean metrics
     for name, matrix in metrics_matrices:
         for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
             _run.log_scalar(
