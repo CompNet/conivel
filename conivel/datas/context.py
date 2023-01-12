@@ -367,6 +367,7 @@ class NeuralContextRetriever(ContextRetriever):
         heuristic_context_selector_kwargs: Dict[str, Any],
         batch_size: int,
         sents_nb: int,
+        use_neg_class: bool = False,
     ) -> None:
         """
         :param pretrained_model_name: pretrained model name, used to
@@ -382,6 +383,8 @@ class NeuralContextRetriever(ContextRetriever):
         :param batch_size: batch size used at inference
 
         :param sents_nb: max number of sents to retrieve
+
+        :param use_neg_class:
         """
         if isinstance(pretrained_model, str):
             self.ctx_classifier = BertForSequenceClassification.from_pretrained(
@@ -399,6 +402,8 @@ class NeuralContextRetriever(ContextRetriever):
         )
 
         self.batch_size = batch_size
+
+        self.use_neg_class = use_neg_class
 
         super().__init__(sents_nb)
 
@@ -473,7 +478,12 @@ class NeuralContextRetriever(ContextRetriever):
         scores = self.predict(ctx_dataset)
 
         for i, ctx_match in enumerate(ctx_matchs):
-            ctx_match.score = scores[i, 2].item()
+            pos_score = float(scores[i, 2].item())
+            if self.use_neg_class:
+                neg_score = float(scores[i, 0].item())
+                ctx_match.score = pos_score - neg_score
+            else:
+                ctx_match.score = pos_score
 
         return sorted(ctx_matchs, key=lambda m: -m.score)[: self.sents_nb]  # type: ignore
 
