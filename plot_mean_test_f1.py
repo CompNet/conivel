@@ -27,6 +27,9 @@ elif args.group == "local":
 else:
     raise ValueError(f"unknown group: {args.group}")
 
+with open(f"./runs/bare/metrics.json") as f:
+    bare_metrics = json.load(f)
+
 
 plt.style.use("science")
 plt.rcParams.update({"xtick.labelsize": 18})
@@ -36,6 +39,9 @@ fig, axs = plt.subplots(1, 3)
 fig.set_size_inches(24, 4)
 
 for i, run_group in enumerate(runs):
+
+    min_steps = []
+    max_steps = []
     for run in run_group:
         with open(f"./runs/{run}/metrics.json") as f:
             metrics = json.load(f)
@@ -43,15 +49,26 @@ for i, run_group in enumerate(runs):
             [int(step) for step in metrics["mean_test_f1"]["steps"]],
             metrics["mean_test_f1"]["values"],
         )
-        axs[i].grid()
-        axs[i].set_ylabel("F1", fontsize=20)
-        axs[i].set_xlabel("Number of retrieved sentences", fontsize=20)
-        axs[i].legend(
-            [r.replace("_", " ") for r in run_group],
-            loc="lower center",
-            bbox_to_anchor=(0.5, 1),
-            fontsize=20,
-        )
+        min_steps.append(min(metrics["mean_test_f1"]["steps"]))
+        max_steps.append(max(metrics["mean_test_f1"]["steps"]))
+
+    # bare baseline
+    axs[i].plot(
+        [min(min_steps), max(max_steps)],
+        [bare_metrics["mean_test_f1"]["values"][0]] * 2,
+        linestyle="--",
+    )
+
+    axs[i].grid()
+    axs[i].set_ylabel("F1", fontsize=20)
+    axs[i].set_xlabel("Number of retrieved sentences", fontsize=20)
+    axs[i].legend(
+        [r.replace("_", " ") for r in run_group] + ["no retrieval"],
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1),
+        fontsize=20,
+    )
+
 
 if args.output:
     plt.savefig(args.output)
