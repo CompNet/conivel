@@ -76,6 +76,8 @@ def config():
     ctx_retrieval_epochs_nb: int = 3
     # learning rate for context retrieval training
     ctx_retrieval_lr: float = 2e-5
+    # dropout for context retriever
+    ctx_retrieval_dropout: float = 0.1
     # percentage of train set that will be used to train the NER model
     # used to generate the context retrieval model. The percentage
     # allocated to generate context retrieval examples will be 1 -
@@ -118,6 +120,7 @@ def main(
     retrieval_heuristic_inference_kwargs: dict,
     ctx_retrieval_epochs_nb: int,
     ctx_retrieval_lr: float,
+    ctx_retrieval_dropout: float,
     ctx_retrieval_train_gen_ratio: float,
     ctx_retrieval_downsampling_ratio: float,
     ctx_retrieval_use_neg_class: bool,
@@ -180,9 +183,9 @@ def main(
                     ctx_retrieval_ner_train_set,
                     ctx_retrieval_ner_train_set,
                     _run,
-                    ner_epochs_nb,
+                    2,
                     batch_size,
-                    ctx_retrieval_lr,
+                    5e-6,
                     quiet=True,
                 )
 
@@ -213,16 +216,22 @@ def main(
                 del ner_model
                 gc.collect()
 
-                # train a context retriever using the previously generated
-                # context retrieval dataset
-                # weights = torch.tensor(
-                #     [
-                #         1 / ctx_retrieval_downsampling_ratio,
-                #         1.0,
-                #         1 / ctx_retrieval_downsampling_ratio,
-                #     ]
-                # )
-                weights = None
+                neg_examples_nb = len(
+                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == -1]
+                )
+                null_examples_nb = len(
+                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == 0]
+                )
+                pos_examples_nb = len(
+                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == 1]
+                )
+                weights = torch.tensor(
+                    [
+                        null_examples_nb / neg_examples_nb,
+                        1.0,
+                        null_examples_nb / pos_examples_nb,
+                    ]
+                )
                 ctx_retriever_model = NeuralContextRetriever.train_context_selector(
                     ctx_retrieval_dataset,
                     ctx_retrieval_epochs_nb,
@@ -231,6 +240,7 @@ def main(
                     weights=weights,
                     quiet=True,
                     _run=_run,
+                    dropout=ctx_retrieval_dropout,
                 )
                 if save_models:
                     sacred_archive_huggingface_model(
