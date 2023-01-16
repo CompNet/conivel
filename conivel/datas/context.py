@@ -679,6 +679,7 @@ class NeuralContextRetriever(ContextRetriever):
                     valid_dataset, batch_size=batch_size, collate_fn=data_collator
                 )
                 ctx_classifier = ctx_classifier.eval()
+                epoch_losses = []
                 with torch.no_grad():
                     for X in tqdm(valid_dataloader, disable=quiet):
                         X = X.to(device)
@@ -691,6 +692,11 @@ class NeuralContextRetriever(ContextRetriever):
                         _run.log_scalar(
                             "neural_selector_training.valid_loss", loss.item()
                         )
+                        epoch_losses.append(loss.item())
+                _run.log_scalar(
+                    "neural_selector_training.mean_epoch_valid_loss",
+                    sum(epoch_losses) / len(epoch_losses),
+                )
 
             # * train
             epoch_losses = []
