@@ -315,9 +315,9 @@ class ContextRetrievalDataset(Dataset):
         example = self.examples[index]
 
         if example.context_side == "left":
-            tokens = example.context + ["<"] + example.sent
+            tokens = example.context + ["<", "[SEP]"] + example.sent
         elif example.context_side == "right":
-            tokens = example.sent + [">"] + example.context
+            tokens = example.sent + ["[SEP]", ">"] + example.context
         else:
             raise ValueError
 
@@ -628,6 +628,7 @@ class NeuralContextRetriever(ContextRetriever):
         log_full_loss: bool = False,
         weights: Optional[torch.Tensor] = None,
         quiet: bool = False,
+        valid_dataset: Optional[ContextRetrievalDataset] = None,
     ) -> BertForSequenceClassification:
         """Instantiate and train a context classifier.
 
@@ -643,8 +644,11 @@ class NeuralContextRetriever(ContextRetriever):
             used to record training metrics.
         :param log_full_loss: if ``True``, log the loss at each batch
             (otherwise, only log mean epochs loss)
-        :param weightd: :class:`torch.nn.CrossEntropyLoss` weights, oh
+        :param weights: :class:`torch.nn.CrossEntropyLoss` weights, oh
             shape ``(3)``.
+        :param quiet: if ``True``, no loading bar will be displayed
+        :param valid_dataset: a validation dataset, used when logging
+            validation metrics using ``_run``
 
         :return: a trained ``BertForSequenceClassification``
         """
@@ -669,9 +673,30 @@ class NeuralContextRetriever(ContextRetriever):
 
         for _ in range(epochs_nb):
 
+            # * validation metrics
+            if not _run is None and not valid_dataset is None:
+                valid_dataloader = DataLoader(
+                    valid_dataset, batch_size=batch_size, collate_fn=data_collator
+                )
+                ctx_classifier = ctx_classifier.eval()
+                with torch.no_grad():
+                    for X in tqdm(valid_dataloader, disable=quiet):
+                        X = X.to(device)
+                        out = ctx_classifier(
+                            X["input_ids"],
+                            token_type_ids=X["token_type_ids"],
+                            attention_mask=X["attention_mask"],
+                        )
+                        loss = loss_fn(out.logits, X["labels"])
+                        _run.log_scalar(
+                            "neural_selector_training.valid_loss", loss.item()
+                        )
+
+            # * train
             epoch_losses = []
             epoch_preds = []
             epoch_labels = []
+
             ctx_classifier = ctx_classifier.train()
 
             data_tqdm = tqdm(dataloader, disable=quiet)
@@ -700,6 +725,7 @@ class NeuralContextRetriever(ContextRetriever):
                 epoch_preds += torch.argmax(out.logits, dim=1).tolist()
                 epoch_labels += X["labels"].tolist()
 
+            # ** train metrics logging
             mean_epoch_loss = sum(epoch_losses) / len(epoch_losses)
             tqdm.write(f"epoch mean loss : {mean_epoch_loss:.3f}")
             if not _run is None:
