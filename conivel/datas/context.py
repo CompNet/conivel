@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Literal, Optional, Set, Type, Union, cast
-import random
+import random, json, os
 from dataclasses import dataclass
 import nltk
 from sacred.run import Run
@@ -14,7 +14,12 @@ from sklearn.metrics import precision_recall_fscore_support
 from rank_bm25 import BM25Okapi
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
-from conivel.utils import get_tokenizer
+from conivel.utils import (
+    entities_from_bio_tags,
+    flattened,
+    get_tokenizer,
+    replace_sent_entity,
+)
 from conivel.predict import predict
 
 
@@ -265,26 +270,27 @@ class ContextRetrievalExample:
 
     #: sentence on which NER is performed
     sent: List[str]
+    #: NER tags
+    sent_tags: List[str]
     #: context to assist during prediction
     context: List[str]
+    #: context NER tags
+    context_tags: List[str]
     #: context side (doest the context comes from the left or the right of ``sent`` ?)
     context_side: Literal["left", "right"]
     #: usefulness of the exemple, either -1, 0 or 1. between -1 and 1. Can be ``None``
     # when the usefulness is not known.
     usefulness: Optional[Literal[-1, 0, 1]] = None
-    #: wether the prediction for the ``sent`` of this example was
-    # correct or not before applying ``context``. Is ``None`` when not
-    # applicable.
-    sent_was_correctly_predicted: Optional[bool] = None
 
     def __hash__(self) -> int:
         return hash(
             (
                 tuple(self.sent),
+                tuple(self.sent_tags),
                 tuple(self.context),
+                tuple(self.context_tags),
                 self.context_side,
                 self.usefulness,
-                self.sent_was_correctly_predicted,
             )
         )
 
@@ -334,6 +340,75 @@ class ContextRetrievalDataset(Dataset):
             batch["label"] = example.usefulness + 1
 
         return batch
+
+    def augmented(self) -> ContextRetrievalDataset:
+
+        # * all entities in self dataset
+        dataset_entities = flattened(
+            [
+                entities_from_bio_tags(
+                    ex.sent + ex.context, ex.sent_tags + ex.context_tags
+                )
+                for ex in self.examples
+            ]
+        )
+        dataset_entities = [
+            " ".join(entity.tokens)
+            for entity in dataset_entities
+            if entity.tag == "PER"
+        ]
+
+        # * the elder scrolls entities
+        script_dir = os.path.abspath(os.path.dirname(__file__))
+        with open(f"{script_dir}/the_elder_scrolls_names.json") as f:
+            data = json.load(f)
+        tes_entities = [name for name in data["first_names"] + data["last_names"]]
+
+        dataset_names = set(dataset_entities + tes_entities)
+
+        # * augmentation
+        new_examples = []
+        for ex in self.examples:
+            # ** get all PER entities from original sent AND context
+            entities = entities_from_bio_tags(
+                ex.sent + ex.context, ex.sent_tags + ex.context_tags
+            )
+            entities = [ent for ent in entities if ent.tag == "PER"]
+            # ** get an unique name replacement for each entity
+            names_replacement = {
+                tuple(ent.tokens): random.sample(dataset_names, k=1)[0]
+                for ent in entities
+            }
+            # ** augment in original sentence
+            tokens, tags = (ex.sent, ex.sent_tags)
+            for entity in entities:
+                tokens, tags = replace_sent_entity(
+                    tokens,
+                    tags,
+                    entity.tokens,
+                    "PER",
+                    names_replacement[tuple(entity.tokens)].split(),
+                    "PER",
+                )
+            # ** augment in context sentence
+            ctx_tokens, ctx_tags = (ex.context, ex.context_tags)
+            for entity in entities:
+                ctx_tokens, ctx_tags = replace_sent_entity(
+                    ctx_tokens,
+                    ctx_tags,
+                    entity.tokens,
+                    "PER",
+                    names_replacement[tuple(entity.tokens)].split(),
+                    "PER",
+                )
+            # ** create new example
+            new_examples.append(
+                ContextRetrievalExample(
+                    tokens, tags, ctx_tokens, ctx_tags, ex.context_side, ex.usefulness
+                )
+            )
+
+        return ContextRetrievalDataset(new_examples)
 
     def to_jsonifiable(self) -> List[dict]:
         return [vars(example) for example in self.examples]
@@ -470,7 +545,11 @@ class NeuralContextRetriever(ContextRetriever):
         # prepare datas for inference
         ctx_dataset = [
             ContextRetrievalExample(
-                sent.tokens, ctx_match.sentence.tokens, ctx_match.side, None
+                sent.tokens,
+                sent.tags,
+                ctx_match.sentence.tokens,
+                ctx_match.sentence.tags,
+                ctx_match.side,
             )
             for ctx_match in ctx_matchs
         ]
@@ -600,10 +679,11 @@ class NeuralContextRetriever(ContextRetriever):
                 ctx_selection_examples.append(
                     ContextRetrievalExample(
                         sent.tokens,
+                        sent.tags,
                         ctx_match.sentence.tokens,
+                        ctx_match.sentence.tags,
                         ctx_match.side,
                         usefulness,
-                        sent.tags == ctx_pred,
                     )
                 )
 
