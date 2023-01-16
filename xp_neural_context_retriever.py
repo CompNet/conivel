@@ -71,6 +71,8 @@ def config():
     ctx_retrieval_epochs_nb: int = 3
     # learning rate for context retrieval training
     ctx_retrieval_lr: float = 2e-5
+    # dropout for context retriever
+    ctx_retrieval_dropout: float = 0.1
     # percentage of train set that will be used to train the NER model
     # used to generate the context retrieval model. The percentage
     # allocated to generate context retrieval examples will be 1 -
@@ -101,6 +103,7 @@ def main(
     retrieval_heuristic_gen_kwargs: dict,
     ctx_retrieval_epochs_nb: int,
     ctx_retrieval_lr: float,
+    ctx_retrieval_dropout: float,
     ctx_retrieval_train_gen_ratio: float,
     ctx_retrieval_downsampling_ratio: float,
     dataset_name: Literal["dekker", "ontonotes"],
@@ -168,7 +171,7 @@ def main(
                     ctx_retrieval_ner_train_set,
                     ctx_retrieval_ner_train_set,
                     _run=_run,
-                    epochs_nb=1,  # only 1 epoch training to allow the model to make mistakes
+                    epochs_nb=2,
                     batch_size=batch_size,
                     learning_rate=ctx_retrieval_lr,
                 )
@@ -184,7 +187,6 @@ def main(
                     retrieval_heuristic_gen_kwargs,
                     _run=_run,
                 )
-                ctx_retrieval_dataset = ctx_retrieval_dataset.augmented()
                 # downsample the majority class (0) of the dataset
                 ctx_retrieval_dataset = ctx_retrieval_dataset.downsampled(
                     ctx_retrieval_downsampling_ratio
@@ -245,6 +247,7 @@ def main(
                     valid_dataset=test_ctx_retrieval_dataset.downsampled(
                         ctx_retrieval_downsampling_ratio
                     ),
+                    dropout=ctx_retrieval_dropout,
                 )
                 ctx_retriever = NeuralContextRetriever(
                     ctx_retriever_model,
