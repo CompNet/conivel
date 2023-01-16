@@ -173,8 +173,9 @@ def main(
                     learning_rate=ctx_retrieval_lr,
                 )
 
-                # generate a context retrieval dataset using the other
-                # half of the training set
+                # * context dataset generation
+                #   generate a context retrieval dataset using the other
+                #   half of the training set
                 ctx_retrieval_dataset = NeuralContextRetriever.generate_context_dataset(
                     ner_model,
                     ctx_retrieval_gen_set,
@@ -198,6 +199,24 @@ def main(
                     "ctx_retrieval_dataset",
                 )
 
+                # * test dataset
+                test_ctx_retrieval_dataset = (
+                    NeuralContextRetriever.generate_context_dataset(
+                        ner_model,
+                        test_set,
+                        batch_size,
+                        retrieval_heuristic,
+                        {"sents_nb": 1},
+                        _run=_run,
+                    )
+                )
+                sacred_archive_jsonifiable_as_file(
+                    _run,
+                    test_ctx_retrieval_dataset.to_jsonifiable(),
+                    "test_ctx_retrieval_dataset",
+                )
+
+                # * context retriever training
                 neg_examples_nb = len(
                     [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == -1]
                 )
@@ -222,6 +241,9 @@ def main(
                     _run=_run,
                     weights=weights,
                     log_full_loss=True,
+                    valid_dataset=test_ctx_retrieval_dataset.downsampled(
+                        ctx_retrieval_downsampling_ratio
+                    ),
                 )
                 ctx_retriever = NeuralContextRetriever(
                     ctx_retriever_model,
@@ -235,16 +257,6 @@ def main(
                         _run, ctx_retriever_model, "ctx_retriever_model"  # type: ignore
                     )
 
-                test_ctx_retrieval_dataset = (
-                    NeuralContextRetriever.generate_context_dataset(
-                        ner_model,
-                        test_set,
-                        batch_size,
-                        retrieval_heuristic,
-                        {"sents_nb": 1},
-                        _run=_run,
-                    )
-                )
                 # (len(test_ctx_retrieval), 3)
                 raw_preds = ctx_retriever.predict(test_ctx_retrieval_dataset)
 
