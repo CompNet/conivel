@@ -206,7 +206,7 @@ def main(
                         test_set,
                         batch_size,
                         retrieval_heuristic,
-                        {"sents_nb": 1},
+                        {"sents_nb": 4},
                         _run=_run,
                     )
                 )
