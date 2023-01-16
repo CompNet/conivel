@@ -184,6 +184,7 @@ def main(
                     retrieval_heuristic_gen_kwargs,
                     _run=_run,
                 )
+                ctx_retrieval_dataset = ctx_retrieval_dataset.augmented()
                 # downsample the majority class (0) of the dataset
                 ctx_retrieval_dataset = ctx_retrieval_dataset.downsampled(
                     ctx_retrieval_downsampling_ratio

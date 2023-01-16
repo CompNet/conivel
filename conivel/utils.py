@@ -1,7 +1,7 @@
 from __future__ import annotations
 from numbers import Number
-import pickle
-from typing import Any, Dict, Iterable, Tuple, TypeVar, List, Optional
+import pickle, random
+from typing import Any, Dict, Iterable, Tuple, TypeVar, List, Optional, Set
 import copy, time, os, uuid, shutil, json
 from types import MethodType
 from dataclasses import dataclass
@@ -397,3 +397,41 @@ def pretrained_bert_for_token_classification(
         label2id=tag_to_id,
         id2label={v: k for k, v in tag_to_id.items()},
     )
+
+
+def replace_sent_entity(
+    tokens: List[str],
+    tags: List[str],
+    entity_tokens: List[str],
+    entity_type: str,
+    new_entity_tokens: List[str],
+    new_entity_type: str,
+) -> Tuple[List[str], List[str]]:
+    assert len(entity_tokens) > 0
+    assert len(new_entity_tokens) > 0
+
+    entity_tags = [f"B-{entity_type}"] + [f"I-{entity_type}"] * (len(entity_tokens) - 1)
+    idxs = search_ner_pattern(
+        [(tok, tag) for tok, tag in zip(entity_tokens, entity_tags)],
+        tokens,
+        tags,
+    )
+
+    if len(idxs) == 0:
+        return (tokens, tags)
+
+    new_entity_tags = [f"B-{new_entity_type}"] + [f"I-{new_entity_type}"] * (
+        len(new_entity_tokens) - 1
+    )
+
+    new_tokens = []
+    new_tags = []
+    cur_start_idx = 0
+    for start_idx, end_idx in idxs:
+        new_tokens += tokens[cur_start_idx:start_idx] + new_entity_tokens
+        new_tags += tags[cur_start_idx:start_idx] + new_entity_tags
+        cur_start_idx = end_idx + 1
+    new_tokens += tokens[cur_start_idx:]
+    new_tags += tags[cur_start_idx:]
+
+    return (new_tokens, new_tags)
