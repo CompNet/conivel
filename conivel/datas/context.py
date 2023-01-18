@@ -886,12 +886,7 @@ class IdealNeuralContextRetriever(ContextRetriever):
         for context, ctx_pred in zip(contexts, ctx_preds.tags):
             ctx_err = NeuralContextRetriever._pred_error(sent, ctx_pred)
             err = NeuralContextRetriever._pred_error(sent, preds.tags[0])
-            if ctx_err > err:
-                context.score = -1
-            elif ctx_err < err:
-                context.score = 1
-            else:
-                context.score = 0
+            context.score = err - ctx_err
 
         return sorted(contexts, key=lambda c: -c.score)[:sents_nb]  # type: ignore
 
