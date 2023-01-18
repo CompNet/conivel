@@ -45,7 +45,9 @@ class ContextRetriever:
         for document in tqdm(dataset.documents, disable=quiet):
             new_doc = []
             for sent_i, sent in enumerate(document):
-                retrieval_matchs = self.retrieve(sent_i, document)
+                retrieval_matchs = sorted(
+                    self.retrieve(sent_i, document), key=lambda m: m.sentence_idx
+                )
                 new_doc.append(
                     NERSentence(
                         sent.tokens,
