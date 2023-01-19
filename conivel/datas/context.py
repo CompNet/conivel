@@ -837,6 +837,27 @@ class NeuralContextRetriever(ContextRetriever):
         return ctx_classifier
 
 
+class CombinedContextRetriever(ContextRetriever):
+    def __init__(
+        self, sents_nb: Union[int, List[int]], retrievers: List[ContextRetriever]
+    ) -> None:
+        self.retrievers = retrievers
+        super().__init__(sents_nb)
+
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
+        if isinstance((sents_nb := self.sents_nb), list):
+            sents_nb = random.choice(sents_nb)
+
+        matchs = flattened([r.retrieve(sent_idx, document) for r in self.retrievers])
+        # it's not possible to compare scores from different
+        # retrievers. Therefore, we do not make any assumption on the
+        # order of the returned matchs.
+        random.shuffle(matchs)
+        return matchs[:sents_nb]
+
+
 class IdealNeuralContextRetriever(ContextRetriever):
     """
     A context retriever that always return the ``sents_nb`` most
