@@ -266,6 +266,50 @@ class BM25ContextRetriever(ContextRetriever):
         ]
 
 
+class BM25RestrictedContextRetriever(ContextRetriever):
+    """A context selector that selects sentences according to BM25 ranking formula."""
+
+    def __init__(self, sents_nb: Union[int, List[int]]) -> None:
+        """
+        :param sents_nb: number of context sentences to select.  If a
+            list, the number of context sentences to select will be
+            picked randomly among this list at call time.
+        """
+        super().__init__(sents_nb)
+
+    @staticmethod
+    def _get_bm25_model(document: List[NERSentence]) -> BM25Okapi:
+        return BM25Okapi([sent.tokens for sent in document])
+
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
+        if isinstance((sents_nb := self.sents_nb), list):
+            sents_nb = random.choice(sents_nb)
+
+        bm25_model = BM25ContextRetriever._get_bm25_model(document)
+        query = document[sent_idx].tokens
+        sent_scores = bm25_model.get_scores(query)
+        sent_scores[sent_idx] = -1  # don't retrieve self
+        # HACK: exclude close sentences
+        for i in range(1, 7):
+            try:
+                sent_scores[sent_idx + i] = -1
+            except IndexError:
+                pass
+            if sent_idx - i > 0:
+                sent_scores[sent_idx - i] = -1
+        topk_values, topk_indexs = torch.topk(
+            torch.tensor(sent_scores), k=min(sents_nb, len(sent_scores)), dim=0
+        )
+        return [
+            ContextRetrievalMatch(
+                document[index], index, "left" if index < sent_idx else "right", value
+            )
+            for value, index in zip(topk_values.tolist(), topk_indexs.tolist())
+        ]
+
+
 @dataclass(frozen=True)
 class ContextRetrievalExample:
     """A context selection example, to be used for training a context selector."""
@@ -918,6 +962,7 @@ context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
     "left": LeftContextRetriever,
     "right": RightContextRetriever,
     "bm25": BM25ContextRetriever,
+    "bm25_restricted": BM25RestrictedContextRetriever,
     "samenoun": SameNounRetriever,
     "random": RandomContextRetriever,
 }
