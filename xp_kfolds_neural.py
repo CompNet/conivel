@@ -6,9 +6,10 @@ from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 import numpy as np
+import torch
 from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
-from conivel.datas.the_hunger_games import TheHungerGamesDataset
+from conivel.datas.ontonotes import OntonotesDataset
 from conivel.datas.context import (
     NeuralContextRetriever,
     context_retriever_name_to_class,
@@ -61,7 +62,7 @@ def config():
 
     # -- retrieval heuristic
     # pre-retrieval heuristic name
-    # only officially supports 'random', 'sameword' and 'bm25' for
+    # only officially supports 'random', 'samenoun' and 'bm25' for
     # now
     retrieval_heuristic: str = "random"
     # parameters for the retrieval heuristic used when generating a
@@ -75,37 +76,19 @@ def config():
     ctx_retrieval_epochs_nb: int = 3
     # learning rate for context retrieval training
     ctx_retrieval_lr: float = 2e-5
-    # usefulness threshold for context retrieval examples. Passed to
-    # :func:`NeuralContextSelector.generate_context_dataset`
-    ctx_retrieval_usefulness_threshold: float = 0.1
-    # wether to skip examples generated from a sentence if NER
-    # predictions for that sentence is correct. Passed to
-    # :func:`NeuralContextSelector.generate_context_dataset`
-    ctx_retrieval_skip_correct: bool = False
-    # wether to use The Hunger Games dataset for context retrieval
-    # dataset generation
-    ctx_retrieval_dataset_generation_use_the_hunger_games: bool = False
-    # number of weights bins to use to adapt the MSELoss when
-    # training the neural context retriever. If ``None``, do not
-    # weight the MSELoss
-    ctx_retrieval_weights_bins_nb: Optional[int] = None
+    # dropout for context retriever
+    ctx_retrieval_dropout: float = 0.1
     # percentage of train set that will be used to train the NER model
     # used to generate the context retrieval model. The percentage
     # allocated to generate context retrieval examples will be 1 -
     # that ratio.
     ctx_retrieval_train_gen_ratio: float = 0.5
-    # one of 'score', 'combine_rank'
-    ctx_retrieval_ranking_method: str = "score"
-    # wether to use
-    # :func:`NeuralContextSelector.balance_context_dataset` to balance
-    # the context retrieval dataset after generation. if ``True``,
-    # ``ctx_retrieval_skip_correct`` should be ``False``.
-    ctx_retrieval_balance: bool = False
-    # number of bins when using
-    # :func:`NeuralContextSelector.balance_context_dataset`. Should be
-    # ``None`` if ``ctx_retrieval_balance`` is ``False``, and set if
-    # the latter is ``True``.
-    ctx_retrieval_balance_bins_nb: Optional[int] = None
+    # downsampling ratio for the examples that have no impact on
+    # predictions
+    ctx_retrieval_downsampling_ratio: float = 0.05
+    # wether to use the score of the negative class when performing
+    # neural ranking
+    ctx_retrieval_use_neg_class: bool = False
 
     # -- NER training parameters
     # list of number of sents to test
@@ -114,6 +97,12 @@ def config():
     ner_epochs_nb: int = 2
     # learning rate for NER training
     ner_lr: float = 2e-5
+
+    # --
+    # one of : 'dekker', 'ontonotes'
+    dataset_name: str = "dekker"
+    # if dataset_name == 'ontonotes'
+    dataset_path: Optional[str] = None
 
 
 @ex.automain
@@ -131,23 +120,30 @@ def main(
     retrieval_heuristic_inference_kwargs: dict,
     ctx_retrieval_epochs_nb: int,
     ctx_retrieval_lr: float,
-    ctx_retrieval_usefulness_threshold: float,
-    ctx_retrieval_skip_correct: bool,
-    ctx_retrieval_dataset_generation_use_the_hunger_games: bool,
-    ctx_retrieval_weights_bins_nb: Optional[int],
+    ctx_retrieval_dropout: float,
     ctx_retrieval_train_gen_ratio: float,
-    ctx_retrieval_ranking_method: Literal["score", "combine_rank"],
-    ctx_retrieval_balance: bool,
-    ctx_retrieval_balance_bins_nb: Optional[int],
+    ctx_retrieval_downsampling_ratio: float,
+    ctx_retrieval_use_neg_class: bool,
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
+    dataset_name: Literal["dekker", "ontonotes"],
+    dataset_path: Optional[str],
 ):
-    assert retrieval_heuristic in ["random", "bm25", "sameword"]
     print_config(_run)
 
-    dekker_dataset = DekkerDataset(book_group=book_group)
-    kfolds = dekker_dataset.kfolds(
+    if dataset_name == "dekker":
+        dataset = DekkerDataset(book_group=book_group)
+    elif dataset_name == "ontonotes":
+        assert not dataset_path is None
+        dataset = OntonotesDataset(dataset_path)
+        # keep only documents with a number of tokens >= 512
+        dataset.documents = [
+            doc for doc in dataset.documents if sum([len(sent) for sent in doc]) >= 512
+        ]
+    else:
+        raise ValueError(f"unknown dataset name {dataset_name}")
+    kfolds = dataset.kfolds(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
     folds_nb = max(len(folds_list) if not folds_list is None else 0, len(kfolds))
@@ -178,11 +174,6 @@ def main(
             ctx_retrieval_ner_train_set, ctx_retrieval_gen_set = train_set.split(
                 ctx_retrieval_train_gen_ratio
             )
-            if ctx_retrieval_dataset_generation_use_the_hunger_games:
-                the_hunger_games_set = TheHungerGamesDataset()
-                ctx_retrieval_gen_set = NERDataset.concatenated(
-                    [ctx_retrieval_gen_set, the_hunger_games_set]
-                )
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ctx_retrieval_training"):
 
@@ -192,9 +183,10 @@ def main(
                     ctx_retrieval_ner_train_set,
                     ctx_retrieval_ner_train_set,
                     _run,
-                    ner_epochs_nb,
+                    2,
                     batch_size,
-                    ctx_retrieval_lr,
+                    5e-6,
+                    quiet=True,
                 )
 
                 # generate a context retrieval dataset using the other
@@ -205,26 +197,15 @@ def main(
                     batch_size,
                     retrieval_heuristic,
                     retrieval_heuristic_gen_kwargs,
-                    examples_usefulness_threshold=ctx_retrieval_usefulness_threshold,
-                    skip_correct=ctx_retrieval_skip_correct,
+                    quiet=True,
                     _run=_run,
                 )
-                if ctx_retrieval_balance:
-                    assert not ctx_retrieval_balance_bins_nb is None
-                    ctx_retrieval_dataset = (
-                        NeuralContextRetriever.balance_context_dataset(
-                            ctx_retrieval_dataset, ctx_retrieval_balance_bins_nb
-                        )
-                    )
-                    _run.log_scalar(
-                        "context_dataset_generation.balanced_examples_nb",
-                        len(ctx_retrieval_dataset),
-                    )
-                    sacred_log_series(
-                        _run,
-                        "context_dataset_generation.balanced_usefulness",
-                        [ex.usefulness for ex in ctx_retrieval_dataset.examples],  # type: ignore
-                    )
+
+                # downsample the majority class (0) of the dataset
+                ctx_retrieval_dataset = ctx_retrieval_dataset.downsampled(
+                    ctx_retrieval_downsampling_ratio
+                )
+
                 sacred_archive_jsonifiable_as_file(
                     _run,
                     ctx_retrieval_dataset.to_jsonifiable(),
@@ -235,15 +216,31 @@ def main(
                 del ner_model
                 gc.collect()
 
-                # train a context retriever using the previously generated
-                # context retrieval dataset
+                neg_examples_nb = len(
+                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == -1]
+                )
+                null_examples_nb = len(
+                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == 0]
+                )
+                pos_examples_nb = len(
+                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == 1]
+                )
+                weights = torch.tensor(
+                    [
+                        null_examples_nb / neg_examples_nb,
+                        1.0,
+                        null_examples_nb / pos_examples_nb,
+                    ]
+                )
                 ctx_retriever_model = NeuralContextRetriever.train_context_selector(
                     ctx_retrieval_dataset,
                     ctx_retrieval_epochs_nb,
                     batch_size,
                     ctx_retrieval_lr,
-                    weights_bins_nb=ctx_retrieval_weights_bins_nb,
+                    weights=weights,
+                    quiet=True,
                     _run=_run,
+                    dropout=ctx_retrieval_dropout,
                 )
                 if save_models:
                     sacred_archive_huggingface_model(
@@ -276,6 +273,7 @@ def main(
                     epochs_nb=ner_epochs_nb,
                     batch_size=batch_size,
                     learning_rate=ner_lr,
+                    quiet=True,
                 )
                 if save_models:
                     sacred_archive_huggingface_model(_run, ner_model, "ner_model")  # type: ignore
@@ -286,8 +284,7 @@ def main(
                 retrieval_heuristic_inference_kwargs,
                 batch_size,
                 1,
-                use_cache=True,
-                ranking_method=ctx_retrieval_ranking_method,
+                use_neg_class=ctx_retrieval_use_neg_class,
             )
 
             for sents_nb_i, sents_nb in enumerate(sents_nb_list):
@@ -297,7 +294,7 @@ def main(
                 neural_context_retriever.sents_nb = sents_nb
                 ctx_test_set = neural_context_retriever(test_set)
 
-                test_preds = predict(ner_model, ctx_test_set).tags
+                test_preds = predict(ner_model, ctx_test_set, quiet=True).tags
                 precision, recall, f1 = score_ner(test_set.sents(), test_preds)
                 _run.log_scalar(
                     f"run{run_i}.fold{fold_i}.test_precision", precision, step=sents_nb

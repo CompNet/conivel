@@ -1,19 +1,15 @@
 import os
-from typing import List, Optional, Tuple
+from typing import List, Literal, Optional, Tuple
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
+import torch
 import numpy as np
-from sklearn.metrics import (
-    precision_recall_fscore_support,
-    r2_score,
-    mean_absolute_error,
-)
-from conivel.datas.dataset import NERDataset
+from sklearn.metrics import precision_recall_fscore_support, precision_recall_curve
+from conivel.datas.ontonotes import OntonotesDataset
 from conivel.datas.dekker import DekkerDataset
-from conivel.datas.the_hunger_games import TheHungerGamesDataset
 from conivel.datas.context import (
     NeuralContextRetriever,
 )
@@ -22,9 +18,9 @@ from conivel.utils import (
     RunLogScope,
     sacred_archive_huggingface_model,
     sacred_archive_jsonifiable_as_file,
-    sacred_log_series,
     gpu_memory_usage,
     pretrained_bert_for_token_classification,
+    sacred_log_series,
 )
 
 
@@ -63,7 +59,7 @@ def config():
 
     # -- retrieval heuristic
     # pre-retrieval heuristic name
-    # only officially supports 'random', 'sameword' and 'bm25' for
+    # only officially supports 'random', 'samenoun' and 'bm25' for
     # now
     retrieval_heuristic: str = "random"
     # parameters for the retrieval heuristic used when generating a
@@ -75,39 +71,22 @@ def config():
     ctx_retrieval_epochs_nb: int = 3
     # learning rate for context retrieval training
     ctx_retrieval_lr: float = 2e-5
-    # usefulness threshold for context retrieval examples. Passed to
-    # :func:`NeuralContextSelector.generate_context_dataset`
-    ctx_retrieval_usefulness_threshold: float = 0.1
-    # wether to skip examples generated from a sentence if NER
-    # predictions for that sentence is correct. Passed to
-    # :func:`NeuralContextSelector.generate_context_dataset`
-    ctx_retrieval_skip_correct: bool = False
-    # wether to use The Hunger Games dataset for context retrieval
-    # dataset generation
-    ctx_retrieval_dataset_generation_use_the_hunger_games: bool = False
-    # number of weights bins to use to adapt the MSELoss when
-    # training the neural context retriever. If ``None``, do not
-    # weight the MSELoss
-    ctx_retrieval_weights_bins_nb: Optional[int] = None
+    # dropout for context retriever
+    ctx_retrieval_dropout: float = 0.1
     # percentage of train set that will be used to train the NER model
     # used to generate the context retrieval model. The percentage
     # allocated to generate context retrieval examples will be 1 -
     # that ratio.
     ctx_retrieval_train_gen_ratio: float = 0.5
-    # wether to use
-    # :func:`NeuralContextSelector.balance_context_dataset` to balance
-    # the context retrieval dataset after generation. if ``True``,
-    # ``ctx_retrieval_skip_correct`` should be ``False``.
-    ctx_retrieval_balance: bool = False
-    # number of bins when using
-    # :func:`NeuralContextSelector.balance_context_dataset`. Should be
-    # ``None`` if ``ctx_retrieval_balance`` is ``False``, and set if
-    # the latter is ``True``.
-    ctx_retrieval_balance_bins_nb: Optional[int] = None
+    # downsampling ratio for the examples that have no impact on
+    # predictions
+    ctx_retrieval_downsampling_ratio: float = 0.05
 
-    # -- NER training parameters
-    # number of epochs for NER training
-    ner_epochs_nb: int = 3
+    # --
+    # one of : 'dekker', 'ontonotes'
+    dataset_name: str = "dekker"
+    # if dataset_name == 'ontonotes
+    dataset_path: Optional[str] = None
 
 
 @ex.automain
@@ -124,20 +103,26 @@ def main(
     retrieval_heuristic_gen_kwargs: dict,
     ctx_retrieval_epochs_nb: int,
     ctx_retrieval_lr: float,
-    ctx_retrieval_usefulness_threshold: float,
-    ctx_retrieval_skip_correct: bool,
-    ctx_retrieval_dataset_generation_use_the_hunger_games: bool,
-    ctx_retrieval_weights_bins_nb: Optional[int],
+    ctx_retrieval_dropout: float,
     ctx_retrieval_train_gen_ratio: float,
-    ctx_retrieval_balance: bool,
-    ctx_retrieval_balance_bins_nb: Optional[int],
-    ner_epochs_nb: int,
+    ctx_retrieval_downsampling_ratio: float,
+    dataset_name: Literal["dekker", "ontonotes"],
+    dataset_path: Optional[str],
 ):
-    assert retrieval_heuristic in ["random", "bm25", "sameword"]
     print_config(_run)
 
-    dekker_dataset = DekkerDataset(book_group=book_group)
-    kfolds = dekker_dataset.kfolds(
+    if dataset_name == "dekker":
+        dataset = DekkerDataset(book_group=book_group)
+    elif dataset_name == "ontonotes":
+        assert not dataset_path is None
+        dataset = OntonotesDataset(dataset_path)
+        # keep only documents with a number of tokens >= 512
+        dataset.documents = [
+            doc for doc in dataset.documents if sum([len(sent) for sent in doc]) >= 512
+        ]
+    else:
+        raise ValueError(f"unknown dataset name {dataset_name}")
+    kfolds = dataset.kfolds(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
     folds_nb = max(len(folds_list) if not folds_list is None else 0, len(kfolds))
@@ -145,17 +130,19 @@ def main(
     # metrics matrices
     # each matrix is of shape (runs_nb, folds_nb, sents_nb)
     # these are used to record mean metrics across folds, runs...
-    r2_matrix = np.zeros((runs_nb, folds_nb))
-    error_matrix = np.zeros((runs_nb, folds_nb))
     precision_matrix = np.zeros((runs_nb, folds_nb))
     recall_matrix = np.zeros((runs_nb, folds_nb))
     f1_matrix = np.zeros((runs_nb, folds_nb))
+    pos_precision_matrix = np.zeros((runs_nb, folds_nb))
+    pos_recall_matrix = np.zeros((runs_nb, folds_nb))
+    pos_f1_matrix = np.zeros((runs_nb, folds_nb))
     metrics_matrices: List[Tuple[str, np.ndarray]] = [
-        ("r2_score", r2_matrix),
-        ("mean_absolute_error", error_matrix),
         ("precision", precision_matrix),
         ("recall", recall_matrix),
         ("f1", f1_matrix),
+        ("pos_precision", pos_precision_matrix),
+        ("pos_recall", pos_recall_matrix),
+        ("pos_f1", pos_f1_matrix),
     ]
 
     for run_i in range(runs_nb):
@@ -176,12 +163,6 @@ def main(
                 ctx_retrieval_train_gen_ratio
             )
 
-            if ctx_retrieval_dataset_generation_use_the_hunger_games:
-                the_hunger_games_set = TheHungerGamesDataset()
-                ctx_retrieval_gen_set = NERDataset.concatenated(
-                    [ctx_retrieval_gen_set, the_hunger_games_set]
-                )
-
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ctx_retrieval_training"):
 
                 # train a NER model on half the training dataset
@@ -190,55 +171,83 @@ def main(
                     ctx_retrieval_ner_train_set,
                     ctx_retrieval_ner_train_set,
                     _run=_run,
-                    epochs_nb=1,  # only 1 epoch training to allow the model to make mistakes
+                    epochs_nb=2,
                     batch_size=batch_size,
                     learning_rate=ctx_retrieval_lr,
                 )
 
-                # generate a context retrieval dataset using the other
-                # half of the training set
+                # * context dataset generation
+                #   generate a context retrieval dataset using the other
+                #   half of the training set
                 ctx_retrieval_dataset = NeuralContextRetriever.generate_context_dataset(
                     ner_model,
                     ctx_retrieval_gen_set,
                     batch_size,
                     retrieval_heuristic,
                     retrieval_heuristic_gen_kwargs,
-                    examples_usefulness_threshold=ctx_retrieval_usefulness_threshold,
-                    skip_correct=ctx_retrieval_skip_correct,
                     _run=_run,
                 )
-                if ctx_retrieval_balance:
-                    assert not ctx_retrieval_balance_bins_nb is None
-                    ctx_retrieval_dataset = (
-                        NeuralContextRetriever.balance_context_dataset(
-                            ctx_retrieval_dataset, ctx_retrieval_balance_bins_nb
-                        )
-                    )
+                # downsample the majority class (0) of the dataset
+                ctx_retrieval_dataset = ctx_retrieval_dataset.downsampled(
+                    ctx_retrieval_downsampling_ratio
+                )
+                for ex in ctx_retrieval_dataset.examples:
                     _run.log_scalar(
-                        "context_dataset_generation.balanced_examples_nb",
-                        len(ctx_retrieval_dataset),
+                        "context_dataset_generation.balanced_usefulness", ex.usefulness
                     )
-                    sacred_log_series(
-                        _run,
-                        "context_dataset_generation.balanced_usefulness",
-                        [ex.usefulness for ex in ctx_retrieval_dataset.examples],  # type: ignore
-                    )
+                # save dataset
                 sacred_archive_jsonifiable_as_file(
                     _run,
                     ctx_retrieval_dataset.to_jsonifiable(),
                     "ctx_retrieval_dataset",
                 )
 
-                # train a context retriever using the previously generated
-                # context retrieval dataset
+                # * test dataset
+                test_ctx_retrieval_dataset = (
+                    NeuralContextRetriever.generate_context_dataset(
+                        ner_model,
+                        test_set,
+                        batch_size,
+                        retrieval_heuristic,
+                        {"sents_nb": 4},
+                        _run=_run,
+                    )
+                )
+                sacred_archive_jsonifiable_as_file(
+                    _run,
+                    test_ctx_retrieval_dataset.to_jsonifiable(),
+                    "test_ctx_retrieval_dataset",
+                )
+
+                # * context retriever training
+                neg_examples_nb = len(
+                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == -1]
+                )
+                null_examples_nb = len(
+                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == 0]
+                )
+                pos_examples_nb = len(
+                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == 1]
+                )
+                weights = torch.tensor(
+                    [
+                        null_examples_nb / neg_examples_nb,
+                        1.0,
+                        null_examples_nb / pos_examples_nb,
+                    ]
+                )
                 ctx_retriever_model = NeuralContextRetriever.train_context_selector(
                     ctx_retrieval_dataset,
                     ctx_retrieval_epochs_nb,
                     batch_size,
                     ctx_retrieval_lr,
-                    weights_bins_nb=ctx_retrieval_weights_bins_nb,
                     _run=_run,
+                    weights=weights,
                     log_full_loss=True,
+                    valid_dataset=test_ctx_retrieval_dataset.downsampled(
+                        ctx_retrieval_downsampling_ratio
+                    ),
+                    dropout=ctx_retrieval_dropout,
                 )
                 ctx_retriever = NeuralContextRetriever(
                     ctx_retriever_model,
@@ -252,46 +261,59 @@ def main(
                         _run, ctx_retriever_model, "ctx_retriever_model"  # type: ignore
                     )
 
-                test_ctx_retrieval_dataset = (
-                    NeuralContextRetriever.generate_context_dataset(
-                        ner_model,
-                        test_set,
-                        batch_size,
-                        retrieval_heuristic,
-                        {"sents_nb": 1},
-                        _run=_run,
-                        skip_correct=True,
-                    )
+                # (len(test_ctx_retrieval), 3)
+                raw_preds = ctx_retriever.predict(test_ctx_retrieval_dataset)
+
+                # -1 to shift from {0, 1, 2} to {-1, 0, 1}
+                preds = torch.argmax(raw_preds, dim=1).cpu() - 1
+
+                labels = test_ctx_retrieval_dataset.labels()
+                assert not labels is None
+
+                # * pr curves
+                #
+                #   sklearn only supports binary prcurve, se we ignore
+                #   the indexs where labels == -1 (or 1 for the
+                #   negative pr curve)
+                #
+                # ** positive pr curve
+                p, r, t = precision_recall_curve(
+                    [1 if l == 1 else 0 for l in labels], raw_preds[:, 2].cpu()
                 )
-                preds = ctx_retriever.predict(test_ctx_retrieval_dataset)
-                preds = preds.cpu()
+                sacred_log_series(_run, "prcurve_pos_precision", p)
+                sacred_log_series(_run, "prcurve_pos_recall", r)
+                sacred_log_series(_run, "prcurve_pos_thresholds", t)
+                # ** negative pr curve
+                p, r, t = precision_recall_curve(
+                    [1 if l == -1 else 0 for l in labels], raw_preds[:, 0].cpu()
+                )
+                sacred_log_series(_run, "prcurve_neg_precision", p)
+                sacred_log_series(_run, "prcurve_neg_recall", r)
+                sacred_log_series(_run, "prcurve_neg_thresholds", t)
 
-            labels = test_ctx_retrieval_dataset.labels()
-            assert not labels is None
+                # * micro F1
+                precision, recall, f1, _ = precision_recall_fscore_support(
+                    labels, preds, average="micro"
+                )
+                precision_matrix[run_i][fold_i] = precision
+                recall_matrix[run_i][fold_i] = recall
+                f1_matrix[run_i][fold_i] = f1
+                _run.log_scalar(f"precision", precision)
+                _run.log_scalar(f"recall", recall)
+                _run.log_scalar(f"f1", f1)
 
-            # regression metrics
-            r2 = r2_score(labels, preds)
-            error = mean_absolute_error(labels, preds)
-            r2_matrix[run_i][fold_i] = r2
-            error_matrix[run_i][fold_i] = error
-            _run.log_scalar(f"run{run_i}.fold{fold_i}.r2_score", r2)
-            _run.log_scalar(f"run{run_i}.fold{fold_i}.mean_absolute_error", error)
+                # * precision, recall and f1 of the positive class
+                precisions, recalls, f1s, _ = precision_recall_fscore_support(
+                    labels, preds
+                )
+                pos_precision_matrix[run_i][fold_i] = precisions[2]
+                pos_recall_matrix[run_i][fold_i] = recalls[2]
+                pos_f1_matrix[run_i][fold_i] = f1s[2]
+                _run.log_scalar(f"pos_precision", precisions[2])
+                _run.log_scalar(f"pos_recall", recalls[2])
+                _run.log_scalar(f"pos_f1", f1s[2])
 
-            # turn the problem into classification to get
-            # more familiar classification metrics
-            class_labels = [1 if label > 0.5 else 0 for label in labels]
-            class_preds = [1 if pred > 0.5 else 0 for pred in preds]
-            precision, recall, f1, _ = precision_recall_fscore_support(
-                class_labels, class_preds, average="binary"
-            )
-            precision_matrix[run_i][fold_i] = precision
-            recall_matrix[run_i][fold_i] = recall
-            f1_matrix[run_i][fold_i] = f1
-            _run.log_scalar(f"run{run_i}.fold{fold_i}.precision", precision)
-            _run.log_scalar(f"run{run_i}.fold{fold_i}.recall", recall)
-            _run.log_scalar(f"run{run_i}.fold{fold_i}.f1", f1)
-
-        # mean metrics for the current run
+        # * mean metrics for the current run
         for metrics_name, matrix in metrics_matrices:
             for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
                 _run.log_scalar(
@@ -299,7 +321,7 @@ def main(
                     op(matrix[run_i], axis=0),
                 )
 
-    # folds mean metrics
+    # * folds mean metrics
     for fold_i in range(folds_nb):
         for metrics_name, matrix in metrics_matrices:
             for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
@@ -308,7 +330,7 @@ def main(
                     op(matrix[:, fold_i], axis=0),
                 )
 
-    # global mean metrics
+    # * global mean metrics
     for name, matrix in metrics_matrices:
         for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
             _run.log_scalar(
