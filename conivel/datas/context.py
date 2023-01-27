@@ -364,7 +364,6 @@ class NeuralContextRetriever(ContextRetriever):
         heuristic_context_selector_kwargs: Dict[str, Any],
         batch_size: int,
         sents_nb: int,
-        use_cache: bool = False,
     ) -> None:
         """
         :param pretrained_model_name: pretrained model name, used to
@@ -380,10 +379,6 @@ class NeuralContextRetriever(ContextRetriever):
         :param batch_size: batch size used at inference
 
         :param sents_nb: max number of sents to retrieve
-
-        :param use_cache: if ``True``,
-            :func:`NeuralContextRetriever.predict` will use an
-            internal cache to speed up computations.
         """
         if isinstance(pretrained_model, str):
             self.ctx_classifier = BertForSequenceClassification.from_pretrained(
@@ -402,20 +397,7 @@ class NeuralContextRetriever(ContextRetriever):
 
         self.batch_size = batch_size
 
-        self._predict_cache = {}
-        self.use_cache = use_cache
-
         super().__init__(sents_nb)
-
-    def clear_predict_cache_(self):
-        """Clear the prediction cache"""
-        self._predict_cache = {}
-
-    def _predict_cache_get(self, x: ContextRetrievalExample) -> Optional[float]:
-        return self._predict_cache.get(x)
-
-    def _predict_cache_register_(self, x: ContextRetrievalExample, score: float):
-        self._predict_cache[x] = score
 
     def set_heuristic_sents_nb_(self, sents_nb: int):
         self.heuristic_context_selector.sents_nb = sents_nb
