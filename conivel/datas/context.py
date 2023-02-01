@@ -258,13 +258,16 @@ class SameEntityContextRetriever(ContextRetriever):
     def retrieve(
         self, sent_idx: int, entity: NEREntity, document: List[NERSentence]
     ) -> List[ContextRetrievalMatch]:
+        if isinstance((sents_nb := self.sents_nb), list):
+            sents_nb = random.choice(sents_nb)
+
         other_sents = other_sents_with_entity(sent_idx, entity, document)
         return [
             ContextRetrievalMatch(
                 o_sent, o_sent_i, "left" if o_sent_i < sent_idx else "right", None
             )
             for o_sent_i, o_sent in other_sents
-        ]
+        ][:sents_nb]
 
 
 @dataclass(frozen=True)
