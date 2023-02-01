@@ -16,9 +16,8 @@ from conivel.datas.dataset import NERDataset
 from conivel.utils import (
     NEREntity,
     entities_from_bio_tags,
-    flattened,
     get_tokenizer,
-    replace_sent_entity,
+    sent_with_ctx_from_matchs,
 )
 from conivel.predict import predict
 
@@ -39,28 +38,10 @@ class ContextRetriever:
     def __init__(self, sents_nb: Union[int, List[int]], **kwargs) -> None:
         self.sents_nb = sents_nb
 
-    def __call__(self, dataset: NERDataset, quiet: bool = True) -> NERDataset:
-        """retrieve context for each sentence of a :class:`NERDataset`"""
-        new_docs = []
-        for document in tqdm(dataset.documents, disable=quiet):
-            new_doc = []
-            for sent_i, sent in enumerate(document):
-                retrieval_matchs = self.retrieve(sent_i, document)
-                new_doc.append(
-                    NERSentence(
-                        sent.tokens,
-                        sent.tags,
-                        [m.sentence for m in retrieval_matchs if m.side == "left"],
-                        [m.sentence for m in retrieval_matchs if m.side == "right"],
-                    )
-                )
-            new_docs.append(new_doc)
-        return NERDataset(new_docs, tags=dataset.tags, tokenizer=dataset.tokenizer)
-
     def retrieve(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, entity: NEREntity, document: List[NERSentence]
     ) -> List[ContextRetrievalMatch]:
-        """Select context for a sentence in a document
+        """Select context for an entity in a sentence in a document
 
         :param sent_idx: the index of the sentence in the document
         :param document: document in where to find the context
@@ -68,25 +49,11 @@ class ContextRetriever:
         raise NotImplemented
 
 
-def sent_with_ctx_from_matchs(
-    sent: NERSentence, ctx_matchs: List[ContextRetrievalMatch]
-) -> List[NERSentence]:
-    return [
-        NERSentence(
-            sent.tokens,
-            sent.tags,
-            left_context=[ctx_match.sentence] if ctx_match.side == "left" else [],
-            right_context=[ctx_match.sentence] if ctx_match.side == "right" else [],
-        )
-        for ctx_match in ctx_matchs
-    ]
-
-
 class RandomContextRetriever(ContextRetriever):
     """A context selector choosing context at random in a document."""
 
     def retrieve(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, entity: NEREntity, document: List[NERSentence]
     ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
@@ -122,7 +89,7 @@ class SameNounRetriever(ContextRetriever):
         super().__init__(sents_nb)
 
     def retrieve(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, entity: NEREntity, document: List[NERSentence]
     ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
@@ -165,7 +132,7 @@ class NeighborsContextRetriever(ContextRetriever):
         super().__init__(sents_nb)
 
     def retrieve(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, entity: NEREntity, document: List[NERSentence]
     ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
@@ -196,7 +163,7 @@ class LeftContextRetriever(ContextRetriever):
         super().__init__(sents_nb)
 
     def retrieve(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, entity: NEREntity, document: List[NERSentence]
     ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
@@ -214,7 +181,7 @@ class RightContextRetriever(ContextRetriever):
         super().__init__(sents_nb)
 
     def retrieve(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, entity: NEREntity, document: List[NERSentence]
     ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
@@ -244,7 +211,7 @@ class BM25ContextRetriever(ContextRetriever):
         return BM25Okapi([sent.tokens for sent in document])
 
     def retrieve(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, entity: NEREntity, document: List[NERSentence]
     ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
@@ -282,6 +249,22 @@ def other_sents_with_entity(
         if entity_str in sent_str:
             sents.append((i, sent))
     return sents
+
+
+class SameEntityContextRetriever(ContextRetriever):
+    def __init__(self, sents_nb: Union[int, List[int]], **kwargs) -> None:
+        super().__init__(sents_nb)
+
+    def retrieve(
+        self, sent_idx: int, entity: NEREntity, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
+        other_sents = other_sents_with_entity(sent_idx, entity, document)
+        return [
+            ContextRetrievalMatch(
+                o_sent, o_sent_i, "left" if o_sent_i < sent_idx else "right", None
+            )
+            for o_sent_i, o_sent in other_sents
+        ]
 
 
 @dataclass(frozen=True)
@@ -814,5 +797,6 @@ context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
     "right": RightContextRetriever,
     "bm25": BM25ContextRetriever,
     "samenoun": SameNounRetriever,
+    "sameentity": SameEntityContextRetriever,
     "random": RandomContextRetriever,
 }

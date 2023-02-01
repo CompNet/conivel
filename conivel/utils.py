@@ -1,8 +1,18 @@
 from __future__ import annotations
 from numbers import Number
-import pickle, random
-from typing import Any, Dict, Iterable, Tuple, TypeVar, List, Optional, Set
-import copy, time, os, uuid, shutil, json
+import pickle
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    Tuple,
+    TypeVar,
+    List,
+    Optional,
+    Set,
+)
+import time, os, uuid, shutil, json
 from types import MethodType
 from dataclasses import dataclass
 from more_itertools import windowed
@@ -12,6 +22,10 @@ from transformers import BertTokenizerFast  # type: ignore
 from sacred.run import Run
 from transformers import BertForTokenClassification  # type: ignore
 from transformers import BertTokenizerFast  # type: ignore
+from conivel.datas import NERSentence
+
+if TYPE_CHECKING:
+    from conivel.datas.context import ContextRetrievalMatch
 
 
 @dataclass(frozen=True)
@@ -99,34 +113,31 @@ def search_ner_pattern(
     return idxs
 
 
-def majority_voting(tokens: List[str], tags: List[str]) -> List[str]:
-    """
-    TODO: fix
-    """
+def ner_class(tag: str) -> str:
+    if tag == "O":
+        return "O"
+    return tag[2:]
 
-    new_tags = copy.copy(tags)
 
-    entities = entities_from_bio_tags(tokens, tags)
-    entities_tokens = [e.tokens for e in entities]  # type: ignore
+def ner_tags(ner_class: str, length: int) -> List[str]:
+    assert length >= 1
+    if ner_class == "O":
+        return ["O"] * length
+    return [f"B-{ner_class}"] + [f"I-{ner_class}"] * (length - 1)
 
-    for entity_tokens in entities_tokens:
 
-        per_matchs = search_ner_pattern(
-            [(entity_tokens[0], "B-PER")] + [(t, "I-PER") for t in entity_tokens[1:]],  # type: ignore
-            tokens,
-            tags,
+def sent_with_ctx_from_matchs(
+    sent: NERSentence, ctx_matchs: List[ContextRetrievalMatch]
+) -> List[NERSentence]:
+    return [
+        NERSentence(
+            sent.tokens,
+            sent.tags,
+            left_context=[ctx_match.sentence] if ctx_match.side == "left" else [],
+            right_context=[ctx_match.sentence] if ctx_match.side == "right" else [],
         )
-        o_matchs = search_ner_pattern([(t, "O") for t in entity_tokens], tokens, tags)
-
-        for match in per_matchs + o_matchs:
-            if len(per_matchs) > len(o_matchs):
-                new_tags[match[0] : match[1] + 1] = ["B-PER"] + ["I-PER"] * (
-                    len(entity_tokens) - 1
-                )
-            else:
-                new_tags[match[0] : match[1] + 1] = ["O"] * len(entity_tokens)
-
-    return new_tags
+        for ctx_match in ctx_matchs
+    ]
 
 
 def entities_from_bio_tags(

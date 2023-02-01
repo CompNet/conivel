@@ -9,7 +9,7 @@ from sacred.utils import apply_backspaces_and_linefeeds
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.ontonotes import OntonotesDataset
 from conivel.datas.context import context_retriever_name_to_class
-from conivel.predict import predict
+from conivel.predict import mark_and_retrieve_predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
 from conivel.utils import (
@@ -122,18 +122,17 @@ def main(
             ctx_retriever = context_retriever_name_to_class[context_retriever](
                 sents_nb=sents_nb_list, **context_retriever_kwargs
             )
-            ctx_train_set = ctx_retriever(train_set)
 
             # train
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}"):
 
                 model = pretrained_bert_for_token_classification(
-                    "bert-base-cased", ctx_train_set.tag_to_id
+                    "bert-base-cased", train_set.tag_to_id
                 )
                 model = train_ner_model(
                     model,
-                    ctx_train_set,
-                    ctx_train_set,
+                    train_set,
+                    train_set,
                     _run=_run,
                     epochs_nb=ner_epochs_nb,
                     batch_size=batch_size,
@@ -150,11 +149,12 @@ def main(
                 ctx_retriever = context_retriever_name_to_class[context_retriever](
                     sents_nb=sents_nb, **context_retriever_kwargs
                 )
-                ctx_test_set = ctx_retriever(test_set)
 
                 # test
-                test_preds = predict(model, ctx_test_set, batch_size=batch_size).tags
-                precision, recall, f1 = score_ner(ctx_test_set.sents(), test_preds)
+                test_preds = mark_and_retrieve_predict(
+                    model, test_set, ctx_retriever, batch_size=batch_size
+                )
+                precision, recall, f1 = score_ner(test_set.sents(), test_preds)
                 _run.log_scalar(
                     f"run{run_i}.fold{fold_i}.test_precision",
                     precision,

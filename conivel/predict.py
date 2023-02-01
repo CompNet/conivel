@@ -1,14 +1,25 @@
-from typing import Dict, List, Literal, Optional, Set
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Set, Union
+from collections import Counter
 from dataclasses import dataclass, field
 
 import torch
 from transformers import BertForTokenClassification  # type: ignore
 from transformers.tokenization_utils_base import BatchEncoding
+from tqdm import tqdm
 
 from conivel.datas import batch_to_device
-
+from conivel.datas.datas import NERSentence
 from conivel.datas.dataset import NERDataset
 from conivel.datas.dataset_utils import dataset_batchs
+from conivel.utils import (
+    entities_from_bio_tags,
+    ner_class,
+    ner_tags,
+    sent_with_ctx_from_matchs,
+)
+
+if TYPE_CHECKING:
+    from conivel.datas.context import ContextRetriever
 
 
 @dataclass
@@ -284,7 +295,7 @@ def _get_batch_attentions(
 
 def predict(
     model: BertForTokenClassification,
-    dataset: NERDataset,
+    dataset: Union[NERDataset, List[NERSentence]],
     batch_size: int = 4,
     quiet: bool = False,
     device_str: Literal["cuda", "cpu", "auto"] = "auto",
@@ -322,6 +333,9 @@ def predict(
     if device_str == "auto":
         device_str = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device_str)
+
+    if isinstance(dataset, list):
+        dataset = NERDataset([dataset], set(model.config.label2id.keys()))
 
     if additional_outputs is None:
         additional_outputs = set()
@@ -375,3 +389,58 @@ def predict(
                 prediction.attentions += attentions  # type: ignore
 
     return prediction
+
+
+def mark_and_retrieve_predict(
+    model: BertForTokenClassification,
+    dataset: Union[NERDataset, List[NERSentence]],
+    retriever: "ContextRetriever",
+    batch_size: int = 4,
+    quiet: bool = False,
+    device_str: Literal["cuda", "cpu", "auto"] = "auto",
+) -> List[List[str]]:
+    """"""
+    if isinstance(dataset, list):
+        dataset = NERDataset([dataset], set(model.config.label2id.keys()))
+
+    doc_preds = []
+
+    for document in tqdm(dataset.documents, disable=quiet):
+
+        # 1. make predictions on individual sentences
+        preds = predict(model, document, batch_size, True, device_str)
+
+        for sent_i, (sent, pred) in enumerate(zip(document, preds.tags)):
+
+            # 2. for each entity of each sentence, search context to disambiguate
+            entities = entities_from_bio_tags(sent.tokens, pred)
+
+            for entity in entities:
+
+                # 2.1 retrieve disambiguation context
+                cr_matchs = retriever.retrieve(sent_i, entity, document)
+                sent_with_ctx = sent_with_ctx_from_matchs(sent, cr_matchs)
+                if len(sent_with_ctx) == 0:
+                    continue
+
+                # 2.2 make predictions with that context
+                preds_with_ctx = predict(
+                    model, sent_with_ctx, batch_size, True, device_str
+                )
+
+                # 2.3 majority voting
+                ner_classes = []
+                for pred in preds_with_ctx.tags:
+                    for tag in pred[entity.start_idx : entity.end_idx + 1]:
+                        ner_classes.append(ner_class(tag))
+                ner_classes = Counter(ner_classes)
+                best_class: str = max(ner_classes, key=ner_classes.get)  # type: ignore
+                preds.tags[sent_i] = (
+                    preds.tags[sent_i][: entity.start_idx]
+                    + ner_tags(best_class, entity.end_idx + 1 - entity.start_idx)
+                    + preds.tags[sent_i][entity.end_idx + 1 :]
+                )
+
+        doc_preds += preds.tags
+
+    return doc_preds
