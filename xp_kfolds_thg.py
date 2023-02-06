@@ -73,7 +73,7 @@ def main(
     print_config(_run)
 
     dekker = DekkerDataset()
-    the_hunger_games = TheHungerGamesDataset()
+    the_hunger_games = TheHungerGamesDataset(cut_into_chapters=False)
 
     precision_matrix = np.zeros((runs_nb, len(sents_nb_list)))
     recall_matrix = np.zeros((runs_nb, len(sents_nb_list)))
