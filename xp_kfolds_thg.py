@@ -121,7 +121,9 @@ def main(
 
             # test
             test_preds = predict(model, ctx_test_set, batch_size=batch_size).tags
-            precision, recall, f1 = score_ner(ctx_test_set.sents(), test_preds)
+            precision, recall, f1 = score_ner(
+                ctx_test_set.sents(), test_preds, ignored_classes={"ORG", "LOC"}
+            )
             _run.log_scalar(
                 f"run{run_i}.test_precision",
                 precision,
