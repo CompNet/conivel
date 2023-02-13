@@ -134,7 +134,9 @@ def main(
             ctx_test_set = neural_context_retriever(the_hunger_games)
 
             test_preds = predict(ner_model, ctx_test_set).tags
-            precision, recall, f1 = score_ner(the_hunger_games.sents(), test_preds)
+            precision, recall, f1 = score_ner(
+                the_hunger_games.sents(), test_preds, ignored_classes={"ORG", "LOC"}
+            )
             _run.log_scalar(f"run{run_i}.test_precision", precision, step=sents_nb)
             precision_matrix[run_i][sents_nb_i] = precision
             _run.log_scalar(f"run{run_i}.test_recall", recall, step=sents_nb)
