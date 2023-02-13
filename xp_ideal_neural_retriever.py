@@ -1,5 +1,5 @@
-import os, gc, copy
-from typing import List, Literal, Optional
+import os, copy
+from typing import List, Optional
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
