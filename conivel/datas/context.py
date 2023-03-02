@@ -306,13 +306,16 @@ class ContextRetrievalExample:
     def gen_examples(
         sent_i: int,
         entity: NEREntity,
+        entity_pred: List[str],
         document: List[NERSentence],
         ner_model,
         batch_size: int,
         tags: Set[str],
     ) -> List[ContextRetrievalExample]:
+        # TODO: dev
         # retrieve sents with target entity
-        other_sents = other_sents_with_entity(sent_i, entity, document)
+        # other_sents = other_sents_with_entity(sent_i, entity, document)
+        other_sents = [(i, sent) for i, sent in enumerate(document) if not i == sent_i]
 
         # prepare NERDataset where retrieved sents are used as context
         sent = document[sent_i]
@@ -332,19 +335,25 @@ class ContextRetrievalExample:
             ner_model, dataset, batch_size=batch_size, quiet=True
         )
 
-        # categorize predictions into useful and useless
+        # categorize predictions into problematic, useless and useful
         cr_examples = []
         for (other_sent_i, other_sent), pred_with_other_sent in zip(
             other_sents, preds_with_other_sents.tags
         ):
-            # check if the entity tag in the prediction with other_sent as
-            # context match ground truth
-            entity_pred_is_ok = (
-                sent.tags[entity.start_idx : entity.end_idx + 1]
-                == pred_with_other_sent[entity.start_idx : entity.end_idx + 1]
-            )
-            usefulness = 1 if entity_pred_is_ok else 0
+            entity_tags = sent.tags[entity.start_idx : entity.end_idx + 1]
+            entity_pred_with_other_sent = pred_with_other_sent[
+                entity.start_idx : entity.end_idx + 1
+            ]
+
+            entity_pred_was_ok = entity_pred == sent.tags
+            entity_pred_is_ok = entity_tags == entity_pred_with_other_sent
+            if entity_pred_was_ok:
+                usefulness = 0 if entity_pred_is_ok else -1
+            else:
+                usefulness = 1 if entity_pred_is_ok else 0
+
             ctx_side = "left" if other_sent_i < sent_i else "right"
+
             cr_examples.append(
                 ContextRetrievalExample(
                     sent.tokens,
@@ -440,13 +449,23 @@ class ContextRetrievalDataset(Dataset):
     ) -> ContextRetrievalDataset:
         examples = []
         for doc in tqdm(ner_dataset.documents):
-            preds = predict(ner_model, NERDataset([doc], ner_dataset.tags))
+            preds = predict(
+                ner_model,
+                NERDataset([doc], ner_dataset.tags, ner_dataset.tokenizer),
+                quiet=True,
+            )
+            tqdm.write("generating...")
             for sent_i, (sent, sent_preds) in enumerate(zip(doc, preds.tags)):
-                if sent.tags == sent_preds:
-                    continue
                 for entity in entities_from_bio_tags(sent.tokens, sent.tags):
+                    entity_pred = sent_preds[entity.start_idx : entity.end_idx]
                     examples += ContextRetrievalExample.gen_examples(
-                        sent_i, entity, doc, ner_model, batch_size, ner_dataset.tags
+                        sent_i,
+                        entity,
+                        entity_pred,
+                        doc,
+                        ner_model,
+                        batch_size,
+                        ner_dataset.tags,
                     )
         return ContextRetrievalDataset(examples)
 
@@ -734,7 +753,7 @@ class NeuralContextRetriever(ContextRetriever):
         return ctx_classifier
 
 
-class IdealNeuralContextRetriever(ContextRetriever):
+class OracleContextRetriever(ContextRetriever):
     """
     A context retriever that always return the ``sents_nb`` most
     helpful contexts retrieved by its ``preliminary_ctx_selector``
@@ -758,8 +777,20 @@ class IdealNeuralContextRetriever(ContextRetriever):
     def set_heuristic_sents_nb_(self, sents_nb: int):
         self.preliminary_ctx_selector.sents_nb = sents_nb
 
+    @staticmethod
+    def _pred_error(sent: NERSentence, pred: List[str]) -> int:
+        """Compute error between a reference sentence and a prediction
+        :param sent: reference sentence
+        :param preds: list of tags of shape ``(sentence_size)``
+        :param tag_to_id: a mapping from a tag to its id in the
+            vocabulary.
+        :return: the number of incorrect tags in ``preds``
+        """
+        assert len(pred) == len(sent.tags)
+        return sum([1 if t != p else 0 for p, t in zip(pred, sent.tags)])
+
     def retrieve(
-        self, sent_idx: int, document: List[NERSentence]
+        self, sent_idx: int, entity: NEREntity, document: List[NERSentence]
     ) -> List[ContextRetrievalMatch]:
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
@@ -769,7 +800,7 @@ class IdealNeuralContextRetriever(ContextRetriever):
             self.ner_model, NERDataset([[sent]], self.tags), quiet=True, batch_size=1
         )
 
-        contexts = self.preliminary_ctx_selector.retrieve(sent_idx, document)
+        contexts = self.preliminary_ctx_selector.retrieve(sent_idx, entity, document)
 
         sent_with_ctx = sent_with_ctx_from_matchs(sent, contexts)
 
@@ -781,8 +812,8 @@ class IdealNeuralContextRetriever(ContextRetriever):
         )
 
         for context, ctx_pred in zip(contexts, ctx_preds.tags):
-            ctx_err = NeuralContextRetriever._pred_error(sent, ctx_pred)
-            err = NeuralContextRetriever._pred_error(sent, preds.tags[0])
+            ctx_err = OracleContextRetriever._pred_error(sent, ctx_pred)
+            err = OracleContextRetriever._pred_error(sent, preds.tags[0])
             if ctx_err > err:
                 context.score = -1
             elif ctx_err < err:
@@ -791,6 +822,32 @@ class IdealNeuralContextRetriever(ContextRetriever):
                 context.score = 0
 
         return sorted(contexts, key=lambda c: -c.score)[:sents_nb]  # type: ignore
+
+
+class AllContextRetriever(ContextRetriever):
+    """A stub context retriever that retrieves _every_ sentence"""
+
+    def __init__(self, sents_nb: Union[int, List[int]]) -> None:
+        """'
+        .. warning::
+
+            ``sents_nb`` is *ignored*
+        """
+        super().__init__(sents_nb)
+
+    def retrieve(
+        self, sent_idx: int, entity: NEREntity, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
+        matchs = []
+        for sent_i, sent in enumerate(document):
+            if sent_i == sent_idx:
+                continue
+            matchs.append(
+                ContextRetrievalMatch(
+                    sent, sent_i, "left" if sent_i < sent_idx else "right", None
+                )
+            )
+        return matchs
 
 
 context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
@@ -802,4 +859,5 @@ context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
     "samenoun": SameNounRetriever,
     "sameentity": SameEntityContextRetriever,
     "random": RandomContextRetriever,
+    "all": AllContextRetriever,
 }

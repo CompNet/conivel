@@ -8,10 +8,10 @@ from sacred.utils import apply_backspaces_and_linefeeds
 import numpy as np
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.context import (
-    IdealNeuralContextRetriever,
+    OracleContextRetriever,
     context_retriever_name_to_class,
 )
-from conivel.predict import predict
+from conivel.predict import mark_and_retrieve_predict, predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
 from conivel.utils import (
@@ -116,28 +116,17 @@ def main(
             if not folds_list is None and not fold_i in folds_list:
                 continue
 
-            # PERFORMANCE HACK: only use the retrieval heuristic at
-            # training time. At training time, the number of sentences
-            # retrieved is random between ``min(sents_nb_list)`` and
-            # ``max(sents_nb_list)`` for each example.
-            train_set_heuristic_kwargs = copy.deepcopy(
-                retrieval_heuristic_inference_kwargs
-            )
-            train_set_heuristic_kwargs["sents_nb"] = sents_nb_list
-            train_set_heuristic = context_retriever_name_to_class[retrieval_heuristic](
-                **train_set_heuristic_kwargs
-            )
-            ctx_train_set = train_set_heuristic(train_set)
-
             # train ner model on train_set
             ner_model = pretrained_bert_for_token_classification(
                 "bert-base-cased", train_set.tag_to_id
             )
+
+            # train
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner"):
                 ner_model = train_ner_model(
                     ner_model,
-                    ctx_train_set,
-                    ctx_train_set,
+                    train_set,
+                    train_set,
                     _run=_run,
                     epochs_nb=ner_epochs_nb,
                     batch_size=batch_size,
@@ -146,7 +135,7 @@ def main(
                 if save_models:
                     sacred_archive_huggingface_model(_run, ner_model, "ner_model")  # type: ignore
 
-            neural_context_retriever = IdealNeuralContextRetriever(
+            oracle_retriever = OracleContextRetriever(
                 1,
                 context_retriever_name_to_class[retrieval_heuristic](
                     **retrieval_heuristic_inference_kwargs
@@ -160,10 +149,11 @@ def main(
 
                 _run.log_scalar("gpu_usage", gpu_memory_usage())
 
-                neural_context_retriever.sents_nb = sents_nb
-                ctx_test_set = neural_context_retriever(test_set)
+                oracle_retriever.sents_nb = sents_nb
 
-                test_preds = predict(ner_model, ctx_test_set).tags
+                test_preds = mark_and_retrieve_predict(
+                    ner_model, test_set, oracle_retriever, batch_size=batch_size
+                )
                 precision, recall, f1 = score_ner(test_set.sents(), test_preds)
                 _run.log_scalar(
                     f"run{run_i}.fold{fold_i}.test_precision", precision, step=sents_nb
