@@ -17,6 +17,7 @@ from conivel.train import train_ner_model
 from conivel.utils import (
     RunLogScope,
     sacred_archive_huggingface_model,
+    sacred_archive_jsonifiable_as_file,
     sacred_log_series,
     gpu_memory_usage,
     pretrained_bert_for_token_classification,
@@ -163,6 +164,24 @@ def main(
                 neural_context_retriever.sents_nb = sents_nb
                 ctx_test_set = neural_context_retriever(test_set)
 
+                # save sentences retrieved by the oracle
+                json_sents = []
+                for sent in ctx_test_set.sents():
+                    json_sents.append(
+                        {
+                            "tokens": sent.tokens,
+                            "tags": sent.tags,
+                            "left_context": [s.tokens for s in sent.left_context],
+                            "right_context": [s.tokens for s in sent.right_context],
+                        }
+                    )
+                sacred_archive_jsonifiable_as_file(
+                    _run,
+                    json_sents,
+                    f"run{run_i}.fold{fold_i}.{sents_nb}_sents.oracle_retrieval",
+                )
+
+                # scoring
                 test_preds = predict(ner_model, ctx_test_set).tags
                 precision, recall, f1 = score_ner(test_set.sents(), test_preds)
                 _run.log_scalar(
