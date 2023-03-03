@@ -956,6 +956,31 @@ class IdealNeuralContextRetriever(ContextRetriever):
         return sorted(contexts, key=lambda c: -c.score)[:sents_nb]  # type: ignore
 
 
+class AllContextRetriever(ContextRetriever):
+    """A stub context retriever that retrieves _every_ sentence"""
+
+    def __init__(self, sents_nb: Union[int, List[int]]) -> None:
+        """'
+        .. warning::
+            ``sents_nb`` is *ignored*
+        """
+        super().__init__(sents_nb)
+
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
+        matchs = []
+        for sent_i, sent in enumerate(document):
+            if sent_i == sent_idx:
+                continue
+            matchs.append(
+                ContextRetrievalMatch(
+                    sent, sent_i, "left" if sent_i < sent_idx else "right", None
+                )
+            )
+        return matchs
+
+
 context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
     "neural": NeuralContextRetriever,
     "neighbors": NeighborsContextRetriever,
@@ -965,4 +990,5 @@ context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
     "bm25_restricted": BM25RestrictedContextRetriever,
     "samenoun": SameNounRetriever,
     "random": RandomContextRetriever,
+    "all": AllContextRetriever,
 }
