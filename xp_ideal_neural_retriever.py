@@ -59,8 +59,6 @@ def config():
 
     # -- retrieval heuristic
     # pre-retrieval heuristic name
-    # only officially supports 'random', 'samenoun' and 'bm25' for
-    # now
     retrieval_heuristic: str = "random"
     # parameters for the retrieval heuristic used at inference time
     retrieval_heuristic_inference_kwargs: dict
@@ -72,6 +70,9 @@ def config():
     ner_epochs_nb: int = 2
     # learning rate for NER training
     ner_lr: float = 2e-5
+    # wether to use the retrieval heuristic when performing training
+    # or not
+    ner_use_retrieval_heuristic_for_training: bool = True
 
 
 @ex.automain
@@ -89,6 +90,7 @@ def main(
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
+    ner_use_retrieval_heuristic_for_training: bool,
 ):
     print_config(_run)
 
@@ -117,18 +119,21 @@ def main(
             if not folds_list is None and not fold_i in folds_list:
                 continue
 
-            # PERFORMANCE HACK: only use the retrieval heuristic at
-            # training time. At training time, the number of sentences
-            # retrieved is random between ``min(sents_nb_list)`` and
-            # ``max(sents_nb_list)`` for each example.
-            train_set_heuristic_kwargs = copy.deepcopy(
-                retrieval_heuristic_inference_kwargs
-            )
-            train_set_heuristic_kwargs["sents_nb"] = sents_nb_list
-            train_set_heuristic = context_retriever_name_to_class[retrieval_heuristic](
-                **train_set_heuristic_kwargs
-            )
-            ctx_train_set = train_set_heuristic(train_set)
+            if ner_use_retrieval_heuristic_for_training:
+                # PERFORMANCE HACK: only use the retrieval heuristic at
+                # training time. At training time, the number of sentences
+                # retrieved is random between ``min(sents_nb_list)`` and
+                # ``max(sents_nb_list)`` for each example.
+                train_set_heuristic_kwargs = copy.deepcopy(
+                    retrieval_heuristic_inference_kwargs
+                )
+                train_set_heuristic_kwargs["sents_nb"] = sents_nb_list
+                train_set_heuristic = context_retriever_name_to_class[
+                    retrieval_heuristic
+                ](**train_set_heuristic_kwargs)
+                ctx_train_set = train_set_heuristic(train_set)
+            else:
+                ctx_train_set = train_set
 
             # train ner model on train_set
             ner_model = pretrained_bert_for_token_classification(
