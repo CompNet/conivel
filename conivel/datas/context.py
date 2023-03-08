@@ -454,10 +454,9 @@ class ContextRetrievalDataset(Dataset):
                 NERDataset([doc], ner_dataset.tags, ner_dataset.tokenizer),
                 quiet=True,
             )
-            tqdm.write("generating...")
             for sent_i, (sent, sent_preds) in enumerate(zip(doc, preds.tags)):
                 for entity in entities_from_bio_tags(sent.tokens, sent.tags):
-                    entity_pred = sent_preds[entity.start_idx : entity.end_idx]
+                    entity_pred = sent_preds[entity.start_idx : entity.end_idx + 1]
                     examples += ContextRetrievalExample.gen_examples(
                         sent_i,
                         entity,
