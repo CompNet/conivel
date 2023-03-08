@@ -76,7 +76,9 @@ class ContextRetriever:
                         [m.sentence for m in retrieval_matchs if m.side == "left"],
                         [m.sentence for m in retrieval_matchs if m.side == "right"],
                         # put retrieved matchs for debug purposes
-                        _custom_annotations={"matchs": retrieval_matchs},
+                        _custom_annotations={
+                            "matchs": [m.to_jsonifiable() for m in retrieval_matchs]
+                        },
                     )
                 )
             new_docs.append(new_doc)

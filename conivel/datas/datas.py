@@ -34,6 +34,7 @@ class NERSentence:
             "tags": self.tags,
             "left_context": [s.to_jsonifiable() for s in self.left_context],
             "right_context": [s.to_jsonifiable() for s in self.right_context],
+            "_custom_annotations": self._custom_annotations,
         }
 
     @staticmethod
@@ -43,6 +44,7 @@ class NERSentence:
             j["tags"],
             [NERSentence.from_jsonifiable(l) for l in j["left_context"]],
             [NERSentence.from_jsonifiable(l) for l in j["right_context"]],
+            j["_custom_annotations"],
         )
 
     def __repr__(self) -> str:
