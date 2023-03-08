@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Literal, Optional, Set, Type, Union, cast
 import random, json, os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import nltk
 from sacred.run import Run
 import numpy as np
@@ -29,6 +29,27 @@ class ContextRetrievalMatch:
     sentence_idx: int
     side: Literal["left", "right"]
     score: Optional[float]
+    #: additional annotations for debug purposes
+    _custom_annotations: Dict[str, Any] = field(default_factory=lambda: dict())
+
+    def to_jsonifiable(self) -> Dict[str, Any]:
+        return {
+            "sentence": self.sentence.to_jsonifiable(),
+            "sentence_idx": self.sentence_idx,
+            "side": self.side,
+            "score": self.score,
+            "_custom_annotations": self._custom_annotations,
+        }
+
+    @staticmethod
+    def from_jsonifiable(j: Dict[str, Any]) -> ContextRetrievalMatch:
+        return ContextRetrievalMatch(
+            NERSentence.from_jsonifiable(j["sentence"]),
+            j["sentence_idx"],
+            j["side"],
+            j["score"],
+            j["_custom_annotations"],
+        )
 
 
 class ContextRetriever:
@@ -54,6 +75,8 @@ class ContextRetriever:
                         sent.tags,
                         [m.sentence for m in retrieval_matchs if m.side == "left"],
                         [m.sentence for m in retrieval_matchs if m.side == "right"],
+                        # put retrieved matchs for debug purposes
+                        _custom_annotations={"matchs": retrieval_matchs},
                     )
                 )
             new_docs.append(new_doc)
@@ -325,7 +348,7 @@ class ContextRetrievalExample:
     #: context side (doest the context comes from the left or the right of ``sent`` ?)
     context_side: Literal["left", "right"]
     #: usefulness of the exemple, either -1, 0 or 1. between -1 and 1. Can be ``None``
-    # when the usefulness is not known.
+    #: when the usefulness is not known.
     usefulness: Optional[Literal[-1, 0, 1]] = None
 
     def __hash__(self) -> int:
@@ -933,9 +956,9 @@ class IdealNeuralContextRetriever(ContextRetriever):
             sents_nb = random.choice(sents_nb)
 
         sent = document[sent_idx]
-        preds = predict(
+        pred_tags = predict(
             self.ner_model, NERDataset([[sent]], self.tags), quiet=True, batch_size=1
-        )
+        ).tags[0]
 
         contexts = self.preliminary_ctx_selector.retrieve(sent_idx, document)
 
@@ -948,10 +971,16 @@ class IdealNeuralContextRetriever(ContextRetriever):
             batch_size=self.batch_size,
         )
 
+        # annotate context score
         for context, ctx_pred in zip(contexts, ctx_preds.tags):
             ctx_err = NeuralContextRetriever._pred_error(sent, ctx_pred)
-            err = NeuralContextRetriever._pred_error(sent, preds.tags[0])
+            err = NeuralContextRetriever._pred_error(sent, pred_tags)
             context.score = err - ctx_err
+
+        # annotate custom debug attributes
+        for context, ctx_pred in zip(contexts, ctx_preds.tags):
+            context._custom_annotations["pred_tags_no_ctx"] = pred_tags
+            context._custom_annotations["pred_tags_with_ctx"] = ctx_pred
 
         return sorted(contexts, key=lambda c: -c.score)[:sents_nb]  # type: ignore
 
