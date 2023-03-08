@@ -170,10 +170,9 @@ def main(
                 ctx_test_set = neural_context_retriever(test_set)
 
                 # save sentences retrieved by the oracle
-                matchs = [s._custom_annotations["matchs"] for s in ctx_test_set.sents()]
                 sacred_archive_jsonifiable_as_file(
                     _run,
-                    matchs,
+                    [sent.to_jsonifiable() for sent in ctx_test_set.sents()],
                     f"run{run_i}.fold{fold_i}.{sents_nb}_sents.oracle_retrieval",
                 )
 
