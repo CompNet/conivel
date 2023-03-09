@@ -650,18 +650,26 @@ class NeuralContextRetriever(ContextRetriever):
         return self.heuristic_context_selector.retrieve(sent_idx, document)
 
     @staticmethod
-    def _pred_error(sent: NERSentence, pred: List[str]) -> int:
+    def _pred_error(
+        sent_tags: List[str], pred_scores: torch.Tensor, tag2id: Dict[str, int]
+    ) -> float:
         """Compute error between a reference sentence and a prediction
 
         :param sent: reference sentence
-        :param preds: list of tags of shape ``(sentence_size)``
-        :param tag_to_id: a mapping from a tag to its id in the
+        :param pred_scores: score for each tag class, of shape
+            ``(sentence_size, vocab_size)``
+        :param tag2id: a mapping from a tag to its id in the
             vocabulary.
 
         :return: the number of incorrect tags in ``preds``
         """
-        assert len(pred) == len(sent.tags)
-        return sum([1 if t != p else 0 for p, t in zip(pred, sent.tags)])
+        assert len(sent_tags) == pred_scores.shape[0]
+        return sum(
+            [
+                1.0 - float(pred_scores[i][tag2id[tag]].item())
+                for i, tag in enumerate(sent_tags)
+            ]
+        )
 
     @staticmethod
     def generate_context_dataset(
@@ -704,7 +712,14 @@ class NeuralContextRetriever(ContextRetriever):
         :return: a ``ContextSelectionDataset`` that can be used to
                  train a context selector.
         """
-        preds = predict(ner_model, train_dataset, batch_size=batch_size, quiet=quiet)
+        preds = predict(
+            ner_model,
+            train_dataset,
+            batch_size=batch_size,
+            quiet=quiet,
+            additional_outputs={"scores"},
+        )
+        assert not preds.scores is None
 
         ctx_selector_class = context_retriever_name_to_class[heuristic_context_selector]
         preliminary_ctx_selector = ctx_selector_class(
@@ -712,14 +727,16 @@ class NeuralContextRetriever(ContextRetriever):
         )
 
         ctx_selection_examples = []
-        for sent_i, (sent, pred_tags) in tqdm(
-            enumerate(zip(train_dataset.sents(), preds.tags)),
+        for sent_i, (sent, pred_tags, pred_scores) in tqdm(
+            enumerate(zip(train_dataset.sents(), preds.tags, preds.scores)),
             total=len(preds.tags),
             disable=quiet,
         ):
             document = train_dataset.document_for_sent(sent_i)
 
-            pred_error = NeuralContextRetriever._pred_error(sent, pred_tags)
+            pred_error = NeuralContextRetriever._pred_error(
+                sent.tags, pred_scores, train_dataset.tag_to_id
+            )
 
             # retrieve n context sentences
             index_in_doc = train_dataset.sent_document_index(sent_i)
@@ -737,13 +754,18 @@ class NeuralContextRetriever(ContextRetriever):
                 ),
                 quiet=True,
                 batch_size=batch_size,
+                additional_outputs={"scores"},
             )
+            assert not preds_ctx.scores is None
 
-            for ctx_match, ctx_pred in zip(ctx_matchs, preds_ctx.tags):
-                pred_ctx_error = NeuralContextRetriever._pred_error(sent, ctx_pred)
-                if pred_ctx_error > pred_error:
+            for ctx_match, ctx_scores in zip(ctx_matchs, preds_ctx.scores):
+                pred_ctx_error = NeuralContextRetriever._pred_error(
+                    sent.tags, ctx_scores, train_dataset.tag_to_id
+                )
+                diff = pred_ctx_error - pred_error
+                if diff <= -0.25:
                     usefulness = -1
-                elif pred_ctx_error < pred_error:
+                elif diff >= 0.25:
                     usefulness = 1
                 else:
                     usefulness = 0
@@ -946,6 +968,10 @@ class IdealNeuralContextRetriever(ContextRetriever):
         self.ner_model = ner_model
         self.batch_size = batch_size
         self.tags = tags
+        self.tag_to_id: Dict[str, int] = {
+            tag: i for i, tag in enumerate(sorted(list(self.tags)))
+        }
+        self.id_to_tag = {v: k for k, v in self.tag_to_id.items()}
         super().__init__(sents_nb)
 
     def set_heuristic_sents_nb_(self, sents_nb: int):
@@ -958,9 +984,16 @@ class IdealNeuralContextRetriever(ContextRetriever):
             sents_nb = random.choice(sents_nb)
 
         sent = document[sent_idx]
-        pred_tags = predict(
-            self.ner_model, NERDataset([[sent]], self.tags), quiet=True, batch_size=1
-        ).tags[0]
+        p = predict(
+            self.ner_model,
+            NERDataset([[sent]], self.tags),
+            quiet=True,
+            batch_size=1,
+            additional_outputs={"scores"},
+        )
+        assert not p.scores is None
+        pred_scores = p.scores[0]
+        pred_tags = p.tags[0]
 
         contexts = self.preliminary_ctx_selector.retrieve(sent_idx, document)
 
@@ -971,18 +1004,24 @@ class IdealNeuralContextRetriever(ContextRetriever):
             NERDataset([sent_with_ctx], self.tags),
             quiet=True,
             batch_size=self.batch_size,
+            additional_outputs={"scores"},
         )
+        assert not ctx_preds.scores is None
 
-        # annotate context score
-        for context, ctx_pred in zip(contexts, ctx_preds.tags):
-            ctx_err = NeuralContextRetriever._pred_error(sent, ctx_pred)
-            err = NeuralContextRetriever._pred_error(sent, pred_tags)
+        err = NeuralContextRetriever._pred_error(sent.tags, pred_scores, self.tag_to_id)
+        for context, ctx_pred, ctx_scores in zip(
+            contexts, ctx_preds.tags, ctx_preds.scores
+        ):
+            # annotate context score
+            ctx_err = NeuralContextRetriever._pred_error(
+                sent.tags, ctx_scores, self.tag_to_id
+            )
             context.score = err - ctx_err
-
-        # annotate custom debug attributes
-        for context, ctx_pred in zip(contexts, ctx_preds.tags):
+            # annotate custom debug attributes
             context._custom_annotations["pred_tags_no_ctx"] = pred_tags
             context._custom_annotations["pred_tags_with_ctx"] = ctx_pred
+            context._custom_annotations["err"] = err
+            context._custom_annotations["ctx_err"] = ctx_err
 
         return sorted(contexts, key=lambda c: -c.score)[:sents_nb]  # type: ignore
 
