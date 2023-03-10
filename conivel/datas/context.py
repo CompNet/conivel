@@ -678,6 +678,7 @@ class NeuralContextRetriever(ContextRetriever):
         batch_size: int,
         heuristic_context_selector: str,
         heuristic_context_selector_kwargs: Dict[str, Any],
+        score_diff_threshold: float,
         quiet: bool = False,
         _run: Optional[Run] = None,
     ) -> ContextRetrievalDataset:
@@ -706,6 +707,8 @@ class NeuralContextRetriever(ContextRetriever):
             ``context_selector_name_to_class``
         :param heuristic_context_selector_kwargs: kwargs to pass the
             heuristic context retriever at instantiation time
+        :param score_diff_threshold: score difference threshold needed
+            to consider an example as positive / negative
         :param _run: The current sacred run.  If not ``None``, will be
             used to record generation metrics.
 
@@ -763,9 +766,9 @@ class NeuralContextRetriever(ContextRetriever):
                     sent.tags, ctx_scores, train_dataset.tag_to_id
                 )
                 diff = pred_ctx_error - pred_error
-                if diff <= -0.25:
+                if diff <= -score_diff_threshold:
                     usefulness = -1
-                elif diff >= 0.25:
+                elif diff >= score_diff_threshold:
                     usefulness = 1
                 else:
                     usefulness = 0
