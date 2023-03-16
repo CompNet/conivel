@@ -987,6 +987,44 @@ class IdealNeuralContextRetriever(ContextRetriever):
         return sorted(contexts, key=lambda c: -c.score)[:sents_nb]  # type: ignore
 
 
+class PipelineContextRetriever(ContextRetriever):
+    def __init__(self, _, retrievers: List[ContextRetriever]):
+        self.retrievers = retrievers
+
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
+        matchs = []
+        global_indexs = None
+        local_document = document
+
+        for retriever in self.retrievers:
+
+            matchs = retriever.retrieve(sent_idx, local_document)
+
+            # problem: matchs' sentence_idx will be correct for the
+            # first retriever, but if the next retrievers are called,
+            # indexs will be incorrect: they will be indexs in the
+            # *new* document, not the original one. The following code
+            # fixes the indexs afterwards.
+            if not global_indexs is None:
+                for m in matchs:
+                    m.sentence_idx = global_indexs[m.sentence_idx]
+
+            global_indexs = []
+            local_document = []
+            for i, sent in enumerate(document):
+                if i == sent_idx:
+                    local_document.append(sent)
+                    sent_idx = len(local_document) - 1
+                    global_indexs.append(i)
+                if i in [m.sentence_idx for m in matchs]:
+                    local_document.append(sent)
+                    global_indexs.append(i)
+
+        return matchs
+
+
 class AllContextRetriever(ContextRetriever):
     """A stub context retriever that retrieves _every_ sentence"""
 
@@ -1022,4 +1060,5 @@ context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
     "samenoun": SameNounRetriever,
     "random": RandomContextRetriever,
     "all": AllContextRetriever,
+    "pipeline": PipelineContextRetriever,
 }
