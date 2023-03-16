@@ -63,6 +63,9 @@ def config():
     # parameters for the retrieval heuristic used at inference time
     retrieval_heuristic_inference_kwargs: dict
 
+    # -- ideal retriever
+    invert_ideal_retriever: bool = False
+
     # -- NER training parameters
     # list of number of sents to test
     sents_nb_list: list
@@ -87,6 +90,7 @@ def main(
     runs_nb: int,
     retrieval_heuristic: str,
     retrieval_heuristic_inference_kwargs: dict,
+    invert_ideal_retriever: bool,
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
@@ -160,6 +164,7 @@ def main(
                 ner_model,
                 batch_size,
                 dekker_dataset.tags,
+                inverted=invert_ideal_retriever,
             )
 
             for sents_nb_i, sents_nb in enumerate(sents_nb_list):

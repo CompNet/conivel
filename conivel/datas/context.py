@@ -966,6 +966,7 @@ class IdealNeuralContextRetriever(ContextRetriever):
         ner_model: BertForTokenClassification,
         batch_size: int,
         tags: Set[str],
+        inverted: bool = False,
     ) -> None:
         self.preliminary_ctx_selector = preliminary_ctx_selector
         self.ner_model = ner_model
@@ -975,6 +976,7 @@ class IdealNeuralContextRetriever(ContextRetriever):
             tag: i for i, tag in enumerate(sorted(list(self.tags)))
         }
         self.id_to_tag = {v: k for k, v in self.tag_to_id.items()}
+        self.inverted = inverted
         super().__init__(sents_nb)
 
     def set_heuristic_sents_nb_(self, sents_nb: int):
@@ -1026,7 +1028,7 @@ class IdealNeuralContextRetriever(ContextRetriever):
             context._custom_annotations["err"] = err
             context._custom_annotations["ctx_err"] = ctx_err
 
-        return sorted(contexts, key=lambda c: -c.score)[:sents_nb]  # type: ignore
+        return sorted(contexts, key=lambda c: c.score if self.inverted else -c.score)[:sents_nb]  # type: ignore
 
 
 class AllContextRetriever(ContextRetriever):
