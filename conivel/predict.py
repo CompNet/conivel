@@ -1,4 +1,5 @@
 from typing import Dict, List, Literal, Optional, Set
+import sys
 from dataclasses import dataclass, field
 
 import torch
@@ -86,8 +87,12 @@ def _get_batch_tags(
 
             try:
                 sent_tags[sent_index] = id2label[tag_index]
-            except IndexError:
-                breakpoint()
+            except IndexError as e:
+                print(e)
+                # interactive mode
+                if hasattr(sys, "ps1"):
+                    breakpoint()
+                continue
 
         batch_tags.append(sent_tags)
 
