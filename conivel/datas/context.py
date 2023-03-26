@@ -391,12 +391,7 @@ class ContextRetrievalDataset(Dataset):
         """
         example = self.examples[index]
 
-        if example.context_side == "left":
-            tokens = example.context + ["<", "[SEP]"] + example.sent
-        elif example.context_side == "right":
-            tokens = example.sent + ["[SEP]", ">"] + example.context
-        else:
-            raise ValueError
+        tokens = example.context + ["[SEP]"] + example.sent
 
         batch: BatchEncoding = self.tokenizer(
             tokens,
