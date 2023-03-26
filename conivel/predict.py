@@ -196,7 +196,13 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
                 continue
 
             sent_index = word_index - len(ignored_words)
-            sent_scores[sent_index].append(scores[i][j])
+            try:
+                sent_scores[sent_index].append(scores[i][j])
+            except IndexError as e:
+                # TODO: rare bug
+                # we do nothing here since it is acceptable to have no
+                # score for a subtoken, as explained below
+                print(e)
 
         # reduce word scores to be the mean of the scores of the
         # subtokens composing them. The result is a list of tensors of
