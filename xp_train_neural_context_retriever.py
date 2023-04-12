@@ -99,40 +99,40 @@ def main(
                     _run, ctx_retriever_model, "ctx_retriever_model"  # type: ignore
                 )
 
-            # (len(test_ctx_retrieval), 3)
-            raw_preds = ctx_retriever.predict(cr_test_dataset)
+        # (len(test_ctx_retrieval), 3)
+        raw_preds = ctx_retriever.predict(cr_test_dataset)
 
-            # -1 to shift from {0, 1, 2} to {-1, 0, 1}
-            preds = torch.argmax(raw_preds, dim=1).cpu() - 1
+        # -1 to shift from {0, 1, 2} to {-1, 0, 1}
+        preds = torch.argmax(raw_preds, dim=1).cpu() - 1
 
-            labels = cr_test_dataset.labels()
-            assert not labels is None
+        labels = cr_test_dataset.labels()
+        assert not labels is None
 
-            # * pr curves
-            #
-            #   sklearn only supports binary prcurve, se we ignore
-            #   the indexs where labels == -1 (or 1 for the
-            #   negative pr curve)
-            #
-            # ** positive pr curve
-            p, r, t = precision_recall_curve(
-                [1 if l == 1 else 0 for l in labels], raw_preds[:, 2].cpu()
-            )
-            sacred_log_series(_run, "prcurve_pos_precision", p)
-            sacred_log_series(_run, "prcurve_pos_recall", r)
-            sacred_log_series(_run, "prcurve_pos_thresholds", t)
-            # ** negative pr curve
-            p, r, t = precision_recall_curve(
-                [1 if l == -1 else 0 for l in labels], raw_preds[:, 0].cpu()
-            )
-            sacred_log_series(_run, "prcurve_neg_precision", p)
-            sacred_log_series(_run, "prcurve_neg_recall", r)
-            sacred_log_series(_run, "prcurve_neg_thresholds", t)
+        # * pr curves
+        #
+        #   sklearn only supports binary prcurve, se we ignore
+        #   the indexs where labels == -1 (or 1 for the
+        #   negative pr curve)
+        #
+        # ** positive pr curve
+        p, r, t = precision_recall_curve(
+            [1 if l == 1 else 0 for l in labels], raw_preds[:, 2].cpu()
+        )
+        sacred_log_series(_run, "prcurve_pos_precision", p)
+        sacred_log_series(_run, "prcurve_pos_recall", r)
+        sacred_log_series(_run, "prcurve_pos_thresholds", t)
+        # ** negative pr curve
+        p, r, t = precision_recall_curve(
+            [1 if l == -1 else 0 for l in labels], raw_preds[:, 0].cpu()
+        )
+        sacred_log_series(_run, "prcurve_neg_precision", p)
+        sacred_log_series(_run, "prcurve_neg_recall", r)
+        sacred_log_series(_run, "prcurve_neg_thresholds", t)
 
-            # * micro F1
-            precision, recall, f1, _ = precision_recall_fscore_support(
-                labels, preds, average="micro"
-            )
-            _run.log_scalar(f"precision", precision)
-            _run.log_scalar(f"recall", recall)
-            _run.log_scalar(f"f1", f1)
+        # * micro F1
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            labels, preds, average="micro"
+        )
+        _run.log_scalar(f"precision", precision)
+        _run.log_scalar(f"recall", recall)
+        _run.log_scalar(f"f1", f1)
