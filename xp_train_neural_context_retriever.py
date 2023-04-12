@@ -136,9 +136,3 @@ def main(
             _run.log_scalar(f"precision", precision)
             _run.log_scalar(f"recall", recall)
             _run.log_scalar(f"f1", f1)
-
-            # * precision, recall and f1 of the positive class
-            precisions, recalls, f1s, _ = precision_recall_fscore_support(labels, preds)
-            _run.log_scalar(f"pos_precision", precisions[2])
-            _run.log_scalar(f"pos_recall", recalls[2])
-            _run.log_scalar(f"pos_f1", f1s[2])
