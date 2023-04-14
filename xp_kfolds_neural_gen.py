@@ -109,7 +109,7 @@ def main(
             batch_size,
             1,
         )
-        ctx_train_set = neural_retriever(train)
+        ctx_train_set = neural_retriever(train, quiet=False)
 
         # train ner model on train_set
         ner_model = pretrained_bert_for_token_classification(
@@ -134,7 +134,7 @@ def main(
             _run.log_scalar("gpu_usage", gpu_memory_usage())
 
             neural_retriever.sents_nb = sents_nb
-            ctx_test_set = neural_retriever(test)
+            ctx_test_set = neural_retriever(test, quiet=False)
 
             test_preds = predict(ner_model, ctx_test_set, quiet=True).tags
             precision, recall, f1 = score_ner(test.sents(), test_preds)
