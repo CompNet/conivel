@@ -8,11 +8,15 @@ from sacred.utils import apply_backspaces_and_linefeeds
 import torch
 import numpy as np
 from sklearn.metrics import precision_recall_fscore_support, precision_recall_curve
-from conivel.datas.ontonotes import OntonotesDataset
+from FastChat.fastchat.serve.inference import load_model
+from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.context import (
+    ContextRetrievalDataset,
     NeuralContextRetriever,
 )
+from conivel.predict import predict
+from conivel.score import score_ner
 from conivel.train import train_ner_model
 from conivel.utils import (
     RunLogScope,
@@ -20,7 +24,6 @@ from conivel.utils import (
     sacred_archive_jsonifiable_as_file,
     gpu_memory_usage,
     pretrained_bert_for_token_classification,
-    sacred_log_series,
 )
 
 
@@ -35,20 +38,19 @@ if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
     )
 
 
+def gen_cr_dataset(dataset: NERDataset) -> ContextRetrievalDataset:
+    llm_model = load_model("TheBloke/vicuna-13B-1.1-GPTQ-4bit-128g", "cpu", 0)
+    # TODO:
+
+
 @ex.config
 def config():
     # -- datas parameters
     # number of folds
     k: int = 5
-    # seed to use when folds shuffling. If ``None``, no shuffling is
+    # seed to use when shuffling folds. If ``None``, no shuffling is
     # performed.
     shuffle_kfolds_seed: Optional[int] = None
-    # wether to restrict the experiment to a group of book in the
-    # Dekker et al's dataset
-    book_group: Optional[str] = None
-    # list of folds number (starting from 0) to perform the experiment
-    # on. If not specified, perform the experiment on all folds
-    folds_list: Optional[list] = None
 
     # -- common parameters
     batch_size: int
@@ -57,39 +59,15 @@ def config():
     # number of experiment repeats
     runs_nb: int
 
-    # -- retrieval heuristic
-    # pre-retrieval heuristic name
-    # only officially supports 'random', 'samenoun' and 'bm25' for
-    # now
-    retrieval_heuristic: str = "random"
-    # parameters for the retrieval heuristic used when generating a
-    # context retrieval dataset
-    retrieval_heuristic_gen_kwargs: dict
-
     # -- context retrieval parameters
     # number of epochs for context retrieval training
-    ctx_retrieval_epochs_nb: int = 3
+    cr_epochs_nb: int = 3
     # learning rate for context retrieval training
-    ctx_retrieval_lr: float = 2e-5
-    # dropout for context retriever
-    ctx_retrieval_dropout: float = 0.1
-    # percentage of train set that will be used to train the NER model
-    # used to generate the context retrieval model. The percentage
-    # allocated to generate context retrieval examples will be 1 -
-    # that ratio.
-    ctx_retrieval_train_gen_ratio: float = 0.5
-    # downsampling ratio for the examples that have no impact on
-    # predictions
-    ctx_retrieval_downsampling_ratio: float = 0.05
-    # score difference threshold needed to consider an example as
-    # positive / negative
-    ctx_retrieval_score_diff_threshold: float = 0.5
+    cr_lr: float = 2e-5
 
-    # -- dataset
-    # one of : 'dekker', 'ontonotes'
-    dataset_name: str = "dekker"
-    # if dataset_name == 'ontonotes
-    dataset_path: Optional[str] = None
+    # -- NER parameters
+    ner_epochs_nb: int = 2
+    ner_lr: float = 2e-5
 
 
 @ex.automain
@@ -97,229 +75,135 @@ def main(
     _run: Run,
     k: int,
     shuffle_kfolds_seed: Optional[int],
-    book_group: Optional[str],
-    folds_list: Optional[List[int]],
     batch_size: int,
     save_models: bool,
     runs_nb: int,
-    retrieval_heuristic: str,
-    retrieval_heuristic_gen_kwargs: dict,
-    ctx_retrieval_epochs_nb: int,
-    ctx_retrieval_lr: float,
-    ctx_retrieval_dropout: float,
-    ctx_retrieval_train_gen_ratio: float,
-    ctx_retrieval_downsampling_ratio: float,
-    ctx_retrieval_score_diff_threshold: float,
-    dataset_name: Literal["dekker", "ontonotes"],
-    dataset_path: Optional[str],
+    cr_epochs_nb: int,
+    cr_lr: float,
+    cr_dropout: float,
+    ner_epochs_nb: int,
+    ner_lr: float,
 ):
     print_config(_run)
 
-    if dataset_name == "dekker":
-        dataset = DekkerDataset(book_group=book_group)
-    elif dataset_name == "ontonotes":
-        assert not dataset_path is None
-        dataset = OntonotesDataset(dataset_path)
-        # keep only documents with a number of tokens >= 512
-        dataset.documents = [
-            doc for doc in dataset.documents if sum([len(sent) for sent in doc]) >= 512
-        ]
-    else:
-        raise ValueError(f"unknown dataset name {dataset_name}")
+    dataset = DekkerDataset()
     kfolds = dataset.kfolds(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
-    folds_nb = max(len(folds_list) if not folds_list is None else 0, len(kfolds))
+    folds_nb = len(kfolds)
 
-    # metrics matrices
-    # each matrix is of shape (runs_nb, folds_nb, sents_nb)
-    # these are used to record mean metrics across folds, runs...
-    precision_matrix = np.zeros((runs_nb, folds_nb))
-    recall_matrix = np.zeros((runs_nb, folds_nb))
-    f1_matrix = np.zeros((runs_nb, folds_nb))
-    pos_precision_matrix = np.zeros((runs_nb, folds_nb))
-    pos_recall_matrix = np.zeros((runs_nb, folds_nb))
-    pos_f1_matrix = np.zeros((runs_nb, folds_nb))
+    # * Metrics matrices
+    #   each matrix is of shape (runs_nb, folds_nb, sents_nb)
+    #   these are used to record mean metrics across folds, runs...
+    cr_precision_matrix = np.zeros((runs_nb, folds_nb))
+    cr_recall_matrix = np.zeros((runs_nb, folds_nb))
+    cr_f1_matrix = np.zeros((runs_nb, folds_nb))
+    ner_precision_matrix = np.zeros((runs_nb, folds_nb))
+    ner_recall_matrix = np.zeros((runs_nb, folds_nb))
+    ner_f1_matrix = np.zeros((runs_nb, folds_nb))
     metrics_matrices: List[Tuple[str, np.ndarray]] = [
-        ("precision", precision_matrix),
-        ("recall", recall_matrix),
-        ("f1", f1_matrix),
-        ("pos_precision", pos_precision_matrix),
-        ("pos_recall", pos_recall_matrix),
-        ("pos_f1", pos_f1_matrix),
+        ("cr_precision", cr_precision_matrix),
+        ("cr_recall", cr_recall_matrix),
+        ("cr_f1", cr_f1_matrix),
+        ("ner_precision", ner_precision_matrix),
+        ("ner_recall", ner_recall_matrix),
+        ("ner_f1", ner_f1_matrix),
     ]
 
     for run_i in range(runs_nb):
 
-        for fold_i, (train_set, test_set) in enumerate(kfolds):
+        for fold_i, (train, test) in enumerate(kfolds):
 
             _run.log_scalar("gpu_usage", gpu_memory_usage())
 
-            if not folds_list is None and not fold_i in folds_list:
-                continue
+            with RunLogScope(_run, f"run{run_i}.fold{fold_i}.cr_dataset_generation"):
 
-            # train context selector
-            ner_model = pretrained_bert_for_token_classification(
-                "bert-base-cased", train_set.tag_to_id
-            )
-
-            ctx_retrieval_ner_train_set, ctx_retrieval_gen_set = train_set.split(
-                ctx_retrieval_train_gen_ratio
-            )
-
-            with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ctx_retrieval_training"):
-
-                # train a NER model on half the training dataset
-                ner_model = train_ner_model(
-                    ner_model,
-                    ctx_retrieval_ner_train_set,
-                    ctx_retrieval_ner_train_set,
-                    _run=_run,
-                    epochs_nb=2,
-                    batch_size=batch_size,
-                    learning_rate=ctx_retrieval_lr,
-                )
-
-                # * context dataset generation
-                #   generate a context retrieval dataset using the other
-                #   half of the training set
-                ctx_retrieval_dataset = NeuralContextRetriever.generate_context_dataset(
-                    ner_model,
-                    ctx_retrieval_gen_set,
-                    batch_size,
-                    retrieval_heuristic,
-                    retrieval_heuristic_gen_kwargs,
-                    ctx_retrieval_score_diff_threshold,
-                    _run=_run,
-                )
-                # downsample the majority class (0) of the dataset
-                ctx_retrieval_dataset = ctx_retrieval_dataset.downsampled(
-                    ctx_retrieval_downsampling_ratio
-                )
-                for ex in ctx_retrieval_dataset.examples:
-                    _run.log_scalar(
-                        "context_dataset_generation.balanced_usefulness", ex.usefulness
-                    )
-                # save dataset
+                cr_train_dataset = gen_cr_dataset(train)
                 sacred_archive_jsonifiable_as_file(
-                    _run,
-                    ctx_retrieval_dataset.to_jsonifiable(),
-                    "ctx_retrieval_dataset",
+                    _run, cr_train_dataset.to_jsonifiable(), "cr_train_dataset"
                 )
 
-                # * test dataset
-                test_ctx_retrieval_dataset = (
-                    NeuralContextRetriever.generate_context_dataset(
-                        ner_model,
-                        test_set,
-                        batch_size,
-                        retrieval_heuristic,
-                        {"sents_nb": 4},
-                        ctx_retrieval_score_diff_threshold,
-                        _run=_run,
-                    )
-                )
-                sacred_archive_jsonifiable_as_file(
-                    _run,
-                    test_ctx_retrieval_dataset.to_jsonifiable(),
-                    "test_ctx_retrieval_dataset",
-                )
+            with RunLogScope(_run, f"run{run_i}.fold{fold_i}.cr_model_training"):
 
-                # * context retriever training
-                neg_examples_nb = len(
-                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == -1]
-                )
-                null_examples_nb = len(
-                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == 0]
-                )
-                pos_examples_nb = len(
-                    [ex for ex in ctx_retrieval_dataset.examples if ex.usefulness == 1]
-                )
-                weights = torch.tensor(
-                    [
-                        null_examples_nb / neg_examples_nb,
-                        1.0,
-                        null_examples_nb / pos_examples_nb,
-                    ]
-                )
-                ctx_retriever_model = NeuralContextRetriever.train_context_selector(
-                    ctx_retrieval_dataset,
-                    ctx_retrieval_epochs_nb,
+                neural_retriever_model = NeuralContextRetriever.train_context_selector(
+                    cr_train_dataset,
+                    cr_epochs_nb,
                     batch_size,
-                    ctx_retrieval_lr,
+                    cr_lr,
                     _run=_run,
-                    weights=weights,
                     log_full_loss=True,
-                    valid_dataset=test_ctx_retrieval_dataset.downsampled(
-                        ctx_retrieval_downsampling_ratio
-                    ),
-                    dropout=ctx_retrieval_dropout,
+                    dropout=cr_dropout,
                 )
-                ctx_retriever = NeuralContextRetriever(
-                    ctx_retriever_model,
-                    retrieval_heuristic,
-                    retrieval_heuristic_gen_kwargs,
+                neural_retriever = NeuralContextRetriever(
+                    neural_retriever_model,
+                    "all",
+                    {"sents_nb": 1},  # WARNING: ignored
                     batch_size,
                     1,
                 )
                 if save_models:
                     sacred_archive_huggingface_model(
-                        _run, ctx_retriever_model, "ctx_retriever_model"  # type: ignore
+                        _run, neural_retriever_model, "cr_model"  # type: ignore
                     )
 
-                # (len(test_ctx_retrieval), 3)
-                raw_preds = ctx_retriever.predict(test_ctx_retrieval_dataset)
+            with RunLogScope(_run, f"run{run_i}.fold{fold_i}.cr_model_testing"):
 
-                # -1 to shift from {0, 1, 2} to {-1, 0, 1}
-                preds = torch.argmax(raw_preds, dim=1).cpu() - 1
+                cr_test_dataset = gen_cr_dataset(test)
+                sacred_archive_jsonifiable_as_file(
+                    _run, cr_test_dataset.to_jsonifiable(), "cr_test_dataset"
+                )
 
-                labels = test_ctx_retrieval_dataset.labels()
+                # (len(test_ctx_retrieval), 2)
+                raw_preds = neural_retriever.predict(cr_test_dataset)
+                preds = torch.argmax(raw_preds, dim=1).cpu()
+                labels = cr_test_dataset.labels()
                 assert not labels is None
 
-                # * pr curves
-                #
-                #   sklearn only supports binary prcurve, se we ignore
-                #   the indexs where labels == -1 (or 1 for the
-                #   negative pr curve)
-                #
-                # ** positive pr curve
-                p, r, t = precision_recall_curve(
-                    [1 if l == 1 else 0 for l in labels], raw_preds[:, 2].cpu()
-                )
-                sacred_log_series(_run, "prcurve_pos_precision", p)
-                sacred_log_series(_run, "prcurve_pos_recall", r)
-                sacred_log_series(_run, "prcurve_pos_thresholds", t)
-                # ** negative pr curve
-                p, r, t = precision_recall_curve(
-                    [1 if l == -1 else 0 for l in labels], raw_preds[:, 0].cpu()
-                )
-                sacred_log_series(_run, "prcurve_neg_precision", p)
-                sacred_log_series(_run, "prcurve_neg_recall", r)
-                sacred_log_series(_run, "prcurve_neg_thresholds", t)
-
-                # * micro F1
+                # * Micro F1
                 precision, recall, f1, _ = precision_recall_fscore_support(
                     labels, preds, average="micro"
                 )
-                precision_matrix[run_i][fold_i] = precision
-                recall_matrix[run_i][fold_i] = recall
-                f1_matrix[run_i][fold_i] = f1
+
+                cr_precision_matrix[run_i][fold_i] = precision
+                cr_recall_matrix[run_i][fold_i] = recall
+                cr_f1_matrix[run_i][fold_i] = f1
                 _run.log_scalar(f"precision", precision)
                 _run.log_scalar(f"recall", recall)
                 _run.log_scalar(f"f1", f1)
 
-                # * precision, recall and f1 of the positive class
-                precisions, recalls, f1s, _ = precision_recall_fscore_support(
-                    labels, preds
-                )
-                pos_precision_matrix[run_i][fold_i] = precisions[2]
-                pos_recall_matrix[run_i][fold_i] = recalls[2]
-                pos_f1_matrix[run_i][fold_i] = f1s[2]
-                _run.log_scalar(f"pos_precision", precisions[2])
-                _run.log_scalar(f"pos_recall", recalls[2])
-                _run.log_scalar(f"pos_f1", f1s[2])
+            with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_training"):
 
-        # * mean metrics for the current run
+                train_and_ctx = neural_retriever(train, quiet=False)
+                ner_model = pretrained_bert_for_token_classification(
+                    "bert-base-cased", train.tag_to_id
+                )
+                ner_model = train_ner_model(
+                    ner_model,
+                    train_and_ctx,
+                    train_and_ctx,
+                    _run,
+                    epochs_nb=ner_epochs_nb,
+                    batch_size=batch_size,
+                    learning_rate=ner_lr,
+                )
+
+                if save_models:
+                    sacred_archive_huggingface_model(_run, ner_model, f"ner_model")
+
+            with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_testing"):
+
+                test_and_ctx = neural_retriever(test, quiet=False)
+                preds = predict(ner_model, test_and_ctx, batch_size=batch_size).tags
+                precision, recall, f1 = score_ner(test.sents(), preds)
+
+                ner_precision_matrix[run_i][fold_i] = precision
+                ner_recall_matrix[run_i][fold_i] = recall
+                ner_f1_matrix[run_i][fold_i] = f1
+                _run.log_scalar("precision", precision)
+                _run.log_scalar(f"recall", recall)
+                _run.log_scalar(f"f1", f1)
+
+        # * Run mean metrics
         for metrics_name, matrix in metrics_matrices:
             for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
                 _run.log_scalar(
@@ -327,7 +211,7 @@ def main(
                     op(matrix[run_i], axis=0),
                 )
 
-    # * folds mean metrics
+    # * Folds mean metrics
     for fold_i in range(folds_nb):
         for metrics_name, matrix in metrics_matrices:
             for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
@@ -336,7 +220,7 @@ def main(
                     op(matrix[:, fold_i], axis=0),
                 )
 
-    # * global mean metrics
+    # * Global mean metrics
     for name, matrix in metrics_matrices:
         for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
             _run.log_scalar(

@@ -349,9 +349,8 @@ class ContextRetrievalExample:
     context_tags: List[str]
     #: context side (doest the context comes from the left or the right of ``sent`` ?)
     context_side: Literal["left", "right"]
-    #: usefulness of the exemple, either -1, 0 or 1. between -1 and 1. Can be ``None``
-    #: when the usefulness is not known.
-    usefulness: Optional[Literal[-1, 0, 1]] = None
+    #: usefulness of the exemple, either 0 or 1. Can be ``None`` for an unlabeled example
+    usefulness: Optional[Literal[0, 1]] = None
 
     def __hash__(self) -> int:
         return hash(
@@ -401,9 +400,7 @@ class ContextRetrievalDataset(Dataset):
         )
 
         if not example.usefulness is None:
-            # NOTE: example.usefulness is either -1, 0 or 1.
-            #       we shift that to class indices {0, 1, 2}
-            batch["label"] = example.usefulness + 1
+            batch["label"] = example.usefulness
 
         return batch
 
@@ -484,19 +481,6 @@ class ContextRetrievalDataset(Dataset):
             return None
         return [ex.usefulness for ex in self.examples]  # type: ignore
 
-    def downsampled(self, downsample_ratio: float = 0.05) -> ContextRetrievalDataset:
-        """Downsample class '0' for the dataset
-
-        :param downsample_ratio:
-        """
-        neg_examples = [e for e in self.examples if e.usefulness == -1]
-        pos_examples = [e for e in self.examples if e.usefulness == 1]
-        null_examples = [e for e in self.examples if e.usefulness == 0]
-        null_examples = null_examples[: int(downsample_ratio * len(null_examples))]
-        examples = neg_examples + pos_examples + null_examples
-        random.shuffle(examples)
-        return ContextRetrievalDataset(examples)
-
 
 class NeuralContextRetriever(ContextRetriever):
     """A context selector powered by BERT"""
@@ -508,7 +492,6 @@ class NeuralContextRetriever(ContextRetriever):
         heuristic_context_selector_kwargs: Dict[str, Any],
         batch_size: int,
         sents_nb: int,
-        use_neg_class: bool = False,
     ) -> None:
         """
         :param pretrained_model_name: pretrained model name, used to
@@ -544,8 +527,6 @@ class NeuralContextRetriever(ContextRetriever):
 
         self.batch_size = batch_size
 
-        self.use_neg_class = use_neg_class
-
         super().__init__(sents_nb)
 
     def set_heuristic_sents_nb_(self, sents_nb: int):
@@ -560,7 +541,7 @@ class NeuralContextRetriever(ContextRetriever):
         :param dataset: A list of :class:`ContextSelectionExample`
         :param device_str: torch device
 
-        :return: A tensor of shape ``(len(dataset), 3)`` of class
+        :return: A tensor of shape ``(len(dataset), 2)`` of class
                  scores
         """
         if isinstance(dataset, list):
@@ -580,13 +561,13 @@ class NeuralContextRetriever(ContextRetriever):
             scores = torch.zeros((0,)).to(device)
             for X in dataloader:
                 X = X.to(device)
-                # out.logits is of shape (batch_size, 3)
+                # out.logits is of shape (batch_size, 2)
                 out = self.ctx_classifier(
                     X["input_ids"],
                     token_type_ids=X["token_type_ids"],
                     attention_mask=X["attention_mask"],
                 )
-                # (batch_size, 3)
+                # (batch_size, 2)
                 pred = torch.softmax(out.logits, dim=1)
                 scores = torch.cat([scores, pred], dim=0)
 
@@ -619,16 +600,11 @@ class NeuralContextRetriever(ContextRetriever):
             )
             for ctx_match in ctx_matchs
         ]
-        # (len(dataset), 3)
+        # (len(dataset), 2)
         scores = self.predict(ctx_dataset)
 
         for i, ctx_match in enumerate(ctx_matchs):
-            pos_score = float(scores[i, 2].item())
-            if self.use_neg_class:
-                neg_score = float(scores[i, 0].item())
-                ctx_match.score = pos_score - neg_score
-            else:
-                ctx_match.score = pos_score
+            ctx_match.score = float(scores[i, 1].item())
 
         return sorted(ctx_matchs, key=lambda m: -m.score)[: self.sents_nb]  # type: ignore
 
@@ -667,129 +643,6 @@ class NeuralContextRetriever(ContextRetriever):
         )
 
     @staticmethod
-    def generate_context_dataset(
-        ner_model: BertForTokenClassification,
-        train_dataset: NERDataset,
-        batch_size: int,
-        heuristic_context_selector: str,
-        heuristic_context_selector_kwargs: Dict[str, Any],
-        score_diff_threshold: float,
-        quiet: bool = False,
-        _run: Optional[Run] = None,
-    ) -> ContextRetrievalDataset:
-        """Generate a context selection training dataset.
-
-        The process is as follows :
-
-            1. Make predictions for a NER dataset using an already
-               trained NER model.
-
-            2. For each prediction, sample a bunch of possible context
-               sentences using some heuristic, and retry predictions
-               with those context for the sentence.  Then, the
-               difference of errors between the prediction without
-               context and the prediction with context is used to
-               create a sample of context retrieval.
-
-        :todo: make a choice on heuristic
-
-        :param ner_model: an already trained NER model used to
-            generate initial predictions
-        :param train_dataset: NER dataset used to extract examples
-        :param batch_size: batch size used for NER inference
-        :param heuristic_context_selector: name of the context
-            selector to use as retrieval heuristic, from
-            ``context_selector_name_to_class``
-        :param heuristic_context_selector_kwargs: kwargs to pass the
-            heuristic context retriever at instantiation time
-        :param score_diff_threshold: score difference threshold needed
-            to consider an example as positive / negative
-        :param _run: The current sacred run.  If not ``None``, will be
-            used to record generation metrics.
-
-        :return: a ``ContextSelectionDataset`` that can be used to
-                 train a context selector.
-        """
-        preds = predict(
-            ner_model,
-            train_dataset,
-            batch_size=batch_size,
-            quiet=quiet,
-            additional_outputs={"scores"},
-        )
-        assert not preds.scores is None
-
-        ctx_selector_class = context_retriever_name_to_class[heuristic_context_selector]
-        preliminary_ctx_selector = ctx_selector_class(
-            **heuristic_context_selector_kwargs
-        )
-
-        ctx_selection_examples = []
-        for sent_i, (sent, pred_tags, pred_scores) in tqdm(
-            enumerate(zip(train_dataset.sents(), preds.tags, preds.scores)),
-            total=len(preds.tags),
-            disable=quiet,
-        ):
-            document = train_dataset.document_for_sent(sent_i)
-
-            pred_error = NeuralContextRetriever._pred_error(
-                sent.tags, pred_scores, train_dataset.tag_to_id
-            )
-
-            # retrieve n context sentences
-            index_in_doc = train_dataset.sent_document_index(sent_i)
-            ctx_matchs = preliminary_ctx_selector.retrieve(index_in_doc, document)
-            ctx_sents = sent_with_ctx_from_matchs(sent, ctx_matchs)
-
-            # generate examples by making new predictions with context
-            # sentences
-            preds_ctx = predict(
-                ner_model,
-                NERDataset(
-                    [ctx_sents],
-                    train_dataset.tags,
-                    tokenizer=train_dataset.tokenizer,
-                ),
-                quiet=True,
-                batch_size=batch_size,
-                additional_outputs={"scores"},
-            )
-            assert not preds_ctx.scores is None
-
-            for ctx_match, ctx_scores in zip(ctx_matchs, preds_ctx.scores):
-                pred_ctx_error = NeuralContextRetriever._pred_error(
-                    sent.tags, ctx_scores, train_dataset.tag_to_id
-                )
-                diff = pred_ctx_error - pred_error
-                if diff <= -score_diff_threshold:
-                    usefulness = -1
-                elif diff >= score_diff_threshold:
-                    usefulness = 1
-                else:
-                    usefulness = 0
-                ctx_selection_examples.append(
-                    ContextRetrievalExample(
-                        sent.tokens,
-                        sent.tags,
-                        ctx_match.sentence.tokens,
-                        ctx_match.sentence.tags,
-                        ctx_match.side,
-                        usefulness,
-                    )
-                )
-
-        # logging
-        if not _run is None:
-            _run.log_scalar(
-                "context_dataset_generation.examples_nb", len(ctx_selection_examples)
-            )
-
-            for ex in ctx_selection_examples:
-                _run.log_scalar("context_dataset_generation.usefulness", ex.usefulness)
-
-        return ContextRetrievalDataset(ctx_selection_examples)
-
-    @staticmethod
     def train_context_selector(
         ctx_dataset: ContextRetrievalDataset,
         epochs_nb: int,
@@ -817,7 +670,7 @@ class NeuralContextRetriever(ContextRetriever):
         :param log_full_loss: if ``True``, log the loss at each batch
             (otherwise, only log mean epochs loss)
         :param weights: :class:`torch.nn.CrossEntropyLoss` weights, oh
-            shape ``(3)``.
+            shape ``(2)``.
         :param quiet: if ``True``, no loading bar will be displayed
         :param valid_dataset: a validation dataset, used when logging
             validation metrics using ``_run``
@@ -828,7 +681,7 @@ class NeuralContextRetriever(ContextRetriever):
 
         ctx_classifier = BertForSequenceClassification.from_pretrained(
             "bert-base-cased",
-            num_labels=3,
+            num_labels=2,
             attention_probs_dropout_prob=dropout,
             hidden_dropout_prob=dropout,
         )
