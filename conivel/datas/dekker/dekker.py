@@ -108,6 +108,7 @@ class DekkerDataset(NERDataset):
             return re.search(r"[^.]*", (os.path.basename(path))).group(0)  # type: ignore
 
         documents = []
+        self.documents_names = []
 
         for book_path in paths:
 
@@ -118,5 +119,6 @@ class DekkerDataset(NERDataset):
                     continue
 
             documents.append(load_book(book_path, keep_only_classes=keep_only_classes))
+            self.documents_names.append(os.path.basename(book_path))
 
         super().__init__(documents, **kwargs)

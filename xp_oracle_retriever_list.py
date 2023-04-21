@@ -1,5 +1,5 @@
 import os, copy
-from typing import List, Optional
+from typing import List, Literal, Optional
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
@@ -10,6 +10,7 @@ from conivel.datas.dekker import DekkerDataset
 from conivel.datas.context import (
     IdealNeuralContextRetriever,
     context_retriever_name_to_class,
+    CombinedContextRetriever,
 )
 from conivel.predict import predict
 from conivel.score import score_ner
@@ -17,7 +18,6 @@ from conivel.train import train_ner_model
 from conivel.utils import (
     RunLogScope,
     sacred_archive_huggingface_model,
-    sacred_archive_jsonifiable_as_file,
     sacred_log_series,
     gpu_memory_usage,
     pretrained_bert_for_token_classification,
@@ -43,12 +43,6 @@ def config():
     # seed to use when folds shuffling. If ``None``, no shuffling is
     # performed.
     shuffle_kfolds_seed: Optional[int] = None
-    # wether to restrict the experiment to a group of book in the
-    # Dekker et al's dataset
-    book_group: Optional[str] = None
-    # list of folds number (starting from 0) to perform the experiment
-    # on. If not specified, perform the experiment on all folds
-    folds_list: Optional[list] = None
 
     # -- common parameters
     batch_size: int
@@ -58,13 +52,7 @@ def config():
     runs_nb: int = 5
 
     # -- retrieval heuristic
-    # pre-retrieval heuristic name
-    retrieval_heuristic: str = "random"
-    # parameters for the retrieval heuristic used at inference time
-    retrieval_heuristic_inference_kwargs: dict
-
-    # -- ideal retriever
-    invert_ideal_retriever: bool = False
+    retrievers_names: list
 
     # -- NER training parameters
     # list of number of sents to test
@@ -73,9 +61,6 @@ def config():
     ner_epochs_nb: int = 2
     # learning rate for NER training
     ner_lr: float = 2e-5
-    # wether to use the retrieval heuristic when performing training
-    # or not
-    ner_use_retrieval_heuristic_for_training: bool = True
 
 
 @ex.automain
@@ -83,33 +68,27 @@ def main(
     _run: Run,
     k: int,
     shuffle_kfolds_seed: Optional[int],
-    book_group: Optional[str],
-    folds_list: Optional[List[int]],
     batch_size: int,
     save_models: bool,
     runs_nb: int,
-    retrieval_heuristic: str,
-    retrieval_heuristic_inference_kwargs: dict,
-    invert_ideal_retriever: bool,
+    retrievers_names: List[str],
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
-    ner_use_retrieval_heuristic_for_training: bool,
 ):
     print_config(_run)
 
-    dekker_dataset = DekkerDataset(book_group=book_group)
+    dekker_dataset = DekkerDataset()
     kfolds = dekker_dataset.kfolds(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
-    folds_nb = max(len(folds_list) if not folds_list is None else 0, len(kfolds))
 
     # metrics matrices
-    # each matrix is of shape (runs_nb, folds_nb, sents_nb)
+    # each matrix is of shape (runs_nb, k, sents_nb)
     # these are used to record mean metrics across folds, runs...
-    precision_matrix = np.zeros((runs_nb, folds_nb, len(sents_nb_list)))
-    recall_matrix = np.zeros((runs_nb, folds_nb, len(sents_nb_list)))
-    f1_matrix = np.zeros((runs_nb, folds_nb, len(sents_nb_list)))
+    precision_matrix = np.zeros((runs_nb, k, len(sents_nb_list)))
+    recall_matrix = np.zeros((runs_nb, k, len(sents_nb_list)))
+    f1_matrix = np.zeros((runs_nb, k, len(sents_nb_list)))
     metrics_matrices = [
         ("precision", precision_matrix),
         ("recall", recall_matrix),
@@ -120,24 +99,16 @@ def main(
 
         for fold_i, (train_set, test_set) in enumerate(kfolds):
 
-            if not folds_list is None and not fold_i in folds_list:
-                continue
-
-            if ner_use_retrieval_heuristic_for_training:
-                # PERFORMANCE HACK: only use the retrieval heuristic at
-                # training time. At training time, the number of sentences
-                # retrieved is random between ``min(sents_nb_list)`` and
-                # ``max(sents_nb_list)`` for each example.
-                train_set_heuristic_kwargs = copy.deepcopy(
-                    retrieval_heuristic_inference_kwargs
-                )
-                train_set_heuristic_kwargs["sents_nb"] = sents_nb_list
-                train_set_heuristic = context_retriever_name_to_class[
-                    retrieval_heuristic
-                ](**train_set_heuristic_kwargs)
-                ctx_train_set = train_set_heuristic(train_set)
-            else:
-                ctx_train_set = train_set
+            # PERFORMANCE HACK: only use the retrieval heuristic at
+            # training time. At training time, the number of sentences
+            # retrieved is random between ``min(sents_nb_list)`` and
+            # ``max(sents_nb_list)`` for each example.
+            retrievers = [
+                context_retriever_name_to_class[name](sents_nb_list)
+                for name in retrievers_names
+            ]
+            combined_retrievers = CombinedContextRetriever(sents_nb_list, retrievers)
+            ctx_train_set = combined_retrievers(train_set)
 
             # train ner model on train_set
             ner_model = pretrained_bert_for_token_classification(
@@ -158,30 +129,22 @@ def main(
 
             neural_context_retriever = IdealNeuralContextRetriever(
                 1,
-                context_retriever_name_to_class[retrieval_heuristic](
-                    **retrieval_heuristic_inference_kwargs
-                ),
+                CombinedContextRetriever(1, retrievers),
                 ner_model,
                 batch_size,
                 dekker_dataset.tags,
-                inverted=invert_ideal_retriever,
             )
 
             for sents_nb_i, sents_nb in enumerate(sents_nb_list):
 
                 _run.log_scalar("gpu_usage", gpu_memory_usage())
 
+                neural_context_retriever.preliminary_ctx_selector.sents_nb = (
+                    sents_nb * len(retrievers)
+                )
                 neural_context_retriever.sents_nb = sents_nb
                 ctx_test_set = neural_context_retriever(test_set)
 
-                # save sentences retrieved by the oracle
-                sacred_archive_jsonifiable_as_file(
-                    _run,
-                    [sent.to_jsonifiable() for sent in ctx_test_set.sents()],
-                    f"run{run_i}.fold{fold_i}.{sents_nb}_sents.oracle_retrieval",
-                )
-
-                # scoring
                 test_preds = predict(ner_model, ctx_test_set).tags
                 precision, recall, f1 = score_ner(test_set.sents(), test_preds)
                 _run.log_scalar(
@@ -206,7 +169,7 @@ def main(
                 )
 
     # folds mean metrics
-    for fold_i in range(folds_nb):
+    for fold_i in range(k):
         for metrics_name, matrix in metrics_matrices:
             for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
                 sacred_log_series(

@@ -1,4 +1,5 @@
 from typing import Dict, List, Literal, Optional, Set
+import sys
 from dataclasses import dataclass, field
 
 import torch
@@ -86,8 +87,12 @@ def _get_batch_tags(
 
             try:
                 sent_tags[sent_index] = id2label[tag_index]
-            except IndexError:
-                breakpoint()
+            except IndexError as e:
+                print(e)
+                # interactive mode
+                if hasattr(sys, "ps1"):
+                    breakpoint()
+                continue
 
         batch_tags.append(sent_tags)
 
@@ -191,7 +196,13 @@ def _get_batch_scores(batch: BatchEncoding, logits: torch.Tensor) -> List[torch.
                 continue
 
             sent_index = word_index - len(ignored_words)
-            sent_scores[sent_index].append(scores[i][j])
+            try:
+                sent_scores[sent_index].append(scores[i][j])
+            except IndexError as e:
+                # TODO: rare bug
+                # we do nothing here since it is acceptable to have no
+                # score for a subtoken, as explained below
+                print(e)
 
         # reduce word scores to be the mean of the scores of the
         # subtokens composing them. The result is a list of tensors of

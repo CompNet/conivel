@@ -383,7 +383,7 @@ def bin_weighted_mse_loss(
 
 
 def pretrained_bert_for_token_classification(
-    model_str: str, tag_to_id: Dict[str, int]
+    model_str: str, tag_to_id: Dict[str, int], **kwargs
 ) -> BertForTokenClassification:
     """Load a :class:`BertForTokenClassification` model configured
     with the right number of classes.
@@ -396,7 +396,8 @@ def pretrained_bert_for_token_classification(
         num_labels=len(tag_to_id),
         label2id=tag_to_id,
         id2label={v: k for k, v in tag_to_id.items()},
-    )
+        **kwargs,
+    )  # type: ignore
 
 
 def replace_sent_entity(

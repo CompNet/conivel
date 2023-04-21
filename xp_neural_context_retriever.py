@@ -81,8 +81,11 @@ def config():
     # downsampling ratio for the examples that have no impact on
     # predictions
     ctx_retrieval_downsampling_ratio: float = 0.05
+    # score difference threshold needed to consider an example as
+    # positive / negative
+    ctx_retrieval_score_diff_threshold: float = 0.5
 
-    # --
+    # -- dataset
     # one of : 'dekker', 'ontonotes'
     dataset_name: str = "dekker"
     # if dataset_name == 'ontonotes
@@ -106,6 +109,7 @@ def main(
     ctx_retrieval_dropout: float,
     ctx_retrieval_train_gen_ratio: float,
     ctx_retrieval_downsampling_ratio: float,
+    ctx_retrieval_score_diff_threshold: float,
     dataset_name: Literal["dekker", "ontonotes"],
     dataset_path: Optional[str],
 ):
@@ -185,6 +189,7 @@ def main(
                     batch_size,
                     retrieval_heuristic,
                     retrieval_heuristic_gen_kwargs,
+                    ctx_retrieval_score_diff_threshold,
                     _run=_run,
                 )
                 # downsample the majority class (0) of the dataset
@@ -210,6 +215,7 @@ def main(
                         batch_size,
                         retrieval_heuristic,
                         {"sents_nb": 4},
+                        ctx_retrieval_score_diff_threshold,
                         _run=_run,
                     )
                 )

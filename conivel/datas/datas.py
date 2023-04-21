@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Dict, Literal, Set, Tuple, Union, Optional
+from typing import List, Dict, Literal, Set, Tuple, Union, Optional, Any
 from dataclasses import dataclass, field
 
 from itertools import chain
@@ -15,6 +15,8 @@ class NERSentence:
     tags: List[str] = field(default_factory=lambda: [])
     left_context: List[NERSentence] = field(default_factory=lambda: [])
     right_context: List[NERSentence] = field(default_factory=lambda: [])
+    #: custom debug attribute
+    _custom_annotations: Dict[str, Any] = field(default_factory=lambda: dict())
 
     def __len__(self) -> int:
         assert len(self.tokens) == len(self.tags)
@@ -25,6 +27,25 @@ class NERSentence:
         for sent in self.left_context + self.right_context:
             out_len += len(sent)
         return out_len
+
+    def to_jsonifiable(self) -> Dict[str, Any]:
+        return {
+            "tokens": self.tokens,
+            "tags": self.tags,
+            "left_context": [s.to_jsonifiable() for s in self.left_context],
+            "right_context": [s.to_jsonifiable() for s in self.right_context],
+            "_custom_annotations": self._custom_annotations,
+        }
+
+    @staticmethod
+    def from_jsonifiable(j: Dict[str, Any]) -> NERSentence:
+        return NERSentence(
+            j["tokens"],
+            j["tags"],
+            [NERSentence.from_jsonifiable(l) for l in j["left_context"]],
+            [NERSentence.from_jsonifiable(l) for l in j["right_context"]],
+            j["_custom_annotations"],
+        )
 
     def __repr__(self) -> str:
         rep = f"(tokens={self.tokens}, tags={self.tags}"
