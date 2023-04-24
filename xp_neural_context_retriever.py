@@ -1,4 +1,4 @@
-import os
+import os, random
 from typing import List, Literal, Optional, Tuple
 from sacred import Experiment
 from sacred.commands import print_config
@@ -6,24 +6,32 @@ from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 import torch
+from transformers import AutoTokenizer
+from tqdm import tqdm
 import numpy as np
-from sklearn.metrics import precision_recall_fscore_support, precision_recall_curve
-from FastChat.fastchat.serve.inference import load_model
+from sklearn.metrics import precision_recall_fscore_support
+from nltk.tokenize import word_tokenize
+from FastChat.fastchat.serve.inference import generate_stream, load_model
+from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.context import (
     ContextRetrievalDataset,
+    ContextRetrievalExample,
     NeuralContextRetriever,
 )
 from conivel.predict import predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
 from conivel.utils import (
+    NEREntity,
+    entities_from_bio_tags,
     RunLogScope,
     sacred_archive_huggingface_model,
     sacred_archive_jsonifiable_as_file,
     gpu_memory_usage,
     pretrained_bert_for_token_classification,
+    flattened,
 )
 
 
@@ -38,9 +46,166 @@ if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
     )
 
 
+def request_vicuna(vicuna, tokenizer, prompt: str) -> List[str]:
+    params = {
+        "model": "vicuna_v1.1",
+        "prompt": prompt,
+        "temperature": 1.0,
+        "max_new_tokens": 300,
+        "stop": None,
+    }
+    return list(generate_stream(vicuna, tokenizer, params, "cpu"))
+
+
+def generate_pos_example(
+    vicuna,
+    tokenizer,
+    sent: NERSentence,
+    entity: NEREntity,
+    prompt: Literal["description", "action"],
+) -> ContextRetrievalExample:
+
+    sent_text = " ".join(sent.tokens)
+    entity_text = " ".join(entity.tokens)
+
+    PROMPTS = {
+        "PER": [
+            f"'{sent_text}' - In the preceding sentence, {entity_text} is a character. Invent a one-sentence description for this character, mentioning their name.",
+            f"'{sent_text}' - In the preceding sentence, {entity_text} is a character. Invent a single sentence depicting this character performing an action, mentioning their name.",
+        ],
+        "LOC": [
+            f"'{sent_text}' - In the preceding sentence, {entity_text} is a location. Invent a one-sentence description for this location, mentioning its name.",
+            f"Invent a single sentence depicting a character going to {entity_text}.",
+        ],
+        "ORG": [
+            f"'{sent_text}' - In the preceding sentence, {entity_text} is an organisation. Invent a one-sentence description for this organisation, mentioning its name."
+        ],
+    }
+
+    example_text = request_vicuna(vicuna, tokenizer, random.choice(PROMPTS[entity.tag]))
+    return ContextRetrievalExample(
+        sent.tokens, sent.tags, word_tokenize(example_text), [], "right", 1
+    )
+
+
+def generate_pos_examples(
+    dataset: NERDataset, vicuna, tokenizer
+) -> List[ContextRetrievalExample]:
+
+    # { entity_str => ex }
+    exs = {}
+
+    print("starting alpaca.cpp...")
+
+    t = tqdm(dataset.sents())
+
+    for sent in t:
+
+        for entity in entities_from_bio_tags(sent.tokens, sent.tags):
+
+            entity_str = " ".join(entity.tokens)
+
+            if not entity_str in exs:
+                exs[entity_str] = generate_pos_example(
+                    vicuna, tokenizer, sent, entity, "description"
+                )
+
+            t.set_description(f"{len(exs)} examples")
+
+    return list(exs.values())
+
+
+def generate_neg_examples_negsampling(
+    dataset: NERDataset,
+) -> List[ContextRetrievalExample]:
+
+    # { entity_str => ex }
+    exs = {}
+
+    t = tqdm(enumerate(dataset.documents))
+    for doc_i, doc in t:
+
+        other_doc_sents = list(
+            flattened([d for i, d in enumerate(dataset.documents) if i != doc_i])
+        )
+
+        for sent in doc:
+
+            for entity in entities_from_bio_tags(sent.tokens, sent.tags):
+
+                entity_str = " ".join(entity.tokens)
+                if entity_str in exs:
+                    continue
+
+                other_sent = random.choice(other_doc_sents)
+                exs[entity_str] = ContextRetrievalExample(
+                    sent.tokens,
+                    sent.tags,
+                    other_sent.tokens,
+                    other_sent.tags,
+                    "right",
+                    0,
+                )
+                t.set_description(f"{len(exs)} examples")
+
+    return list(exs.values())
+
+
+def generate_neg_examples_othercontexts(
+    examples: List[ContextRetrievalExample],
+) -> List[ContextRetrievalExample]:
+    neg_examples = []
+
+    for ex in examples:
+
+        forbidden_entities = [
+            " ".join(e.tokens).lower()
+            for e in entities_from_bio_tags(ex.sent, ex.sent_tags)
+        ]
+
+        other_examples: List[ContextRetrievalExample] = []
+        for other_ex in examples:
+            other_ex_entities = entities_from_bio_tags(
+                other_ex.sent, other_ex.sent_tags
+            )
+            other_ex_entities = [
+                " ".join(ex_entity.tokens).lower() for ex_entity in other_ex_entities
+            ]
+            if any(
+                [
+                    ex_entity in forbidden_ent or forbidden_ent in ex_entity
+                    for ex_entity in other_ex_entities
+                    for forbidden_ent in forbidden_entities
+                ]
+            ):
+                continue
+            other_examples.append(other_ex)
+
+        oex = random.choice(other_examples)
+
+        neg_examples.append(
+            ContextRetrievalExample(
+                ex.sent, ex.sent_tags, oex.context, oex.sent_tags, "right", 0
+            )
+        )
+
+    return neg_examples
+
+
 def gen_cr_dataset(dataset: NERDataset) -> ContextRetrievalDataset:
-    llm_model = load_model("TheBloke/vicuna-13B-1.1-GPTQ-4bit-128g", "cpu", 0)
-    # TODO:
+    vicuna = load_model("TheBloke/vicuna-13B-1.1-GPTQ-4bit-128g", "cpu", 0)
+    tokenizer = AutoTokenizer.from_pretrained("TheBloke/vicuna-13B-1.1-GPTQ-4bit-128g")
+
+    # n
+    pos_exs = generate_pos_examples(dataset, vicuna, tokenizer)
+    # n
+    neg_exs = generate_neg_examples_negsampling(dataset)
+    # 2n
+    neg_exs += generate_neg_examples_othercontexts(pos_exs)
+    # balance dataset
+    neg_exs = random.choices(neg_exs, k=len(pos_exs))
+
+    return ContextRetrievalDataset(pos_exs + neg_exs)
 
 
 @ex.config
