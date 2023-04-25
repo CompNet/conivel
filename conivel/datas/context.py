@@ -12,13 +12,12 @@ from transformers.tokenization_utils_base import BatchEncoding
 from tqdm import tqdm
 from sklearn.metrics import precision_recall_fscore_support
 from rank_bm25 import BM25Okapi
+from more_itertools import flatten
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
 from conivel.utils import (
-    entities_from_bio_tags,
     flattened,
     get_tokenizer,
-    replace_sent_entity,
 )
 from conivel.predict import predict
 
@@ -404,74 +403,14 @@ class ContextRetrievalDataset(Dataset):
 
         return batch
 
-    def augmented(self) -> ContextRetrievalDataset:
-
-        # * all entities in self dataset
-        dataset_entities = flattened(
-            [
-                entities_from_bio_tags(
-                    ex.sent + ex.context, ex.sent_tags + ex.context_tags
-                )
-                for ex in self.examples
-            ]
+    @staticmethod
+    def concatenated(
+        datasets: List[ContextRetrievalDataset],
+    ) -> ContextRetrievalDataset:
+        assert len(datasets) > 0
+        return ContextRetrievalDataset(
+            list(flatten([d.examples for d in datasets])), datasets[0].tokenizer
         )
-        dataset_entities = [
-            " ".join(entity.tokens)
-            for entity in dataset_entities
-            if entity.tag == "PER"
-        ]
-
-        # * the elder scrolls entities
-        script_dir = os.path.abspath(os.path.dirname(__file__))
-        with open(f"{script_dir}/the_elder_scrolls_names.json") as f:
-            data = json.load(f)
-        tes_entities = [name for name in data["first_names"] + data["last_names"]]
-
-        dataset_names = set(dataset_entities + tes_entities)
-
-        # * augmentation
-        new_examples = []
-        for ex in self.examples:
-            # ** get all PER entities from original sent AND context
-            entities = entities_from_bio_tags(
-                ex.sent + ex.context, ex.sent_tags + ex.context_tags
-            )
-            entities = [ent for ent in entities if ent.tag == "PER"]
-            # ** get an unique name replacement for each entity
-            names_replacement = {
-                tuple(ent.tokens): random.sample(dataset_names, k=1)[0]
-                for ent in entities
-            }
-            # ** augment in original sentence
-            tokens, tags = (ex.sent, ex.sent_tags)
-            for entity in entities:
-                tokens, tags = replace_sent_entity(
-                    tokens,
-                    tags,
-                    entity.tokens,
-                    "PER",
-                    names_replacement[tuple(entity.tokens)].split(),
-                    "PER",
-                )
-            # ** augment in context sentence
-            ctx_tokens, ctx_tags = (ex.context, ex.context_tags)
-            for entity in entities:
-                ctx_tokens, ctx_tags = replace_sent_entity(
-                    ctx_tokens,
-                    ctx_tags,
-                    entity.tokens,
-                    "PER",
-                    names_replacement[tuple(entity.tokens)].split(),
-                    "PER",
-                )
-            # ** create new example
-            new_examples.append(
-                ContextRetrievalExample(
-                    tokens, tags, ctx_tokens, ctx_tags, ex.context_side, ex.usefulness
-                )
-            )
-
-        return ContextRetrievalDataset(new_examples)
 
     def to_jsonifiable(self) -> List[dict]:
         return [vars(example) for example in self.examples]

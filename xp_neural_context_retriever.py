@@ -190,9 +190,11 @@ def generate_neg_examples_othercontexts(
     return neg_examples
 
 
-def gen_cr_dataset(dataset: NERDataset) -> ContextRetrievalDataset:
-    tokenizer = AutoTokenizer.from_pretrained("chavinlo/gpt4-x-alpaca")
-    alpaca = AutoModelForCausalLM.from_pretrained("chavinlo/gpt4-x-alpaca")
+def gen_cr_dataset(
+    dataset: NERDataset, alpaca_model_str: str
+) -> ContextRetrievalDataset:
+    tokenizer = AutoTokenizer.from_pretrained(alpaca_model_str)
+    alpaca = AutoModelForCausalLM.from_pretrained(alpaca_model_str)
 
     # n
     pos_exs = generate_pos_examples(dataset, alpaca, tokenizer)
@@ -204,6 +206,25 @@ def gen_cr_dataset(dataset: NERDataset) -> ContextRetrievalDataset:
     neg_exs = random.choices(neg_exs, k=len(pos_exs))
 
     return ContextRetrievalDataset(pos_exs + neg_exs)
+
+
+def gen_cr_dataset_kfolds(
+    ner_kfolds: List[Tuple[NERDataset, NERDataset]], alpaca_model_str: str
+) -> List[Tuple[ContextRetrievalDataset, ContextRetrievalDataset]]:
+
+    test_cr_datasets = []
+    for _, test in ner_kfolds:
+        cr_dataset = gen_cr_dataset(test, alpaca_model_str)
+        test_cr_datasets.append(cr_dataset)
+
+    # for each test dataset, the train dataset for this fold is the
+    # concatenation of all other folds tests datasets
+    train_cr_datasets = [
+        ContextRetrievalDataset.concatenated([t for t in test_cr_datasets if t != test])
+        for test in test_cr_datasets
+    ]
+
+    return [(train, test) for train, test in zip(train_cr_datasets, test_cr_datasets)]
 
 
 @ex.config
@@ -223,6 +244,10 @@ def config():
     runs_nb: int
 
     # -- context retrieval parameters
+    # alpaca model used for generation
+    # 'chavinlo/alpaca-native'
+    # 'chavinlo/gpt4-x-alpaca'
+    cr_gen_alpaca_model: str = "chavinlo/gpt4-x-alpaca"
     # number of epochs for context retrieval training
     cr_epochs_nb: int = 3
     # learning rate for context retrieval training
@@ -243,6 +268,7 @@ def main(
     batch_size: int,
     save_models: bool,
     runs_nb: int,
+    cr_gen_alpaca_model: str,
     cr_epochs_nb: int,
     cr_lr: float,
     cr_dropout: float,
@@ -252,10 +278,12 @@ def main(
     print_config(_run)
 
     dataset = DekkerDataset()
-    kfolds = dataset.kfolds(
+    ner_kfolds = dataset.kfolds(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
-    folds_nb = len(kfolds)
+    folds_nb = len(ner_kfolds)
+
+    cr_kfolds = gen_cr_dataset_kfolds(ner_kfolds, cr_gen_alpaca_model)
 
     # * Metrics matrices
     #   each matrix is of shape (runs_nb, folds_nb, sents_nb)
@@ -277,21 +305,22 @@ def main(
 
     for run_i in range(runs_nb):
 
-        for fold_i, (train, test) in enumerate(kfolds):
+        for fold_i, ((ner_train, ner_test), (cr_train, cr_test)) in enumerate(
+            zip(ner_kfolds, cr_kfolds)
+        ):
 
             _run.log_scalar("gpu_usage", gpu_memory_usage())
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.cr_dataset_generation"):
 
-                cr_train_dataset = gen_cr_dataset(train)
                 sacred_archive_jsonifiable_as_file(
-                    _run, cr_train_dataset.to_jsonifiable(), "cr_train_dataset"
+                    _run, cr_train.to_jsonifiable(), "cr_train_dataset"
                 )
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.cr_model_training"):
 
                 neural_retriever_model = NeuralContextRetriever.train_context_selector(
-                    cr_train_dataset,
+                    cr_train,
                     cr_epochs_nb,
                     batch_size,
                     cr_lr,
@@ -313,15 +342,14 @@ def main(
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.cr_model_testing"):
 
-                cr_test_dataset = gen_cr_dataset(test)
                 sacred_archive_jsonifiable_as_file(
-                    _run, cr_test_dataset.to_jsonifiable(), "cr_test_dataset"
+                    _run, cr_test.to_jsonifiable(), "cr_test_dataset"
                 )
 
                 # (len(test_ctx_retrieval), 2)
-                raw_preds = neural_retriever.predict(cr_test_dataset)
+                raw_preds = neural_retriever.predict(cr_test)
                 preds = torch.argmax(raw_preds, dim=1).cpu()
-                labels = cr_test_dataset.labels()
+                labels = cr_test.labels()
                 assert not labels is None
 
                 # * Micro F1
@@ -338,9 +366,9 @@ def main(
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_training"):
 
-                train_and_ctx = neural_retriever(train, quiet=False)
+                train_and_ctx = neural_retriever(ner_train, quiet=False)
                 ner_model = pretrained_bert_for_token_classification(
-                    "bert-base-cased", train.tag_to_id
+                    "bert-base-cased", ner_train.tag_to_id
                 )
                 ner_model = train_ner_model(
                     ner_model,
@@ -357,9 +385,9 @@ def main(
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_testing"):
 
-                test_and_ctx = neural_retriever(test, quiet=False)
+                test_and_ctx = neural_retriever(ner_test, quiet=False)
                 preds = predict(ner_model, test_and_ctx, batch_size=batch_size).tags
-                precision, recall, f1 = score_ner(test.sents(), preds)
+                precision, recall, f1 = score_ner(ner_test.sents(), preds)
 
                 ner_precision_matrix[run_i][fold_i] = precision
                 ner_recall_matrix[run_i][fold_i] = recall
