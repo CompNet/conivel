@@ -1,4 +1,4 @@
-import os, random
+import os, random, sys
 from typing import List, Literal, Optional, Tuple
 from sacred import Experiment
 from sacred.commands import print_config
@@ -6,12 +6,11 @@ from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 import torch
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from tqdm import tqdm
 import numpy as np
 from sklearn.metrics import precision_recall_fscore_support
 from nltk.tokenize import word_tokenize
-from FastChat.fastchat.serve.inference import generate_stream, load_model
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
@@ -34,7 +33,6 @@ from conivel.utils import (
     flattened,
 )
 
-
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 ex = Experiment()
@@ -46,23 +44,27 @@ if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
     )
 
 
-def request_vicuna(vicuna, tokenizer, prompt: str) -> List[str]:
-    params = {
-        "model": "vicuna_v1.1",
-        "prompt": prompt,
-        "temperature": 1.0,
-        "max_new_tokens": 300,
-        "stop": None,
-    }
-    return list(generate_stream(vicuna, tokenizer, params, "cpu"))
+def request_alpaca(alpaca, tokenizer, prompt: str) -> List[str]:
+    prompt = f"""
+    ### Instruction:
+    {prompt}
+
+    ### Response:
+
+    """
+
+    t_prompt = tokenizer(prompt, return_tensors="pt").input_ids
+    out = alpaca.generate(
+        t_prompt, max_new_tokens=200, do_sample=True, top_k=50, top_p=0.95
+    )
+    return word_tokenize(tokenizer.batch_decode(out, skip_special_tokens=True)[0])
 
 
 def generate_pos_example(
-    vicuna,
+    alpaca,
     tokenizer,
     sent: NERSentence,
     entity: NEREntity,
-    prompt: Literal["description", "action"],
 ) -> ContextRetrievalExample:
 
     sent_text = " ".join(sent.tokens)
@@ -82,14 +84,12 @@ def generate_pos_example(
         ],
     }
 
-    example_text = request_vicuna(vicuna, tokenizer, random.choice(PROMPTS[entity.tag]))
-    return ContextRetrievalExample(
-        sent.tokens, sent.tags, word_tokenize(example_text), [], "right", 1
-    )
+    example_text = request_alpaca(alpaca, tokenizer, random.choice(PROMPTS[entity.tag]))
+    return ContextRetrievalExample(sent.tokens, sent.tags, example_text, [], "right", 1)
 
 
 def generate_pos_examples(
-    dataset: NERDataset, vicuna, tokenizer
+    dataset: NERDataset, alpaca, tokenizer
 ) -> List[ContextRetrievalExample]:
 
     # { entity_str => ex }
@@ -106,9 +106,7 @@ def generate_pos_examples(
             entity_str = " ".join(entity.tokens)
 
             if not entity_str in exs:
-                exs[entity_str] = generate_pos_example(
-                    vicuna, tokenizer, sent, entity, "description"
-                )
+                exs[entity_str] = generate_pos_example(alpaca, tokenizer, sent, entity)
 
             t.set_description(f"{len(exs)} examples")
 
@@ -193,11 +191,11 @@ def generate_neg_examples_othercontexts(
 
 
 def gen_cr_dataset(dataset: NERDataset) -> ContextRetrievalDataset:
-    vicuna = load_model("TheBloke/vicuna-13B-1.1-GPTQ-4bit-128g", "cpu", 0)
-    tokenizer = AutoTokenizer.from_pretrained("TheBloke/vicuna-13B-1.1-GPTQ-4bit-128g")
+    tokenizer = AutoTokenizer.from_pretrained("chavinlo/gpt4-x-alpaca")
+    alpaca = AutoModelForCausalLM.from_pretrained("chavinlo/gpt4-x-alpaca")
 
     # n
-    pos_exs = generate_pos_examples(dataset, vicuna, tokenizer)
+    pos_exs = generate_pos_examples(dataset, alpaca, tokenizer)
     # n
     neg_exs = generate_neg_examples_negsampling(dataset)
     # 2n
@@ -229,6 +227,8 @@ def config():
     cr_epochs_nb: int = 3
     # learning rate for context retrieval training
     cr_lr: float = 2e-5
+    # dropout for context retrieval training
+    cr_dropout: float = 0.1
 
     # -- NER parameters
     ner_epochs_nb: int = 2
