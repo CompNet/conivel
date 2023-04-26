@@ -209,13 +209,16 @@ def gen_cr_dataset(
 
 
 def gen_cr_dataset_kfolds(
-    ner_kfolds: List[Tuple[NERDataset, NERDataset]], alpaca_model_str: str
+    _run: Run, ner_kfolds: List[Tuple[NERDataset, NERDataset]], alpaca_model_str: str
 ) -> List[Tuple[ContextRetrievalDataset, ContextRetrievalDataset]]:
 
     test_cr_datasets = []
-    for _, test in ner_kfolds:
+    for fold_i, (_, test) in enumerate(ner_kfolds):
         cr_dataset = gen_cr_dataset(test, alpaca_model_str)
         test_cr_datasets.append(cr_dataset)
+        sacred_archive_jsonifiable_as_file(
+            _run, cr_dataset.to_jsonifiable(), f"fold{fold_i}.cr_test_dataset"
+        )
 
     # for each test dataset, the train dataset for this fold is the
     # concatenation of all other folds tests datasets
@@ -223,6 +226,10 @@ def gen_cr_dataset_kfolds(
         ContextRetrievalDataset.concatenated([t for t in test_cr_datasets if t != test])
         for test in test_cr_datasets
     ]
+    for fold_i, train in enumerate(train_cr_datasets):
+        sacred_archive_jsonifiable_as_file(
+            _run, train.to_jsonifiable(), f"fold{fold_i}.cr_train_dataset"
+        )
 
     return [(train, test) for train, test in zip(train_cr_datasets, test_cr_datasets)]
 
@@ -283,7 +290,7 @@ def main(
     )
     folds_nb = len(ner_kfolds)
 
-    cr_kfolds = gen_cr_dataset_kfolds(ner_kfolds, cr_gen_alpaca_model)
+    cr_kfolds = gen_cr_dataset_kfolds(_run, ner_kfolds, cr_gen_alpaca_model)
 
     # * Metrics matrices
     #   each matrix is of shape (runs_nb, folds_nb, sents_nb)
