@@ -343,10 +343,6 @@ def main(
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.cr_model_testing"):
 
-                sacred_archive_jsonifiable_as_file(
-                    _run, cr_test.to_jsonifiable(), "cr_test_dataset"
-                )
-
                 # (len(test_ctx_retrieval), 2)
                 raw_preds = neural_retriever.predict(cr_test)
                 preds = torch.argmax(raw_preds, dim=1).cpu()
