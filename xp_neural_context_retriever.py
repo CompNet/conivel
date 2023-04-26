@@ -318,12 +318,6 @@ def main(
 
             _run.log_scalar("gpu_usage", gpu_memory_usage())
 
-            with RunLogScope(_run, f"run{run_i}.fold{fold_i}.cr_dataset_generation"):
-
-                sacred_archive_jsonifiable_as_file(
-                    _run, cr_train.to_jsonifiable(), "cr_train_dataset"
-                )
-
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.cr_model_training"):
 
                 neural_retriever_model = NeuralContextRetriever.train_context_selector(
