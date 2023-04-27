@@ -196,7 +196,7 @@ def gen_cr_dataset(
     dataset: NERDataset, alpaca_model_str: str, device_str: Literal["cpu", "cuda"]
 ) -> ContextRetrievalDataset:
     device = torch.device(device_str)
-    tokenizer = AutoTokenizer.from_pretrained(alpaca_model_str).to(device)
+    tokenizer = AutoTokenizer.from_pretrained(alpaca_model_str)
     alpaca = AutoModelForCausalLM.from_pretrained(alpaca_model_str).to(device)
 
     # n
