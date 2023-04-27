@@ -44,10 +44,14 @@ if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
     )
 
 
-def request_alpaca(alpaca, tokenizer, prompt: str) -> List[str]:
+def request_alpaca(
+    alpaca, tokenizer, prompt: str, device_str: Literal["cpu", "cuda"]
+) -> List[str]:
+    device = torch.device(device_str)
+
     prompt = f"### Instruction:\n{prompt}\n\n### Response:\n"
 
-    t_prompt = tokenizer(prompt, return_tensors="pt").input_ids
+    t_prompt = tokenizer(prompt, return_tensors="pt").input_ids.to(device)
     out = alpaca.generate(
         t_prompt, max_new_tokens=200, do_sample=True, top_k=50, top_p=0.95
     )
@@ -67,6 +71,7 @@ def generate_pos_example(
     tokenizer,
     sent: NERSentence,
     entity: NEREntity,
+    device: Literal["cpu", "cuda"],
 ) -> ContextRetrievalExample:
 
     sent_text = " ".join(sent.tokens)
@@ -86,12 +91,14 @@ def generate_pos_example(
         ],
     }
 
-    example_text = request_alpaca(alpaca, tokenizer, random.choice(PROMPTS[entity.tag]))
+    example_text = request_alpaca(
+        alpaca, tokenizer, random.choice(PROMPTS[entity.tag]), device
+    )
     return ContextRetrievalExample(sent.tokens, sent.tags, example_text, [], "right", 1)
 
 
 def generate_pos_examples(
-    dataset: NERDataset, alpaca, tokenizer
+    dataset: NERDataset, alpaca, tokenizer, device: Literal["cpu", "cuda"]
 ) -> List[ContextRetrievalExample]:
 
     # { entity_str => ex }
@@ -108,7 +115,9 @@ def generate_pos_examples(
             entity_str = " ".join(entity.tokens)
 
             if not entity_str in exs:
-                exs[entity_str] = generate_pos_example(alpaca, tokenizer, sent, entity)
+                exs[entity_str] = generate_pos_example(
+                    alpaca, tokenizer, sent, entity, device
+                )
 
             t.set_description(f"{len(exs)} examples")
 
@@ -200,7 +209,7 @@ def gen_cr_dataset(
     alpaca = AutoModelForCausalLM.from_pretrained(alpaca_model_str).to(device)
 
     # n
-    pos_exs = generate_pos_examples(dataset, alpaca, tokenizer)
+    pos_exs = generate_pos_examples(dataset, alpaca, tokenizer, device_str)
     # n
     neg_exs = generate_neg_examples_negsampling(dataset)
     # 2n
