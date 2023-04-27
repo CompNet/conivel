@@ -45,19 +45,21 @@ if os.path.isfile(f"{script_dir}/telegram_observer_config.json"):
 
 
 def request_alpaca(alpaca, tokenizer, prompt: str) -> List[str]:
-    prompt = f"""
-    ### Instruction:
-    {prompt}
-
-    ### Response:
-
-    """
+    prompt = f"### Instruction:\n{prompt}\n\n### Response:\n"
 
     t_prompt = tokenizer(prompt, return_tensors="pt").input_ids
     out = alpaca.generate(
         t_prompt, max_new_tokens=200, do_sample=True, top_k=50, top_p=0.95
     )
-    return word_tokenize(tokenizer.batch_decode(out, skip_special_tokens=True)[0])
+
+    out_text = tokenizer.batch_decode(out, skip_special_tokens=True)[0]
+    try:
+        marker = "### Response:\n"
+        out_text = out_text[out_text.index(marker) + len(marker) :]
+    except ValueError as e:
+        print(e)
+
+    return word_tokenize(out_text)
 
 
 def generate_pos_example(
