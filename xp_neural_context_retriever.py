@@ -193,10 +193,11 @@ def generate_neg_examples_othercontexts(
 
 
 def gen_cr_dataset(
-    dataset: NERDataset, alpaca_model_str: str
+    dataset: NERDataset, alpaca_model_str: str, device_str: Literal["cpu", "cuda"]
 ) -> ContextRetrievalDataset:
-    tokenizer = AutoTokenizer.from_pretrained(alpaca_model_str)
-    alpaca = AutoModelForCausalLM.from_pretrained(alpaca_model_str)
+    device = torch.device(device_str)
+    tokenizer = AutoTokenizer.from_pretrained(alpaca_model_str).to(device)
+    alpaca = AutoModelForCausalLM.from_pretrained(alpaca_model_str).to(device)
 
     # n
     pos_exs = generate_pos_examples(dataset, alpaca, tokenizer)
@@ -211,12 +212,15 @@ def gen_cr_dataset(
 
 
 def gen_cr_dataset_kfolds(
-    _run: Run, ner_kfolds: List[Tuple[NERDataset, NERDataset]], alpaca_model_str: str
+    _run: Run,
+    ner_kfolds: List[Tuple[NERDataset, NERDataset]],
+    alpaca_model_str: str,
+    device: Literal["cpu", "cuda"],
 ) -> List[Tuple[ContextRetrievalDataset, ContextRetrievalDataset]]:
 
     test_cr_datasets = []
     for fold_i, (_, test) in enumerate(ner_kfolds):
-        cr_dataset = gen_cr_dataset(test, alpaca_model_str)
+        cr_dataset = gen_cr_dataset(test, alpaca_model_str, device)
         test_cr_datasets.append(cr_dataset)
         sacred_archive_jsonifiable_as_file(
             _run, cr_dataset.to_jsonifiable(), f"fold{fold_i}.cr_test_dataset"
@@ -257,6 +261,8 @@ def config():
     # 'chavinlo/alpaca-native'
     # 'chavinlo/gpt4-x-alpaca'
     cr_gen_alpaca_model: str = "chavinlo/gpt4-x-alpaca"
+    # device to use when generating examples - either 'cpu' or 'cuda'
+    cr_gen_device: str = "cpu"
     # number of epochs for context retrieval training
     cr_epochs_nb: int = 3
     # learning rate for context retrieval training
@@ -278,6 +284,7 @@ def main(
     save_models: bool,
     runs_nb: int,
     cr_gen_alpaca_model: str,
+    cr_gen_device: Literal["cpu", "cuda"],
     cr_epochs_nb: int,
     cr_lr: float,
     cr_dropout: float,
@@ -292,7 +299,9 @@ def main(
     )
     folds_nb = len(ner_kfolds)
 
-    cr_kfolds = gen_cr_dataset_kfolds(_run, ner_kfolds, cr_gen_alpaca_model)
+    cr_kfolds = gen_cr_dataset_kfolds(
+        _run, ner_kfolds, cr_gen_alpaca_model, cr_gen_device
+    )
 
     # * Metrics matrices
     #   each matrix is of shape (runs_nb, folds_nb, sents_nb)
