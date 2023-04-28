@@ -80,11 +80,11 @@ def generate_pos_example(
     PROMPTS = {
         "PER": [
             f"'{sent_text}' - In the preceding sentence, {entity_text} is a character. Invent a one-sentence description for this character, mentioning their name.",
-            f"'{sent_text}' - In the preceding sentence, {entity_text} is a character. Invent a single sentence depicting this character performing an action, mentioning their name.",
+            f"Invent a single sentence depicting the character '{entity_text}' performing an action, mentioning their name.",
         ],
         "LOC": [
             f"'{sent_text}' - In the preceding sentence, {entity_text} is a location. Invent a one-sentence description for this location, mentioning its name.",
-            f"Invent a single sentence depicting a character going to {entity_text}.",
+            f"Invent a single sentence depicting a character of your invention going to Temple of Fortunate Waters. You must mention the name of the character.",
         ],
         "ORG": [
             f"'{sent_text}' - In the preceding sentence, {entity_text} is an organisation. Invent a one-sentence description for this organisation, mentioning its name."
