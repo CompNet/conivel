@@ -18,6 +18,7 @@ from conivel.datas.context import (
     ContextRetrievalDataset,
     ContextRetrievalExample,
     NeuralContextRetriever,
+    RandomContextRetriever,
 )
 from conivel.predict import predict
 from conivel.score import score_ner
@@ -73,7 +74,6 @@ def generate_pos_example(
     entity: NEREntity,
     device: Literal["cpu", "cuda"],
 ) -> ContextRetrievalExample:
-
     sent_text = " ".join(sent.tokens)
     entity_text = " ".join(entity.tokens)
 
@@ -100,7 +100,6 @@ def generate_pos_example(
 def generate_pos_examples(
     dataset: NERDataset, alpaca, tokenizer, device: Literal["cpu", "cuda"]
 ) -> List[ContextRetrievalExample]:
-
     # { entity_str => ex }
     exs = {}
 
@@ -109,9 +108,7 @@ def generate_pos_examples(
     t = tqdm(dataset.sents())
 
     for sent in t:
-
         for entity in entities_from_bio_tags(sent.tokens, sent.tags):
-
             entity_str = " ".join(entity.tokens)
 
             if not entity_str in exs:
@@ -127,21 +124,17 @@ def generate_pos_examples(
 def generate_neg_examples_negsampling(
     dataset: NERDataset,
 ) -> List[ContextRetrievalExample]:
-
     # { entity_str => ex }
     exs = {}
 
     t = tqdm(enumerate(dataset.documents))
     for doc_i, doc in t:
-
         other_doc_sents = list(
             flattened([d for i, d in enumerate(dataset.documents) if i != doc_i])
         )
 
         for sent in doc:
-
             for entity in entities_from_bio_tags(sent.tokens, sent.tags):
-
                 entity_str = " ".join(entity.tokens)
                 if entity_str in exs:
                     continue
@@ -166,7 +159,6 @@ def generate_neg_examples_othercontexts(
     neg_examples = []
 
     for ex in examples:
-
         forbidden_entities = [
             " ".join(e.tokens).lower()
             for e in entities_from_bio_tags(ex.sent, ex.sent_tags)
@@ -226,7 +218,6 @@ def gen_cr_dataset_kfolds(
     alpaca_model_str: str,
     device: Literal["cpu", "cuda"],
 ) -> List[Tuple[ContextRetrievalDataset, ContextRetrievalDataset]]:
-
     test_cr_datasets = []
     for fold_i, (_, test) in enumerate(ner_kfolds):
         cr_dataset = gen_cr_dataset(test, alpaca_model_str, device)
@@ -331,15 +322,12 @@ def main(
     ]
 
     for run_i in range(runs_nb):
-
         for fold_i, ((ner_train, ner_test), (cr_train, cr_test)) in enumerate(
             zip(ner_kfolds, cr_kfolds)
         ):
-
             _run.log_scalar("gpu_usage", gpu_memory_usage())
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.cr_model_training"):
-
                 neural_retriever_model = NeuralContextRetriever.train_context_selector(
                     cr_train,
                     cr_epochs_nb,
@@ -362,7 +350,6 @@ def main(
                     )
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.cr_model_testing"):
-
                 # (len(test_ctx_retrieval), 2)
                 raw_preds = neural_retriever.predict(cr_test)
                 preds = torch.argmax(raw_preds, dim=1).cpu()
@@ -382,8 +369,10 @@ def main(
                 _run.log_scalar(f"f1", f1)
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_training"):
-
-                train_and_ctx = neural_retriever(ner_train, quiet=False)
+                # train_and_ctx = neural_retriever(ner_train, quiet=False)
+                # Use random heuristic at train time
+                random_retriever = RandomContextRetriever(1)
+                train_and_ctx = random_retriever(ner_train, quiet=False)
                 ner_model = pretrained_bert_for_token_classification(
                     "bert-base-cased", ner_train.tag_to_id
                 )
@@ -401,8 +390,12 @@ def main(
                     sacred_archive_huggingface_model(_run, ner_model, f"ner_model")
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_testing"):
-
                 test_and_ctx = neural_retriever(ner_test, quiet=False)
+                sacred_archive_jsonifiable_as_file(
+                    _run,
+                    [s.to_jsonifiable() for s in test_and_ctx.sents()],
+                    "retrieved_dataset",
+                )
                 preds = predict(ner_model, test_and_ctx, batch_size=batch_size).tags
                 precision, recall, f1 = score_ner(ner_test.sents(), preds)
 
