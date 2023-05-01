@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Literal, Optional, Set, Type, Union, cast
+from typing import Any, Dict, Generator, List, Literal, Optional, Set, Type, Union, cast
 import random, json, os
 from dataclasses import dataclass, field
 import nltk
@@ -82,6 +82,55 @@ class ContextRetriever:
                 )
             new_docs.append(new_doc)
         return NERDataset(new_docs, tags=dataset.tags, tokenizer=dataset.tokenizer)
+
+    def dataset_with_contexts(
+        self, dataset: NERDataset, sents_nb_list: List[int], quiet: bool = True
+    ) -> Generator[NERDataset, None, None]:
+        """
+        retrieve context for each sentence of the given
+        :class:`NERDataset`.  Yield a dataset with ``k`` context
+        sentences for each integer of ``sents_nb_list``.  Notably,
+        this function only retrieve context once (for
+        ``max(sents_nb_list)``) for optimisation purposes.
+
+        .. note::
+
+            ``self.sents_nb`` must be equal to ``sents_nb_list``
+
+        :param dataset:
+        :param sents_nb_list:
+        :param quiet:
+        """
+        assert self.sents_nb == max(sents_nb_list)
+
+        matchs: List[List[List[ContextRetrievalMatch]]] = []
+        for doc in tqdm(dataset.documents, disable=quiet):
+            doc_matchs = []
+            for sent_i, sent in enumerate(doc):
+                doc_matchs.append(self.retrieve(sent_i, doc))
+            matchs.append(doc_matchs)
+
+        for sents_nb in sorted(sents_nb_list):
+            docs = []
+            for doc, doc_matchs in zip(dataset.documents, matchs):
+                sents = []
+                for sent, sent_matchs in zip(doc, doc_matchs):
+                    l_ctx = [
+                        m.sentence for m in sent_matchs[:sents_nb] if m.side == "left"
+                    ]
+                    r_ctx = [
+                        m.sentence for m in sent_matchs[:sents_nb] if m.side == "right"
+                    ]
+                    sent_with_ctx = NERSentence(
+                        sent.tokens,
+                        sent.tags,
+                        left_context=l_ctx,
+                        right_context=r_ctx,
+                        _custom_annotations={"matchs": sent_matchs[:sents_nb]},
+                    )
+                    sents.append(sent_with_ctx)
+                docs.append(sents)
+            yield NERDataset(docs, dataset.tags, dataset.tokenizer)
 
     def retrieve(
         self, sent_idx: int, document: List[NERSentence]

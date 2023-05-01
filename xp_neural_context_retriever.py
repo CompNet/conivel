@@ -29,6 +29,7 @@ from conivel.utils import (
     RunLogScope,
     sacred_archive_huggingface_model,
     sacred_archive_jsonifiable_as_file,
+    sacred_log_series,
     gpu_memory_usage,
     pretrained_bert_for_token_classification,
     flattened,
@@ -269,6 +270,8 @@ def config():
     cr_lr: float = 2e-5
     # dropout for context retrieval training
     cr_dropout: float = 0.1
+    # sents_nb to test for
+    cr_sents_nb_list: list = [1]
 
     # -- NER parameters
     ner_epochs_nb: int = 2
@@ -288,10 +291,13 @@ def main(
     cr_epochs_nb: int,
     cr_lr: float,
     cr_dropout: float,
+    cr_sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
 ):
     print_config(_run)
+
+    cr_sents_nb_list = sorted(cr_sents_nb_list)
 
     dataset = DekkerDataset()
     ner_kfolds = dataset.kfolds(
@@ -304,18 +310,20 @@ def main(
     )
 
     # * Metrics matrices
-    #   each matrix is of shape (runs_nb, folds_nb, sents_nb)
     #   these are used to record mean metrics across folds, runs...
     cr_precision_matrix = np.zeros((runs_nb, folds_nb))
     cr_recall_matrix = np.zeros((runs_nb, folds_nb))
     cr_f1_matrix = np.zeros((runs_nb, folds_nb))
-    ner_precision_matrix = np.zeros((runs_nb, folds_nb))
-    ner_recall_matrix = np.zeros((runs_nb, folds_nb))
-    ner_f1_matrix = np.zeros((runs_nb, folds_nb))
     metrics_matrices: List[Tuple[str, np.ndarray]] = [
         ("cr_precision", cr_precision_matrix),
         ("cr_recall", cr_recall_matrix),
         ("cr_f1", cr_f1_matrix),
+    ]
+
+    ner_precision_matrix = np.zeros((runs_nb, folds_nb, len(cr_sents_nb_list)))
+    ner_recall_matrix = np.zeros((runs_nb, folds_nb, len(cr_sents_nb_list)))
+    ner_f1_matrix = np.zeros((runs_nb, folds_nb, len(cr_sents_nb_list)))
+    sents_nb_metrics_matrices: List[Tuple[str, np.ndarray]] = [
         ("ner_precision", ner_precision_matrix),
         ("ner_recall", ner_recall_matrix),
         ("ner_f1", ner_f1_matrix),
@@ -342,7 +350,7 @@ def main(
                     "all",
                     {"sents_nb": 1},  # WARNING: ignored
                     batch_size,
-                    1,
+                    max(cr_sents_nb_list),
                 )
                 if save_models:
                     sacred_archive_huggingface_model(
@@ -385,26 +393,31 @@ def main(
                     batch_size=batch_size,
                     learning_rate=ner_lr,
                 )
-
                 if save_models:
                     sacred_archive_huggingface_model(_run, ner_model, f"ner_model")
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_testing"):
-                test_and_ctx = neural_retriever(ner_test, quiet=False)
-                sacred_archive_jsonifiable_as_file(
-                    _run,
-                    [s.to_jsonifiable() for s in test_and_ctx.sents()],
-                    "retrieved_dataset",
-                )
-                preds = predict(ner_model, test_and_ctx, batch_size=batch_size).tags
-                precision, recall, f1 = score_ner(ner_test.sents(), preds)
 
-                ner_precision_matrix[run_i][fold_i] = precision
-                ner_recall_matrix[run_i][fold_i] = recall
-                ner_f1_matrix[run_i][fold_i] = f1
-                _run.log_scalar("precision", precision)
-                _run.log_scalar(f"recall", recall)
-                _run.log_scalar(f"f1", f1)
+                for sents_nb, test_and_ctx in zip(
+                    cr_sents_nb_list,
+                    neural_retriever.dataset_with_contexts(
+                        ner_test, cr_sents_nb_list, quiet=False
+                    ),
+                ):
+                    sacred_archive_jsonifiable_as_file(
+                        _run,
+                        [s.to_jsonifiable() for s in test_and_ctx.sents()],
+                        "retrieved_dataset",
+                    )
+                    preds = predict(ner_model, test_and_ctx, batch_size=batch_size).tags
+                    precision, recall, f1 = score_ner(ner_test.sents(), preds)
+
+                    ner_precision_matrix[run_i][fold_i][sents_nb] = precision
+                    ner_recall_matrix[run_i][fold_i][sents_nb] = recall
+                    ner_f1_matrix[run_i][fold_i][sents_nb] = f1
+                    _run.log_scalar("precision", precision)
+                    _run.log_scalar(f"recall", recall)
+                    _run.log_scalar(f"f1", f1)
 
         # * Run mean metrics
         for metrics_name, matrix in metrics_matrices:
@@ -412,6 +425,15 @@ def main(
                 _run.log_scalar(
                     f"run{run_i}.{op_name}_test_{metrics_name}",
                     op(matrix[run_i], axis=0),
+                )
+
+        for metrics_name, matrix in sents_nb_metrics_matrices:
+            for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
+                sacred_log_series(
+                    _run,
+                    f"run{run_i}.{op_name}_test_{metrics_name}",
+                    op(matrix[run_i], axis=0),
+                    steps=cr_sents_nb_list,
                 )
 
     # * Folds mean metrics
@@ -423,10 +445,29 @@ def main(
                     op(matrix[:, fold_i], axis=0),
                 )
 
+    for fold_i in range(folds_nb):
+        for metrics_name, matrix in sents_nb_metrics_matrices:
+            for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
+                sacred_log_series(
+                    _run,
+                    f"fold{fold_i}.{op_name}_test_{metrics_name}",
+                    op(matrix[:, fold_i, :], axis=0),
+                    steps=cr_sents_nb_list,
+                )
+
     # * Global mean metrics
     for name, matrix in metrics_matrices:
         for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
             _run.log_scalar(
                 f"{op_name}_test_{name}",
                 op(matrix, axis=(0, 1)),
+            )
+
+    for name, matrix in sents_nb_metrics_matrices:
+        for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
+            sacred_log_series(
+                _run,
+                f"{op_name}_test_{name}",
+                op(matrix, axis=(0, 1)),
+                steps=cr_sents_nb_list,
             )
