@@ -126,7 +126,11 @@ class ContextRetriever:
                         sent.tags,
                         left_context=l_ctx,
                         right_context=r_ctx,
-                        _custom_annotations={"matchs": sent_matchs[:sents_nb]},
+                        _custom_annotations={
+                            "matchs": [
+                                m.to_jsonifiable() for m in sent_matchs[:sents_nb]
+                            ]
+                        },
                     )
                     sents.append(sent_with_ctx)
                 docs.append(sents)
