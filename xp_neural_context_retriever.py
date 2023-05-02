@@ -1,4 +1,4 @@
-import os, random, sys
+import os, random, json
 from typing import List, Literal, Optional, Tuple
 from sacred import Experiment
 from sacred.commands import print_config
@@ -241,6 +241,12 @@ def gen_cr_dataset_kfolds(
     return [(train, test) for train, test in zip(train_cr_datasets, test_cr_datasets)]
 
 
+def cr_dataset_from_path(path: str) -> ContextRetrievalDataset:
+    with open(path) as f:
+        data = json.load(f)
+    return ContextRetrievalDataset([ContextRetrievalExample(**ex) for ex in data])
+
+
 @ex.config
 def config():
     # -- datas parameters
@@ -264,6 +270,10 @@ def config():
     cr_gen_alpaca_model: str = "chavinlo/gpt4-x-alpaca"
     # device to use when generating examples - either 'cpu' or 'cuda'
     cr_gen_device: str = "cpu"
+    # if specified, examples will be taken from these datasets and
+    # wont be generated
+    cr_train_dataset_paths: Optional[List[str]] = None
+    cr_test_dataset_paths: Optional[List[str]] = None
     # number of epochs for context retrieval training
     cr_epochs_nb: int = 3
     # learning rate for context retrieval training
@@ -292,6 +302,8 @@ def main(
     runs_nb: int,
     cr_gen_alpaca_model: str,
     cr_gen_device: Literal["cpu", "cuda"],
+    cr_train_dataset_paths: Optional[List[str]],
+    cr_test_dataset_paths: Optional[List[str]],
     cr_epochs_nb: int,
     cr_lr: float,
     cr_dropout: float,
@@ -311,9 +323,18 @@ def main(
     )
     folds_nb = len(ner_kfolds)
 
-    cr_kfolds = gen_cr_dataset_kfolds(
-        _run, ner_kfolds, cr_gen_alpaca_model, cr_gen_device
-    )
+    if not cr_train_dataset_paths is None:
+        cr_kfolds = gen_cr_dataset_kfolds(
+            _run, ner_kfolds, cr_gen_alpaca_model, cr_gen_device
+        )
+    else:
+        assert not cr_train_dataset_paths is None
+        assert not cr_test_dataset_paths is None
+        cr_kfolds = []
+        for train_path, test_path in zip(cr_train_dataset_paths, cr_test_dataset_paths):
+            cr_kfolds.append(
+                (cr_dataset_from_path(train_path), cr_dataset_from_path(test_path))
+            )
 
     # * Metrics matrices
     #   these are used to record mean metrics across folds, runs...
