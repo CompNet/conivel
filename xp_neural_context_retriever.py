@@ -323,7 +323,7 @@ def main(
     )
     folds_nb = len(ner_kfolds)
 
-    if not cr_train_dataset_paths is None:
+    if cr_train_dataset_paths is None:
         cr_kfolds = gen_cr_dataset_kfolds(
             _run, ner_kfolds, cr_gen_alpaca_model, cr_gen_device
         )
