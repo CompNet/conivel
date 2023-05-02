@@ -272,8 +272,8 @@ def config():
     cr_gen_device: str = "cpu"
     # if specified, examples will be taken from these datasets and
     # wont be generated
-    cr_train_dataset_paths: Optional[List[str]] = None
-    cr_test_dataset_paths: Optional[List[str]] = None
+    cr_train_dataset_paths = None
+    cr_test_dataset_paths = None
     # number of epochs for context retrieval training
     cr_epochs_nb: int = 3
     # learning rate for context retrieval training
