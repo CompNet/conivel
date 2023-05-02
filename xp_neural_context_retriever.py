@@ -272,6 +272,10 @@ def config():
     cr_dropout: float = 0.1
     # sents_nb to test for
     cr_sents_nb_list: list = [1]
+    # context retrieval heuristic, applied before the neural retriever
+    cr_heuristic: str
+    # kwargs for the context retrieval heuristic
+    cr_heuristic_kwargs: dict
 
     # -- NER parameters
     ner_epochs_nb: int = 2
@@ -292,6 +296,8 @@ def main(
     cr_lr: float,
     cr_dropout: float,
     cr_sents_nb_list: List[int],
+    cr_heuristic: str,
+    cr_heuristic_kwargs: dict,
     ner_epochs_nb: int,
     ner_lr: float,
 ):
@@ -347,8 +353,8 @@ def main(
                 )
                 neural_retriever = NeuralContextRetriever(
                     neural_retriever_model,
-                    "all",
-                    {"sents_nb": 1},  # WARNING: ignored
+                    cr_heuristic,
+                    cr_heuristic_kwargs,
                     batch_size,
                     max(cr_sents_nb_list),
                 )
