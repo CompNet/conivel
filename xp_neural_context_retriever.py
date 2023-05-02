@@ -398,11 +398,13 @@ def main(
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_testing"):
 
-                for sents_nb, test_and_ctx in zip(
-                    cr_sents_nb_list,
-                    neural_retriever.dataset_with_contexts(
-                        ner_test, cr_sents_nb_list, quiet=False
-                    ),
+                for sents_nb_i, (sents_nb, test_and_ctx) in enumerate(
+                    zip(
+                        cr_sents_nb_list,
+                        neural_retriever.dataset_with_contexts(
+                            ner_test, cr_sents_nb_list, quiet=False
+                        ),
+                    )
                 ):
                     sacred_archive_jsonifiable_as_file(
                         _run,
@@ -412,9 +414,9 @@ def main(
                     preds = predict(ner_model, test_and_ctx, batch_size=batch_size).tags
                     precision, recall, f1 = score_ner(ner_test.sents(), preds)
 
-                    ner_precision_matrix[run_i][fold_i][sents_nb] = precision
-                    ner_recall_matrix[run_i][fold_i][sents_nb] = recall
-                    ner_f1_matrix[run_i][fold_i][sents_nb] = f1
+                    ner_precision_matrix[run_i][fold_i][sents_nb_i] = precision
+                    ner_recall_matrix[run_i][fold_i][sents_nb_i] = recall
+                    ner_f1_matrix[run_i][fold_i][sents_nb_i] = f1
                     _run.log_scalar("precision", precision)
                     _run.log_scalar(f"recall", recall)
                     _run.log_scalar(f"f1", f1)
