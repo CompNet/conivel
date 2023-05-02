@@ -8,7 +8,7 @@ from sacred.utils import apply_backspaces_and_linefeeds
 import numpy as np
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.context import (
-    IdealNeuralContextRetriever,
+    OracleNeuralContextRetriever,
     context_retriever_name_to_class,
 )
 from conivel.predict import predict
@@ -63,8 +63,8 @@ def config():
     # parameters for the retrieval heuristic used at inference time
     retrieval_heuristic_inference_kwargs: dict
 
-    # -- ideal retriever
-    invert_ideal_retriever: bool = False
+    # -- oracle retriever
+    invert_oracle_retriever: bool = False
 
     # -- NER training parameters
     # list of number of sents to test
@@ -90,7 +90,7 @@ def main(
     runs_nb: int,
     retrieval_heuristic: str,
     retrieval_heuristic_inference_kwargs: dict,
-    invert_ideal_retriever: bool,
+    invert_oracle_retriever: bool,
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
@@ -156,7 +156,7 @@ def main(
                 if save_models:
                     sacred_archive_huggingface_model(_run, ner_model, "ner_model")  # type: ignore
 
-            neural_context_retriever = IdealNeuralContextRetriever(
+            neural_context_retriever = OracleNeuralContextRetriever(
                 1,
                 context_retriever_name_to_class[retrieval_heuristic](
                     **retrieval_heuristic_inference_kwargs
@@ -164,7 +164,7 @@ def main(
                 ner_model,
                 batch_size,
                 dekker_dataset.tags,
-                inverted=invert_ideal_retriever,
+                inverted=invert_oracle_retriever,
             )
 
             for sents_nb_i, sents_nb in enumerate(sents_nb_list):

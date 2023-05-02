@@ -8,7 +8,7 @@ from sacred.utils import apply_backspaces_and_linefeeds
 import numpy as np
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.context import (
-    IdealNeuralContextRetriever,
+    OracleNeuralContextRetriever,
     context_retriever_name_to_class,
     CombinedContextRetriever,
 )
@@ -127,7 +127,7 @@ def main(
                 if save_models:
                     sacred_archive_huggingface_model(_run, ner_model, "ner_model")  # type: ignore
 
-            neural_context_retriever = IdealNeuralContextRetriever(
+            neural_context_retriever = OracleNeuralContextRetriever(
                 1,
                 CombinedContextRetriever(1, retrievers),
                 ner_model,

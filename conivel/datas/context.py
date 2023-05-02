@@ -792,7 +792,7 @@ class CombinedContextRetriever(ContextRetriever):
         return matchs[:sents_nb]
 
 
-class IdealNeuralContextRetriever(ContextRetriever):
+class OracleNeuralContextRetriever(ContextRetriever):
     """
     A context retriever that always return the ``sents_nb`` most
     helpful contexts retrieved by its ``preliminary_ctx_selector``

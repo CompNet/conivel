@@ -4,7 +4,7 @@ from tqdm import tqdm
 from conivel.datas.context import (
     SameNounRetriever,
     BM25ContextRetriever,
-    IdealNeuralContextRetriever,
+    OracleNeuralContextRetriever,
 )
 from conivel.datas.dekker import DekkerDataset
 from conivel.utils import pretrained_bert_for_token_classification
