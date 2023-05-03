@@ -598,7 +598,12 @@ class NeuralContextRetriever(ContextRetriever):
         for i, ctx_match in enumerate(ctx_matchs):
             ctx_match.score = float(scores[i, 1].item())
 
-        return sorted(ctx_matchs, key=lambda m: -m.score)[: self.sents_nb]  # type: ignore
+        assert all([not m.score is None for m in ctx_matchs])
+        return [
+            m
+            for m in sorted(ctx_matchs, key=lambda m: -m.score)[: self.sents_nb]  # type: ignore
+            if m.score > 0.5  # type: ignore
+        ]
 
     def heuristic_retrieve_ctx(
         self, sent_idx: int, document: List[NERSentence]
