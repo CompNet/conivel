@@ -2,7 +2,13 @@
 
 ## Installing dependencies
 
-Use `poetry install` to install dependencies. You can then use `poetry shell` to obtain a shell with the created virtual environment activated.
+Dependencies are managed using [Poetry](https://python-poetry.org/). Use `poetry install` to install dependencies. You can then use `poetry shell` to obtain a shell with the created virtual environment activated.
+
+Alternatively, you can manage you own virtual env and install dependencies manually with `pip` with the provided `requirements.txt` file:
+
+```sh
+pip install -r requirements.txt
+```
 
 
 # The Role of Global and Local Context in Named Entity Recognition
