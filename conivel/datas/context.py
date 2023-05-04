@@ -480,8 +480,7 @@ class NeuralContextRetriever(ContextRetriever):
     def __init__(
         self,
         pretrained_model: Union[str, BertForSequenceClassification],
-        heuristic_context_selector: str,
-        heuristic_context_selector_kwargs: Dict[str, Any],
+        heuristic_context_selector: ContextRetriever,
         batch_size: int,
         sents_nb: int,
     ) -> None:
@@ -512,10 +511,7 @@ class NeuralContextRetriever(ContextRetriever):
 
         self.tokenizer = get_tokenizer()
 
-        selector_class = context_retriever_name_to_class[heuristic_context_selector]
-        self.heuristic_context_selector = selector_class(
-            **heuristic_context_selector_kwargs
-        )
+        self.heuristic_context_selector = heuristic_context_selector
 
         self.batch_size = batch_size
 
