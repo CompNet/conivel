@@ -693,7 +693,6 @@ class NeuralContextRetriever(ContextRetriever):
         )
 
         for _ in range(epochs_nb):
-
             # * validation metrics
             if not _run is None and not valid_dataset is None:
                 valid_dataloader = DataLoader(
@@ -728,7 +727,6 @@ class NeuralContextRetriever(ContextRetriever):
 
             data_tqdm = tqdm(dataloader, disable=quiet)
             for X in data_tqdm:
-
                 optimizer.zero_grad()
 
                 X = X.to(device)
@@ -785,11 +783,18 @@ class CombinedContextRetriever(ContextRetriever):
         if isinstance((sents_nb := self.sents_nb), list):
             sents_nb = random.choice(sents_nb)
 
+        # retrieve match for all retrievers
         matchs = flattened([r.retrieve(sent_idx, document) for r in self.retrievers])
+
+        # matchs = uniq(matchs)
+        uniq_matchs_sents = set([m.sentence for m in matchs])
+        matchs = [m for m in matchs if m.sentence in uniq_matchs_sents]
+
         # it's not possible to compare scores from different
         # retrievers. Therefore, we do not make any assumption on the
         # order of the returned matchs.
         random.shuffle(matchs)
+
         return matchs[:sents_nb]
 
 
