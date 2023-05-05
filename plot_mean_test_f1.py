@@ -58,7 +58,7 @@ for run_i, (run, run_name) in enumerate(runs.items()):
         metrics["mean_test_f1"]["values"],
         marker=MARKERS[run_i],
         markersize=20,
-        linewidth=4,
+        linewidth=5,
     )
     if runs_groups[run_name] == "global":
         global_runs_artists.append(p)
@@ -68,9 +68,7 @@ for run_i, (run, run_name) in enumerate(runs.items()):
 # no retrieval baseline
 if not args.no_baseline:
     (no_retrieval_p,) = ax.plot(
-        [1, 6],
-        [bare_metrics["mean_test_f1"]["values"][0]] * 2,
-        linewidth=4,
+        [1, 6], [bare_metrics["mean_test_f1"]["values"][0]] * 2, linewidth=5, c="black"
     )
 
 ax.grid()
