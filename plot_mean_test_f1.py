@@ -1,4 +1,4 @@
-import argparse, json
+import argparse, json, os
 import matplotlib.pyplot as plt
 import scienceplots
 from tqdm import tqdm
@@ -11,6 +11,7 @@ parser.add_argument("-e", "--restricted", action="store_true")
 parser.add_argument("--no-baseline", action="store_true")
 args = parser.parse_args()
 
+FONTSIZE = 55
 MARKERS = ["o", "v", "^", "p", "s", "*", "D"]
 
 # runs is of form {run_dir_name => name}
@@ -33,6 +34,7 @@ runs_groups = {
     "before": "local",
     "after": "local",
     "surrounding": "local",
+    "restricted bm25": "global",
 }
 
 with open(f"./runs/bare/metrics.json") as f:
@@ -40,8 +42,8 @@ with open(f"./runs/bare/metrics.json") as f:
 
 
 plt.style.use("science")
-plt.rc("xtick", labelsize=40)  # fontsize of the tick labels
-plt.rc("ytick", labelsize=40)  # fontsize of the tick labels
+plt.rc("xtick", labelsize=FONTSIZE)  # fontsize of the tick labels
+plt.rc("ytick", labelsize=FONTSIZE)  # fontsize of the tick labels
 fig, ax = plt.subplots()
 
 fig.set_size_inches(24, 16)
@@ -72,8 +74,8 @@ if not args.no_baseline:
     )
 
 ax.grid()
-ax.set_ylabel("F1", fontsize=40)
-ax.set_xlabel("Number of retrieved sentences", fontsize=40)
+ax.set_ylabel("F1", fontsize=FONTSIZE)
+ax.set_xlabel("Number of retrieved sentences", fontsize=FONTSIZE)
 
 ncol = 2 if args.no_baseline else 3
 
@@ -84,10 +86,7 @@ l1 = ax.legend(
     [r for r in runs.values() if runs_groups[r] == "global"],
     loc="lower center",
     bbox_to_anchor=(0, 1) if ncol == 3 else (0.1, 1),
-    fontsize=40,
-    title="global",
-    title_fontsize=50,
-    alignment="left",
+    fontsize=FONTSIZE,
     mode="expand",
 )
 legends.append(l1)
@@ -97,10 +96,7 @@ l2 = ax.legend(
     [r for r in runs.values() if runs_groups[r] == "local"],
     loc="lower center",
     bbox_to_anchor=(0.5, 1) if ncol == 3 else (0.7, 1),
-    fontsize=40,
-    title="local",
-    title_fontsize=50,
-    alignment="left",
+    fontsize=FONTSIZE,
 )
 legends.append(l2)
 
@@ -110,8 +106,7 @@ if not args.no_baseline:
         ["no retrieval"],
         loc="lower center",
         bbox_to_anchor=(0.85, 1),
-        fontsize=40,
-        alignment="left",
+        fontsize=FONTSIZE,
     )
     legends.append(l3)
 
@@ -120,6 +115,8 @@ ax.add_artist(l2)
 
 
 if args.output:
-    plt.savefig(args.output, bbox_extra_artists=legends, bbox_inches="tight")
+    plt.savefig(
+        os.path.expanduser(args.output), bbox_extra_artists=legends, bbox_inches="tight"
+    )
 else:
     plt.show()
