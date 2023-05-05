@@ -786,16 +786,19 @@ class CombinedContextRetriever(ContextRetriever):
         # retrieve match for all retrievers
         matchs = flattened([r.retrieve(sent_idx, document) for r in self.retrievers])
 
-        # matchs = uniq(matchs)
-        uniq_matchs_sents = set([m.sentence for m in matchs])
-        matchs = [m for m in matchs if m.sentence in uniq_matchs_sents]
+        uniq_matchs_sents = set()
+        uniq_matchs = []
+        for m in matchs:
+            if not m.sentence in uniq_matchs_sents:
+                uniq_matchs_sents.add(m.sentence)
+                uniq_matchs.append(m)
 
         # it's not possible to compare scores from different
         # retrievers. Therefore, we do not make any assumption on the
         # order of the returned matchs.
-        random.shuffle(matchs)
+        random.shuffle(uniq_matchs)
 
-        return matchs[:sents_nb]
+        return uniq_matchs[:sents_nb]
 
 
 class OracleNeuralContextRetriever(ContextRetriever):
