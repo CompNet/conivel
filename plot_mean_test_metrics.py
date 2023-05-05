@@ -8,10 +8,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--output", type=str, default=None)
 parser.add_argument("-r", "--oracle", action="store_true")
 parser.add_argument("-e", "--restricted", action="store_true")
+parser.add_argument("-m", "--metrics", type=str, default="f1")
 parser.add_argument("--no-baseline", action="store_true")
 args = parser.parse_args()
 
-FONTSIZE = 55
+FONTSIZE = 15
 MARKERS = ["o", "v", "^", "p", "s", "*", "D"]
 
 # runs is of form {run_dir_name => name}
@@ -46,7 +47,7 @@ plt.rc("xtick", labelsize=FONTSIZE)  # fontsize of the tick labels
 plt.rc("ytick", labelsize=FONTSIZE)  # fontsize of the tick labels
 fig, ax = plt.subplots()
 
-fig.set_size_inches(24, 16)
+fig.set_size_inches(9, 6)
 
 global_runs_artists = []
 local_runs_artists = []
@@ -54,11 +55,11 @@ for run_i, (run, run_name) in enumerate(runs.items()):
     with open(f"./runs/short/{run}/metrics.json") as f:
         metrics = json.load(f)
     (p,) = ax.plot(
-        [int(step) for step in metrics["mean_test_f1"]["steps"]],
-        metrics["mean_test_f1"]["values"],
+        [int(step) for step in metrics[f"mean_test_{args.metrics}"]["steps"]],
+        metrics[f"mean_test_{args.metrics}"]["values"],
         marker=MARKERS[run_i],
-        markersize=20,
-        linewidth=5,
+        markersize=8,
+        linewidth=3,
     )
     if runs_groups[run_name] == "global":
         global_runs_artists.append(p)
@@ -68,11 +69,14 @@ for run_i, (run, run_name) in enumerate(runs.items()):
 # no retrieval baseline
 if not args.no_baseline:
     (no_retrieval_p,) = ax.plot(
-        [1, 6], [bare_metrics["mean_test_f1"]["values"][0]] * 2, linewidth=5, c="black"
+        [1, 6],
+        [bare_metrics[f"mean_test_{args.metrics}"]["values"][0]] * 2,
+        linewidth=3,
+        c="black",
     )
 
 ax.grid()
-ax.set_ylabel("F1", fontsize=FONTSIZE)
+ax.set_ylabel(args.metrics.capitalize(), fontsize=FONTSIZE)
 ax.set_xlabel("Number of retrieved sentences", fontsize=FONTSIZE)
 
 ncol = 2 if args.no_baseline else 3
