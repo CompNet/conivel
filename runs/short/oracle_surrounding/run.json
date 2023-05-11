@@ -1,0 +1,163 @@
+{
+  "artifacts": [],
+  "command": "main",
+  "experiment": {
+    "base_dir": "/users/aamalvy/conivel",
+    "dependencies": [
+      "numpy==1.22.4",
+      "sacred==0.8.2"
+    ],
+    "mainfile": "xp_ideal_neural_retriever.py",
+    "name": "xp_ideal_neural_retriever",
+    "repositories": [
+      {
+        "commit": "36fb993ec85b189084676bbe50521e6b77881ba2",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "36fb993ec85b189084676bbe50521e6b77881ba2",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "36fb993ec85b189084676bbe50521e6b77881ba2",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "36fb993ec85b189084676bbe50521e6b77881ba2",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "36fb993ec85b189084676bbe50521e6b77881ba2",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "36fb993ec85b189084676bbe50521e6b77881ba2",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "36fb993ec85b189084676bbe50521e6b77881ba2",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "36fb993ec85b189084676bbe50521e6b77881ba2",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "36fb993ec85b189084676bbe50521e6b77881ba2",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      }
+    ],
+    "sources": [
+      [
+        "conivel/datas/__init__.py",
+        "_sources/__init___cc54710e28256ef3d4b4d54698544e49.py"
+      ],
+      [
+        "conivel/datas/context.py",
+        "_sources/context_fa8b9880b52607231934e424510e1df4.py"
+      ],
+      [
+        "conivel/datas/dekker/__init__.py",
+        "_sources/__init___f07596ce0678c94aa815c9b1816b85fb.py"
+      ],
+      [
+        "conivel/datas/dekker/dekker.py",
+        "_sources/dekker_38642d112c23743c0b8e0412a948ae73.py"
+      ],
+      [
+        "conivel/predict.py",
+        "_sources/predict_c301242f75029fa8e9b9d768c407c084.py"
+      ],
+      [
+        "conivel/score.py",
+        "_sources/score_b8d0bca86249ac9f90e787045f25efa4.py"
+      ],
+      [
+        "conivel/train.py",
+        "_sources/train_df7c67bf1b1e004ca15bf913f6e726ad.py"
+      ],
+      [
+        "conivel/utils.py",
+        "_sources/utils_96364bd65e18e2cac90e3717f9661b0d.py"
+      ],
+      [
+        "xp_ideal_neural_retriever.py",
+        "_sources/xp_ideal_neural_retriever_888253e7b39d9f4195379c21c372210f.py"
+      ]
+    ]
+  },
+  "heartbeat": "2023-01-19T11:54:22.323833",
+  "host": {
+    "ENV": {},
+    "cpu": "Intel(R) Xeon(R) Silver 4210R CPU @ 2.40GHz",
+    "gpus": {
+      "driver_version": "495.29.05",
+      "gpus": [
+        {
+          "model": "NVIDIA GeForce RTX 2080 Ti",
+          "persistence_mode": false,
+          "total_memory": 11019
+        }
+      ]
+    },
+    "hostname": "idyie",
+    "os": [
+      "Linux",
+      "Linux-5.4.0-73-generic-x86_64-with-glibc2.27"
+    ],
+    "python_version": "3.8.0"
+  },
+  "meta": {
+    "command": "main",
+    "options": {
+      "--beat-interval": null,
+      "--capture": null,
+      "--comment": null,
+      "--debug": false,
+      "--enforce_clean": false,
+      "--file_storage": null,
+      "--force": false,
+      "--help": false,
+      "--loglevel": null,
+      "--mongo_db": null,
+      "--name": null,
+      "--pdb": false,
+      "--print-config": false,
+      "--priority": null,
+      "--queue": false,
+      "--s3": null,
+      "--sql": null,
+      "--tiny_db": null,
+      "--unobserved": false,
+      "COMMAND": null,
+      "UPDATE": [
+        "k=5",
+        "shuffle_kfolds_seed=0",
+        "batch_size=8",
+        "save_models=False",
+        "runs_nb=3",
+        "retrieval_heuristic=neighbors",
+        "retrieval_heuristic_inference_kwargs={\"sents_nb\": 16}",
+        "sents_nb_list=[2, 4, 6]",
+        "ner_epochs_nb=2",
+        "ner_lr=2e-5"
+      ],
+      "help": false,
+      "with": true
+    }
+  },
+  "resources": [],
+  "result": null,
+  "start_time": "2023-01-19T08:31:44.013282",
+  "status": "COMPLETED",
+  "stop_time": "2023-01-19T11:54:22.311800"
+}

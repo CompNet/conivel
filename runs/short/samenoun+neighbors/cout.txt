@@ -1,0 +1,474 @@
+INFO - xp_kfolds_list - Running command 'main'
+INFO - xp_kfolds_list - Started run with ID "15"
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+Configuration ([34mmodified[0m, [32madded[0m, [31mtypechanged[0m, [2mdoc[0m):
+[32m  batch_size = 8[0m
+  k = 5
+  ner_epochs_nb = 2
+  ner_lr = 2e-05
+[32m  retrievers_names = ['samenoun', 'left', 'right'][0m
+[34m  runs_nb = 3[0m
+[34m  save_models = False[0m
+  seed = 433446715                   [2m# the random seed for this experiment[0m
+[32m  sents_nb_list = [1, 2][0m
+[34m  shuffle_kfolds_seed = 0[0m
+  __annotations__:
+    batch_size = <class 'int'>
+    k = <class 'int'>
+    ner_epochs_nb = <class 'int'>
+    ner_lr = <class 'float'>
+    retrievers_names = <class 'list'>
+    runs_nb = <class 'int'>
+    save_models = <class 'bool'>
+    sents_nb_list = <class 'list'>
+    shuffle_kfolds_seed = typing.Union[int, NoneType]
+ 62%|██████▎   | 20/32 [00:06<00:05,  2.17it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 1.543:   0%|          | 4/1276 [00:00<01:33, 13.65it/s]s]]
+epoch mean loss : 0.042
+  5%|▍         | 63/1276 [00:03<01:05, 18.38it/s]]]
+{
+    "validation precision": 0.9944787985865724,
+    "validation recall": 0.9964593936711662,
+    "validation f1": 0.9954681109760143
+}
+loss : 0.005:   6%|▌         | 71/1276 [00:06<01:55, 10.46it/s]]]
+epoch mean loss : 0.003
+  2%|▏         | 24/1276 [00:01<01:01, 20.22it/s]]]
+{
+    "validation precision": 0.99933598937583,
+    "validation recall": 0.9991148484177915,
+    "validation f1": 0.9992254066615027
+}
+100%|██████████| 8/8 [00:02<00:00,  3.48it/s]
+ 12%|█▏        | 36/296 [00:01<00:09, 27.39it/s]]
+ 12%|█▎        | 1/8 [00:00<00:00,  9.61it/s]
+ 40%|████      | 119/296 [00:07<00:13, 13.26it/s]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 16%|█▌        | 5/32 [00:01<00:08,  3.27it/s]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.160:   7%|▋         | 96/1300 [00:08<01:38, 12.23it/s]]]
+epoch mean loss : 0.037
+  7%|▋         | 89/1300 [00:04<01:00, 20.17it/s]]]
+{
+    "validation precision": 0.991318254512223,
+    "validation recall": 0.9942713107241063,
+    "validation f1": 0.9927925866605652
+}
+loss : 0.005:   4%|▍         | 52/1300 [00:04<01:52, 11.13it/s]]]
+epoch mean loss : 0.003
+  3%|▎         | 35/1300 [00:01<01:01, 20.44it/s]]]
+{
+    "validation precision": 0.9967956054016938,
+    "validation recall": 0.9979376718606783,
+    "validation f1": 0.997366311691286
+}
+ 62%|██████▎   | 5/8 [00:01<00:00,  4.80it/s]
+100%|██████████| 273/273 [00:08<00:00, 32.02it/s]
+ 25%|██▌       | 2/8 [00:00<00:01,  4.62it/s]
+ 60%|██████    | 165/273 [00:08<00:04, 23.43it/s]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 56%|█████▋    | 18/32 [00:04<00:03,  4.14it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.205:   3%|▎         | 32/1242 [00:02<01:44, 11.54it/s]]]
+epoch mean loss : 0.036
+ 13%|█▎        | 167/1242 [00:09<00:36, 29.78it/s]]
+{
+    "validation precision": 0.9936708860759493,
+    "validation recall": 0.9968253968253968,
+    "validation f1": 0.9952456418383518
+}
+loss : 0.004:   2%|▏         | 20/1242 [00:01<01:57, 10.41it/s]]]
+epoch mean loss : 0.003
+  8%|▊         | 103/1242 [00:06<01:11, 15.83it/s]]
+{
+    "validation precision": 0.9987312328187777,
+    "validation recall": 0.9995767195767196,
+    "validation f1": 0.9991537973344616
+}
+100%|██████████| 8/8 [00:02<00:00,  3.16it/s]
+ 69%|██████▉   | 228/331 [00:06<00:03, 26.74it/s]
+100%|██████████| 8/8 [00:02<00:00,  3.14it/s]
+ 22%|██▏       | 73/331 [00:03<00:17, 15.12it/s]]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 72%|███████▏  | 23/32 [00:06<00:02,  3.75it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.156:   5%|▍         | 55/1186 [00:04<01:32, 12.19it/s]]]
+epoch mean loss : 0.041
+  4%|▍         | 51/1186 [00:02<01:08, 16.57it/s]]]
+{
+    "validation precision": 0.994664079553723,
+    "validation recall": 0.9958717824186498,
+    "validation f1": 0.9952675646159447
+}
+loss : 0.002:   5%|▌         | 64/1186 [00:06<02:25,  7.70it/s]]]
+epoch mean loss : 0.003
+  6%|▌         | 69/1186 [00:03<01:27, 12.71it/s]]]
+{
+    "validation precision": 0.9983013831594273,
+    "validation recall": 0.9990286546867412,
+    "validation f1": 0.9986648865153539
+}
+100%|██████████| 8/8 [00:03<00:00,  2.40it/s]
+ 36%|███▌      | 139/387 [00:04<00:06, 37.80it/s]
+ 75%|███████▌  | 6/8 [00:02<00:00,  2.28it/s]
+ 55%|█████▍    | 211/387 [00:09<00:07, 23.47it/s]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 25%|██▌       | 8/32 [00:02<00:07,  3.34it/s]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.096:   9%|▉         | 114/1286 [00:09<01:34, 12.39it/s]]
+epoch mean loss : 0.037
+  1%|▏         | 17/1286 [00:00<00:44, 28.22it/s]]]
+{
+    "validation precision": 0.994921616250828,
+    "validation recall": 0.9955810870525851,
+    "validation f1": 0.9952512424075096
+}
+loss : 0.032:   1%|          | 14/1286 [00:01<01:46, 11.97it/s]]]
+epoch mean loss : 0.003
+  2%|▏         | 31/1286 [00:01<01:01, 20.35it/s]]]
+{
+    "validation precision": 0.9984547461368654,
+    "validation recall": 0.9993371630578878,
+    "validation f1": 0.9988957597173145
+}
+100%|██████████| 8/8 [00:02<00:00,  3.66it/s]
+  6%|▋         | 18/287 [00:00<00:08, 31.34it/s]]
+ 50%|█████     | 4/8 [00:00<00:01,  3.79it/s]
+ 67%|██████▋   | 192/287 [00:08<00:04, 22.18it/s]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 50%|█████     | 16/32 [00:04<00:06,  2.59it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.123:   2%|▏         | 26/1276 [00:02<01:38, 12.64it/s]]]
+epoch mean loss : 0.038
+ 11%|█         | 137/1276 [00:06<00:41, 27.32it/s]]
+{
+    "validation precision": 0.9957918050941307,
+    "validation recall": 0.9949103784023013,
+    "validation f1": 0.9953508966127961
+}
+loss : 0.012:   8%|▊         | 98/1276 [00:09<01:36, 12.16it/s]]]
+epoch mean loss : 0.003
+  3%|▎         | 44/1276 [00:02<01:06, 18.49it/s]]]
+{
+    "validation precision": 0.9997786631252766,
+    "validation recall": 0.9995574242088958,
+    "validation f1": 0.9996680314263584
+}
+100%|██████████| 8/8 [00:02<00:00,  3.44it/s]
+ 18%|█▊        | 52/296 [00:01<00:09, 24.46it/s]]
+ 50%|█████     | 4/8 [00:01<00:01,  2.99it/s]
+ 48%|████▊     | 142/296 [00:08<00:06, 24.32it/s]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 31%|███▏      | 10/32 [00:02<00:05,  4.21it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.079:   9%|▊         | 112/1300 [00:09<01:47, 11.06it/s]]
+epoch mean loss : 0.031
+  9%|▉         | 121/1300 [00:07<01:16, 15.32it/s]]
+{
+    "validation precision": 0.9942804850148708,
+    "validation recall": 0.9958753437213566,
+    "validation f1": 0.9950772753291357
+}
+loss : 0.001:   5%|▌         | 66/1300 [00:05<01:48, 11.35it/s]]]
+epoch mean loss : 0.002
+  2%|▏         | 26/1300 [00:01<00:59, 21.46it/s]]]
+{
+    "validation precision": 0.9983967017865323,
+    "validation recall": 0.9988542621448213,
+    "validation f1": 0.9986254295532646
+}
+ 25%|██▌       | 2/8 [00:00<00:01,  4.44it/s]
+ 94%|█████████▍| 256/273 [00:08<00:00, 39.93it/s]
+100%|██████████| 8/8 [00:02<00:00,  3.94it/s]
+ 50%|█████     | 137/273 [00:07<00:04, 27.37it/s]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 44%|████▍     | 14/32 [00:03<00:04,  3.71it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.215:   1%|          | 14/1242 [00:01<02:02, 10.00it/s]]]
+epoch mean loss : 0.040
+ 10%|▉         | 123/1242 [00:07<01:09, 16.20it/s]]
+{
+    "validation precision": 0.9934640522875817,
+    "validation recall": 0.9972486772486773,
+    "validation f1": 0.9953527672158852
+}
+loss : 0.014:   0%|          | 2/1242 [00:00<01:30, 13.72it/s]s]]
+epoch mean loss : 0.003
+  7%|▋         | 83/1242 [00:04<01:17, 14.98it/s]]]
+{
+    "validation precision": 0.9976749101669837,
+    "validation recall": 0.9989417989417989,
+    "validation f1": 0.9983079526226734
+}
+100%|██████████| 8/8 [00:02<00:00,  3.11it/s]
+ 47%|████▋     | 155/331 [00:04<00:03, 45.85it/s]
+100%|██████████| 8/8 [00:02<00:00,  3.09it/s]
+  7%|▋         | 24/331 [00:00<00:10, 29.51it/s]]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 47%|████▋     | 15/32 [00:04<00:04,  3.76it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.199:   2%|▏         | 24/1186 [00:02<01:59,  9.73it/s]]]
+epoch mean loss : 0.038
+  2%|▏         | 20/1186 [00:00<00:41, 27.92it/s]]]
+{
+    "validation precision": 0.9881499395405079,
+    "validation recall": 0.9922292374939291,
+    "validation f1": 0.990185387131952
+}
+loss : 0.020:   4%|▍         | 50/1186 [00:04<01:40, 11.32it/s]]]
+epoch mean loss : 0.003
+  4%|▍         | 45/1186 [00:02<00:51, 22.11it/s]]]
+{
+    "validation precision": 0.997090203685742,
+    "validation recall": 0.9985429820301117,
+    "validation f1": 0.9978160640621209
+}
+100%|██████████| 8/8 [00:03<00:00,  2.41it/s]
+ 17%|█▋        | 67/387 [00:02<00:11, 28.65it/s]]
+ 25%|██▌       | 2/8 [00:00<00:01,  4.24it/s]
+ 40%|████      | 156/387 [00:07<00:08, 26.42it/s]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+  3%|▎         | 1/32 [00:00<00:03,  9.43it/s]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.021:   6%|▋         | 82/1286 [00:07<01:52, 10.73it/s]]]
+epoch mean loss : 0.034
+  9%|▊         | 111/1286 [00:06<01:17, 15.13it/s]]
+{
+    "validation precision": 0.991193306913254,
+    "validation recall": 0.9946973044631021,
+    "validation f1": 0.9929422143802382
+}
+loss : 0.002:   6%|▌         | 76/1286 [00:07<02:18,  8.71it/s]]]
+epoch mean loss : 0.003
+  7%|▋         | 91/1286 [00:05<01:13, 16.24it/s]]]
+{
+    "validation precision": 0.9982332155477032,
+    "validation recall": 0.9986743261157756,
+    "validation f1": 0.9984537221117739
+}
+100%|██████████| 8/8 [00:02<00:00,  3.54it/s]
+ 39%|███▉      | 112/287 [00:03<00:06, 27.60it/s]
+100%|██████████| 8/8 [00:02<00:00,  3.39it/s]
+ 15%|█▍        | 43/287 [00:01<00:07, 30.95it/s]]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 69%|██████▉   | 22/32 [00:07<00:04,  2.23it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.089:   5%|▍         | 58/1276 [00:04<01:39, 12.29it/s]]]
+epoch mean loss : 0.036
+  0%|          | 6/1276 [00:00<00:48, 26.04it/s]s]]
+{
+    "validation precision": 0.9968999114260407,
+    "validation recall": 0.9962381057756141,
+    "validation f1": 0.9965688987271721
+}
+loss : 0.000:   2%|▏         | 30/1276 [00:02<01:47, 11.56it/s]]]
+epoch mean loss : 0.002
+  9%|▉         | 120/1276 [00:06<00:51, 22.66it/s]]
+{
+    "validation precision": 0.9995573262505534,
+    "validation recall": 0.9993361363133436,
+    "validation f1": 0.9994467190439306
+}
+100%|██████████| 8/8 [00:02<00:00,  3.44it/s]
+ 55%|█████▌    | 163/296 [00:06<00:03, 43.91it/s]
+100%|██████████| 8/8 [00:02<00:00,  3.38it/s]
+ 19%|█▉        | 56/296 [00:03<00:20, 11.67it/s]]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 59%|█████▉    | 19/32 [00:06<00:06,  1.95it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.073:   3%|▎         | 34/1300 [00:02<01:42, 12.31it/s]]]
+epoch mean loss : 0.033
+ 14%|█▎        | 176/1300 [00:09<01:00, 18.45it/s]]
+{
+    "validation precision": 0.9949587534372135,
+    "validation recall": 0.9949587534372135,
+    "validation f1": 0.9949587534372135
+}
+loss : 0.000:   7%|▋         | 94/1300 [00:08<01:40, 12.03it/s]]]
+epoch mean loss : 0.002
+  5%|▍         | 60/1300 [00:03<01:33, 13.28it/s]]]
+{
+    "validation precision": 0.9979395604395604,
+    "validation recall": 0.9988542621448213,
+    "validation f1": 0.9983967017865323
+}
+ 88%|████████▊ | 7/8 [00:01<00:00,  3.87it/s]
+100%|██████████| 273/273 [00:08<00:00, 31.32it/s]
+ 38%|███▊      | 3/8 [00:00<00:01,  3.55it/s]
+ 63%|██████▎   | 171/273 [00:08<00:04, 22.31it/s]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 56%|█████▋    | 18/32 [00:04<00:03,  4.09it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.278:   3%|▎         | 32/1242 [00:02<01:50, 10.97it/s]]]
+epoch mean loss : 0.041
+ 10%|█         | 125/1242 [00:07<01:14, 14.94it/s]]
+{
+    "validation precision": 0.9890893831305078,
+    "validation recall": 0.9976719576719577,
+    "validation f1": 0.9933621325466232
+}
+loss : 0.020:   0%|          | 2/1242 [00:00<01:40, 12.39it/s]s]]
+epoch mean loss : 0.003
+  6%|▌         | 69/1242 [00:03<01:28, 13.24it/s]]]
+{
+    "validation precision": 0.9991539763113367,
+    "validation recall": 0.9997883597883598,
+    "validation f1": 0.999471067386015
+}
+100%|██████████| 8/8 [00:02<00:00,  3.19it/s]
+ 42%|████▏     | 139/331 [00:04<00:04, 47.30it/s]
+100%|██████████| 8/8 [00:02<00:00,  3.21it/s]
+  5%|▌         | 17/331 [00:00<00:11, 28.28it/s]]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 47%|████▋     | 15/32 [00:04<00:04,  3.79it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.305:   3%|▎         | 30/1186 [00:02<01:41, 11.35it/s]]]
+epoch mean loss : 0.040
+  3%|▎         | 36/1186 [00:01<00:59, 19.47it/s]]]
+{
+    "validation precision": 0.9917635658914729,
+    "validation recall": 0.9941719281204469,
+    "validation f1": 0.992966286684453
+}
+loss : 0.002:   5%|▍         | 59/1186 [00:05<01:51, 10.10it/s]]]
+epoch mean loss : 0.003
+  6%|▌         | 70/1186 [00:03<01:34, 11.77it/s]]]
+{
+    "validation precision": 0.9978160640621209,
+    "validation recall": 0.9985429820301117,
+    "validation f1": 0.9981793907027552
+}
+100%|██████████| 8/8 [00:03<00:00,  2.38it/s]
+ 32%|███▏      | 124/387 [00:03<00:05, 45.55it/s]
+ 62%|██████▎   | 5/8 [00:02<00:01,  2.01it/s]
+ 53%|█████▎    | 206/387 [00:09<00:06, 27.19it/s]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+ 22%|██▏       | 7/32 [00:02<00:08,  3.06it/s]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.bias', 'cls.seq_relationship.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.008:   9%|▊         | 110/1286 [00:09<01:38, 11.92it/s]]
+epoch mean loss : 0.040
+  3%|▎         | 35/1286 [00:01<01:07, 18.43it/s]]]
+{
+    "validation precision": 0.9933804060017652,
+    "validation recall": 0.9946973044631021,
+    "validation f1": 0.9940384190770589
+}
+loss : 0.002:   2%|▏         | 20/1286 [00:01<02:05, 10.11it/s]]]
+epoch mean loss : 0.003
+  2%|▏         | 24/1286 [00:00<00:55, 22.87it/s]]]
+{
+    "validation precision": 0.9988960035327887,
+    "validation recall": 0.9995581087052585,
+    "validation f1": 0.9992269464384318
+}
+ 62%|██████▎   | 5/8 [00:01<00:00,  3.96it/s]
+ 96%|█████████▌| 276/287 [00:08<00:00, 21.59it/s]
+100%|██████████| 8/8 [00:02<00:00,  3.55it/s]
+ 52%|█████▏    | 148/287 [00:07<00:04, 30.85it/s]
+INFO - xp_kfolds_list - Completed after 2:03:51

@@ -1,0 +1,87 @@
+{
+  "__annotations__": {
+    "batch_size": {
+      "py/type": "builtins.int"
+    },
+    "book_group": {
+      "py/reduce": [
+        {
+          "py/function": "_operator.getitem"
+        },
+        {
+          "py/tuple": [
+            {
+              "py/id": 1
+            },
+            {
+              "py/tuple": [
+                {
+                  "py/type": "builtins.str"
+                },
+                {
+                  "py/type": "builtins.NoneType"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "dataset_name": {
+      "py/type": "builtins.str"
+    },
+    "dataset_path": {
+      "py/id": 2
+    },
+    "k": {
+      "py/type": "builtins.int"
+    },
+    "ner_epochs_nb": {
+      "py/type": "builtins.int"
+    },
+    "ner_lr": {
+      "py/type": "builtins.float"
+    },
+    "runs_nb": {
+      "py/type": "builtins.int"
+    },
+    "save_models": {
+      "py/type": "builtins.bool"
+    },
+    "shuffle_kfolds_seed": {
+      "py/reduce": [
+        {
+          "py/function": "_operator.getitem"
+        },
+        {
+          "py/tuple": [
+            {
+              "py/object": "typing._SpecialForm"
+            },
+            {
+              "py/tuple": [
+                {
+                  "py/type": "builtins.int"
+                },
+                {
+                  "py/type": "builtins.NoneType"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "batch_size": 8,
+  "book_group": null,
+  "dataset_name": "dekker",
+  "dataset_path": null,
+  "k": 5,
+  "ner_epochs_nb": 2,
+  "ner_lr": 2e-05,
+  "runs_nb": 3,
+  "save_models": false,
+  "seed": 537565907,
+  "shuffle_kfolds_seed": 0
+}

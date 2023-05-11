@@ -1,0 +1,122 @@
+{
+  "__annotations__": {
+    "batch_size": {
+      "py/type": "builtins.int"
+    },
+    "book_group": {
+      "py/reduce": [
+        {
+          "py/function": "_operator.getitem"
+        },
+        {
+          "py/tuple": [
+            {
+              "py/id": 1
+            },
+            {
+              "py/tuple": [
+                {
+                  "py/type": "builtins.str"
+                },
+                {
+                  "py/type": "builtins.NoneType"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "folds_list": {
+      "py/reduce": [
+        {
+          "py/function": "_operator.getitem"
+        },
+        {
+          "py/tuple": [
+            {
+              "py/id": 1
+            },
+            {
+              "py/tuple": [
+                {
+                  "py/type": "builtins.list"
+                },
+                {
+                  "py/type": "builtins.NoneType"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "k": {
+      "py/type": "builtins.int"
+    },
+    "ner_epochs_nb": {
+      "py/type": "builtins.int"
+    },
+    "ner_lr": {
+      "py/type": "builtins.float"
+    },
+    "retrieval_heuristic": {
+      "py/type": "builtins.str"
+    },
+    "retrieval_heuristic_inference_kwargs": {
+      "py/type": "builtins.dict"
+    },
+    "runs_nb": {
+      "py/type": "builtins.int"
+    },
+    "save_models": {
+      "py/type": "builtins.bool"
+    },
+    "sents_nb_list": {
+      "py/type": "builtins.list"
+    },
+    "shuffle_kfolds_seed": {
+      "py/reduce": [
+        {
+          "py/function": "_operator.getitem"
+        },
+        {
+          "py/tuple": [
+            {
+              "py/object": "typing._SpecialForm"
+            },
+            {
+              "py/tuple": [
+                {
+                  "py/type": "builtins.int"
+                },
+                {
+                  "py/type": "builtins.NoneType"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "batch_size": 8,
+  "book_group": null,
+  "folds_list": null,
+  "k": 5,
+  "ner_epochs_nb": 2,
+  "ner_lr": 2e-05,
+  "retrieval_heuristic": "neighbors",
+  "retrieval_heuristic_inference_kwargs": {
+    "sents_nb": 16
+  },
+  "runs_nb": 3,
+  "save_models": false,
+  "seed": 750250692,
+  "sents_nb_list": [
+    2,
+    4,
+    6
+  ],
+  "shuffle_kfolds_seed": 0
+}

@@ -1,0 +1,414 @@
+INFO - xp_kfolds_list - Running command 'main'
+INFO - xp_kfolds_list - Started run with ID "9"
+Configuration ([34mmodified[0m, [32madded[0m, [31mtypechanged[0m, [2mdoc[0m):
+[32m  batch_size = 8[0m
+  k = 5
+  ner_epochs_nb = 2
+  ner_lr = 2e-05
+[32m  retrievers_names = ['bm25', 'left', 'right'][0m
+[34m  runs_nb = 3[0m
+[34m  save_models = False[0m
+  seed = 673102451                   [2m# the random seed for this experiment[0m
+[32m  sents_nb_list = [1, 2][0m
+[34m  shuffle_kfolds_seed = 0[0m
+  __annotations__:
+    batch_size = <class 'int'>
+    k = <class 'int'>
+    ner_epochs_nb = <class 'int'>
+    ner_lr = <class 'float'>
+    retrievers_names = <class 'list'>
+    runs_nb = <class 'int'>
+    save_models = <class 'bool'>
+    sents_nb_list = <class 'list'>
+    shuffle_kfolds_seed = typing.Union[int, NoneType]
+ 19%|█▉        | 6/32 [00:06<00:29,  1.14s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.169:   5%|▌         | 68/1276 [00:05<01:35, 12.70it/s]]]
+epoch mean loss : 0.038
+  5%|▌         | 65/1276 [00:03<01:08, 17.68it/s]]]
+{
+    "validation precision": 0.9942554131683606,
+    "validation recall": 0.9957955299845098,
+    "validation f1": 0.9950248756218905
+}
+loss : 0.021:   6%|▌         | 76/1276 [00:06<01:46, 11.25it/s]]]
+epoch mean loss : 0.003
+  4%|▍         | 49/1276 [00:06<02:08,  9.52it/s]]]
+{
+    "validation precision": 0.9991154356479434,
+    "validation recall": 0.9997787121044479,
+    "validation f1": 0.9994469638314346
+}
+ 88%|████████▊ | 7/8 [00:09<00:01,  1.47s/it]
+ 99%|█████████▊| 292/296 [00:09<00:00, 50.19it/s]
+ 88%|████████▊ | 7/8 [00:09<00:01,  1.47s/it]
+ 61%|██████    | 180/296 [00:09<00:06, 18.15it/s]
+ 12%|█▎        | 4/32 [00:04<00:40,  1.46s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.064:   4%|▍         | 55/1300 [00:04<01:25, 14.52it/s]]]
+epoch mean loss : 0.035
+  7%|▋         | 89/1300 [00:05<01:04, 18.74it/s]]]
+{
+    "validation precision": 0.9917714285714285,
+    "validation recall": 0.9942713107241063,
+    "validation f1": 0.9930197963153679
+}
+loss : 0.008:   6%|▌         | 72/1300 [00:06<02:13,  9.22it/s]]]
+epoch mean loss : 0.003
+  3%|▎         | 41/1300 [00:01<01:03, 19.73it/s]]]
+{
+    "validation precision": 0.9983970689260362,
+    "validation recall": 0.999083409715857,
+    "validation f1": 0.9987401214064827
+}
+ 25%|██▌       | 2/8 [00:01<00:05,  1.09it/s]
+ 56%|█████▋    | 154/273 [00:04<00:03, 38.67it/s]
+ 75%|███████▌  | 6/8 [00:06<00:02,  1.09s/it]
+ 67%|██████▋   | 184/273 [00:08<00:03, 28.14it/s]
+ 16%|█▌        | 5/32 [00:05<00:35,  1.32s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.104:  10%|▉         | 121/1242 [00:09<01:35, 11.72it/s]]
+epoch mean loss : 0.038
+  5%|▌         | 66/1242 [00:07<05:12,  3.76it/s]]]
+{
+    "validation precision": 0.9905003166561115,
+    "validation recall": 0.993015873015873,
+    "validation f1": 0.9917564996829422
+}
+loss : 0.014:   2%|▏         | 30/1242 [00:04<02:57,  6.83it/s]]]
+epoch mean loss : 0.003
+  4%|▍         | 53/1242 [00:05<02:32,  7.81it/s]]]
+{
+    "validation precision": 0.9970389170896785,
+    "validation recall": 0.9976719576719577,
+    "validation f1": 0.9973553369300752
+}
+ 38%|███▊      | 3/8 [00:03<00:05,  1.08s/it]
+ 19%|█▉        | 64/331 [00:01<00:06, 40.34it/s]]
+  0%|          | 0/8 [00:00<?, ?it/s].19s/it]
+ 69%|██████▊   | 227/331 [00:08<00:05, 20.23it/s]
+  9%|▉         | 3/32 [00:02<00:30,  1.06s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.418:   2%|▏         | 20/1186 [00:01<01:37, 11.98it/s]]]
+epoch mean loss : 0.038
+  3%|▎         | 33/1186 [00:02<01:46, 10.82it/s]]]
+{
+    "validation precision": 0.9912621359223301,
+    "validation recall": 0.9917435648372996,
+    "validation f1": 0.9915027919397912
+}
+loss : 0.014:   0%|          | 4/1186 [00:00<04:24,  4.47it/s]]]]
+epoch mean loss : 0.003
+  4%|▎         | 43/1186 [00:01<00:51, 22.06it/s]]]
+{
+    "validation precision": 0.9966027663188547,
+    "validation recall": 0.9973288003885381,
+    "validation f1": 0.9969656511712586
+}
+ 25%|██▌       | 2/8 [00:02<00:06,  1.16s/it]
+ 75%|███████▌  | 291/387 [00:09<00:03, 24.12it/s]
+ 25%|██▌       | 2/8 [00:01<00:06,  1.14s/it]
+  1%|          | 3/387 [00:00<00:15, 25.05it/s]s]
+ 22%|██▏       | 7/32 [00:09<00:36,  1.47s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.982:   1%|          | 7/1286 [00:00<01:35, 13.44it/s]s]]
+epoch mean loss : 0.039
+  8%|▊         | 109/1286 [00:07<01:46, 11.07it/s]]
+{
+    "validation precision": 0.9944763588157314,
+    "validation recall": 0.9944763588157314,
+    "validation f1": 0.9944763588157314
+}
+loss : 0.002:   3%|▎         | 34/1286 [00:05<03:06,  6.70it/s]]]
+epoch mean loss : 0.003
+  8%|▊         | 105/1286 [00:06<01:39, 11.91it/s]]
+{
+    "validation precision": 0.9975712077721351,
+    "validation recall": 0.9982324348210341,
+    "validation f1": 0.9979017117614578
+}
+100%|██████████| 8/8 [00:09<00:00,  1.19s/it]
+  0%|          | 0/287 [00:00<?, ?it/s]24.95it/s]
+ 62%|██████▎   | 5/8 [00:04<00:03,  1.04s/it]
+ 33%|███▎      | 96/287 [00:06<00:33,  5.71it/s]]
+ 25%|██▌       | 8/32 [00:08<00:25,  1.05s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.640:   1%|          | 10/1276 [00:00<01:28, 14.31it/s]]]
+epoch mean loss : 0.036
+  6%|▌         | 73/1276 [00:03<01:06, 17.97it/s]]]{
+    "validation precision": 0.9949092518813635,
+    "validation recall": 0.9946890905067493,
+    "validation f1": 0.9947991590129468
+}
+
+loss : 0.000:   7%|▋         | 94/1276 [00:07<01:32, 12.73it/s]]]
+epoch mean loss : 0.003
+  9%|▉         | 118/1276 [00:05<00:46, 25.01it/s]]
+{
+    "validation precision": 0.9986731534719151,
+    "validation recall": 0.9993361363133436,
+    "validation f1": 0.9990045348965823
+}
+ 88%|████████▊ | 7/8 [00:08<00:01,  1.44s/it]
+100%|██████████| 296/296 [00:09<00:00, 31.41it/s]
+  0%|          | 0/8 [00:00<?, ?it/s].25s/it]
+  2%|▏         | 6/296 [00:00<00:11, 25.15it/s]s]
+ 16%|█▌        | 5/32 [00:05<00:35,  1.31s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.085:   6%|▌         | 80/1300 [00:06<01:36, 12.69it/s]]]
+epoch mean loss : 0.038
+  6%|▌         | 77/1300 [00:04<01:34, 12.98it/s]]]{
+    "validation precision": 0.9876740470212281,
+    "validation recall": 0.9915215398716773,
+    "validation f1": 0.9895940537449972
+}
+
+loss : 0.037:   5%|▌         | 68/1300 [00:05<01:41, 12.13it/s]]]
+epoch mean loss : 0.003
+ 12%|█▏        | 151/1300 [00:07<00:40, 28.38it/s]]
+{
+    "validation precision": 0.994055784179241,
+    "validation recall": 0.9963336388634281,
+    "validation f1": 0.9951934081025406
+}
+100%|██████████| 8/8 [00:08<00:00,  1.04s/it]
+ 18%|█▊        | 49/273 [00:01<00:07, 30.34it/s]]
+ 25%|██▌       | 2/8 [00:01<00:05,  1.12it/s]
+ 36%|███▌      | 98/273 [00:05<00:09, 19.23it/s]]
+  9%|▉         | 3/32 [00:02<00:29,  1.03s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.067:   7%|▋         | 84/1242 [00:06<01:35, 12.16it/s]]]
+epoch mean loss : 0.036
+  6%|▌         | 77/1242 [00:04<01:30, 12.90it/s]]]
+{
+    "validation precision": 0.9921990301496942,
+    "validation recall": 0.995978835978836,
+    "validation f1": 0.9940853400929447
+}
+loss : 0.006:   9%|▊         | 106/1242 [00:09<01:27, 12.97it/s]]
+epoch mean loss : 0.003
+  3%|▎         | 36/1242 [00:01<01:00, 19.88it/s]]]
+{
+    "validation precision": 0.99830866807611,
+    "validation recall": 0.9993650793650793,
+    "validation f1": 0.9988365943945003
+}
+ 62%|██████▎   | 5/8 [00:05<00:03,  1.17s/it]
+ 56%|█████▌    | 186/331 [00:04<00:02, 53.45it/s]
+ 50%|█████     | 4/8 [00:04<00:04,  1.13s/it]
+ 23%|██▎       | 75/331 [00:02<00:15, 16.02it/s]]
+ 19%|█▉        | 6/32 [00:07<00:38,  1.48s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.054:   7%|▋         | 85/1186 [00:06<01:20, 13.62it/s]]]
+epoch mean loss : 0.040
+ 10%|▉         | 115/1186 [00:06<01:02, 17.02it/s]]
+{
+    "validation precision": 0.9917655606684427,
+    "validation recall": 0.9944147644487615,
+    "validation f1": 0.9930883957802837
+}
+loss : 0.031:   3%|▎         | 34/1186 [00:03<01:32, 12.52it/s]]]
+epoch mean loss : 0.003
+ 11%|█         | 131/1186 [00:07<00:48, 21.69it/s]]
+{
+    "validation precision": 0.9987855234393976,
+    "validation recall": 0.9985429820301117,
+    "validation f1": 0.9986642380085003
+}
+ 25%|██▌       | 2/8 [00:01<00:06,  1.12s/it]
+ 67%|██████▋   | 259/387 [00:07<00:03, 40.95it/s]
+ 25%|██▌       | 2/8 [00:01<00:06,  1.12s/it]
+  0%|          | 0/387 [00:00<?, ?it/s]24.47it/s]
+  9%|▉         | 3/32 [00:02<00:29,  1.03s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.150:   7%|▋         | 84/1286 [00:06<01:33, 12.84it/s]]]
+epoch mean loss : 0.037
+ 13%|█▎        | 167/1286 [00:08<00:39, 28.52it/s]]
+{
+    "validation precision": 0.9916207276736494,
+    "validation recall": 0.9935925762262483,
+    "validation f1": 0.9926056726630614
+}
+loss : 0.000:   2%|▏         | 28/1286 [00:02<01:51, 11.26it/s]]]
+epoch mean loss : 0.003
+ 14%|█▍        | 182/1286 [00:09<00:59, 18.49it/s]]
+{
+    "validation precision": 0.9947078280044102,
+    "validation recall": 0.9966858152894388,
+    "validation f1": 0.9956958393113343
+}
+ 38%|███▊      | 3/8 [00:02<00:04,  1.04it/s]
+ 45%|████▌     | 130/287 [00:04<00:05, 28.89it/s]
+ 62%|██████▎   | 5/8 [00:04<00:03,  1.02s/it]
+ 43%|████▎     | 122/287 [00:05<00:07, 23.37it/s]
+  6%|▋         | 2/32 [00:01<00:26,  1.14it/s]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.141:   5%|▌         | 68/1276 [00:05<01:30, 13.35it/s]]]
+epoch mean loss : 0.042
+  1%|          | 10/1276 [00:00<00:40, 30.93it/s]]]
+{
+    "validation precision": 0.9942528735632183,
+    "validation recall": 0.9953529541934056,
+    "validation f1": 0.9948026097534004
+}
+loss : 0.001:   5%|▍         | 60/1276 [00:04<01:36, 12.56it/s]]]
+epoch mean loss : 0.003
+  8%|▊         | 98/1276 [00:05<00:57, 20.60it/s]]]
+{
+    "validation precision": 0.9975679858500995,
+    "validation recall": 0.9984509847311352,
+    "validation f1": 0.998009289980093
+}
+ 88%|████████▊ | 7/8 [00:08<00:01,  1.44s/it]
+100%|██████████| 296/296 [00:09<00:00, 31.72it/s]
+  0%|          | 0/8 [00:00<?, ?it/s].23s/it]
+  3%|▎         | 10/296 [00:00<00:09, 29.83it/s]]
+ 16%|█▌        | 5/32 [00:05<00:34,  1.29s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.206:   7%|▋         | 96/1300 [00:07<01:25, 14.04it/s]]]
+epoch mean loss : 0.037
+  9%|▉         | 114/1300 [00:06<01:11, 16.69it/s]]
+{
+    "validation precision": 0.9910857142857142,
+    "validation recall": 0.9935838680109991,
+    "validation f1": 0.9923332189037647
+}
+loss : 0.000:   8%|▊         | 100/1300 [00:08<01:59, 10.04it/s]]
+epoch mean loss : 0.003
+  4%|▍         | 55/1300 [00:02<01:30, 13.81it/s]]]
+{
+    "validation precision": 0.9979390886191893,
+    "validation recall": 0.9986251145737856,
+    "validation f1": 0.9982819837361128
+}
+ 62%|██████▎   | 5/8 [00:04<00:02,  1.19it/s]
+ 81%|████████  | 220/273 [00:06<00:01, 30.79it/s]
+100%|██████████| 8/8 [00:08<00:00,  1.02s/it]
+  4%|▎         | 10/273 [00:00<00:08, 30.50it/s]]
+ 19%|█▉        | 6/32 [00:07<00:38,  1.46s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.234:   3%|▎         | 36/1242 [00:02<01:25, 14.09it/s]]]
+epoch mean loss : 0.038
+  0%|          | 0/1242 [00:00<?, ?it/s]18.63it/s]]
+{
+    "validation precision": 0.9909225248047288,
+    "validation recall": 0.9934391534391535,
+    "validation f1": 0.9921792432889452
+}
+loss : 0.020:   5%|▍         | 62/1242 [00:05<01:50, 10.67it/s]]]
+epoch mean loss : 0.003
+ 12%|█▏        | 150/1242 [00:07<00:38, 28.40it/s]]
+{
+    "validation precision": 0.9987312328187777,
+    "validation recall": 0.9995767195767196,
+    "validation f1": 0.9991537973344616
+}
+ 38%|███▊      | 3/8 [00:02<00:05,  1.06s/it]
+ 22%|██▏       | 74/331 [00:01<00:08, 28.65it/s]]
+ 25%|██▌       | 2/8 [00:01<00:04,  1.38it/s]
+  3%|▎         | 11/331 [00:00<00:09, 33.78it/s]]
+ 12%|█▎        | 4/32 [00:04<00:39,  1.43s/it]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.109:   5%|▍         | 56/1186 [00:04<01:25, 13.28it/s]]]
+epoch mean loss : 0.041
+  4%|▍         | 52/1186 [00:02<01:03, 17.94it/s]]]
+{
+    "validation precision": 0.992,
+    "validation recall": 0.9936862554638174,
+    "validation f1": 0.9928424117432972
+}
+loss : 0.001:   9%|▊         | 102/1186 [00:08<01:22, 13.14it/s]]
+epoch mean loss : 0.003
+  6%|▌         | 70/1186 [00:03<01:30, 12.38it/s]]]
+{
+    "validation precision": 0.9973333333333333,
+    "validation recall": 0.9990286546867412,
+    "validation f1": 0.9981802741720248
+}
+ 38%|███▊      | 3/8 [00:08<00:18,  3.64s/it]
+ 31%|███       | 120/387 [00:03<00:05, 50.87it/s]
+ 25%|██▌       | 2/8 [00:01<00:06,  1.11s/it]
+ 42%|████▏     | 162/387 [00:06<00:07, 31.02it/s]
+  6%|▋         | 2/32 [00:01<00:16,  1.79it/s]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForTokenClassification: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.109:   4%|▎         | 48/1286 [00:03<01:35, 12.94it/s]]]
+epoch mean loss : 0.039
+  9%|▉         | 117/1286 [00:06<01:18, 14.86it/s]]
+{
+    "validation precision": 0.9889673433362753,
+    "validation recall": 0.9902783915156872,
+    "validation f1": 0.9896224332082137
+}
+loss : 0.001:   9%|▉         | 120/1286 [00:09<02:03,  9.44it/s]]
+epoch mean loss : 0.003
+  9%|▊         | 110/1286 [00:06<01:13, 16.00it/s]]
+{
+    "validation precision": 0.9975701347470731,
+    "validation recall": 0.9977905435262925,
+    "validation f1": 0.9976803269634374
+}
+100%|██████████| 8/8 [00:09<00:00,  1.17s/it]
+  2%|▏         | 5/287 [00:00<00:12, 22.30it/s]s]
+ 12%|█▎        | 1/8 [00:00<00:05,  1.37it/s]
+ 17%|█▋        | 49/287 [00:01<00:06, 37.41it/s]]
+INFO - xp_kfolds_list - Completed after 2:29:02
