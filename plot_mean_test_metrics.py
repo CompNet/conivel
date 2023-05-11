@@ -12,7 +12,7 @@ parser.add_argument("-m", "--metrics", type=str, default="f1")
 parser.add_argument("--no-baseline", action="store_true")
 args = parser.parse_args()
 
-FONTSIZE = 15
+FONTSIZE = 20
 MARKERS = ["o", "v", "^", "p", "s", "*", "D"]
 
 # runs is of form {run_dir_name => name}
@@ -77,7 +77,7 @@ if not args.no_baseline:
 
 ax.grid()
 ax.set_ylabel(args.metrics.capitalize(), fontsize=FONTSIZE)
-ax.set_xlabel("Number of retrieved sentences", fontsize=FONTSIZE)
+ax.set_xlabel("Max number of retrieved sentences", fontsize=FONTSIZE)
 
 ncol = 2 if args.no_baseline else 3
 
