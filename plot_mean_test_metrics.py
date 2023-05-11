@@ -12,7 +12,7 @@ parser.add_argument("-m", "--metrics", type=str, default="f1")
 parser.add_argument("--no-baseline", action="store_true")
 args = parser.parse_args()
 
-FONTSIZE = 20
+FONTSIZE = 25
 MARKERS = ["o", "v", "^", "p", "s", "*", "D"]
 
 # runs is of form {run_dir_name => name}
@@ -79,7 +79,7 @@ ax.grid()
 ax.set_ylabel(args.metrics.capitalize(), fontsize=FONTSIZE)
 ax.set_xlabel("Max number of retrieved sentences", fontsize=FONTSIZE)
 
-ncol = 2 if args.no_baseline else 3
+ncol = 2 if args.no_baseline or args.restricted else 3
 
 legends = []
 
@@ -87,7 +87,7 @@ l1 = ax.legend(
     global_runs_artists,
     [r for r in runs.values() if runs_groups[r] == "global"],
     loc="lower center",
-    bbox_to_anchor=(0, 1) if ncol == 3 else (0.1, 1),
+    bbox_to_anchor=(-0.1, 1) if ncol == 3 else (0, 1),
     fontsize=FONTSIZE,
     mode="expand",
 )
@@ -107,7 +107,7 @@ if not args.no_baseline:
         [no_retrieval_p],  # type: ignore
         ["no retrieval"],
         loc="lower center",
-        bbox_to_anchor=(0.85, 1),
+        bbox_to_anchor=(0.95, 1) if ncol == 3 else (0.8, 1),
         fontsize=FONTSIZE,
     )
     legends.append(l3)
