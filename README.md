@@ -13,6 +13,22 @@ pip install -r requirements.txt
 
 # The Role of Global and Local Context in Named Entity Recognition
 
+[arXiv link](https://arxiv.org/abs/2305.03132)
+
+Please cite the article as follows :
+
+```bibtex
+@Article{amalvy-2023-context_ner,
+      title={The Role of Global and Local Context in Named Entity Recognition}, 
+      author={Amalvy, A. and Labatut, V. and Dufour, R.},
+      year={2023},
+      pages={2305.03132},
+      journal={arXiv},
+      volume={cs.CL},
+}
+```
+
+
 ## Dataset
 
 The dataset (originally from [Dekker et al., 2019](https://github.com/Niels-Dekker/Out-with-the-Old-and-in-with-the-Novel/tree/master)) can be found under `conivel/datas/dekker/dataset`. It is using the simple CoNLL-2003 format. Our detailed annotation process can be found in the `annotation_process.pdf` file.
