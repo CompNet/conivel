@@ -15,7 +15,7 @@ pip install -r requirements.txt
 
 [arXiv link](https://arxiv.org/abs/2305.03132)
 
-Please cite the article as follows :
+If you use this work, please cite the article as follows :
 
 ```bibtex
 @Article{amalvy-2023-context_ner,
@@ -188,3 +188,8 @@ The plot can be reproduced with `plot_mean_test_f1 -e`.
 ### Appendix: Dataset Details
 
 Figure 5 can be reproduced using `plot_dekker_books_len.py`.
+
+
+# Licensing
+
+The code is licensed under GNU GPLv3. The dataset is shared under the Apache 2.0 License, as originally in the [Dekker et al., 2019](https://github.com/Niels-Dekker/Out-with-the-Old-and-in-with-the-Novel/tree/master) repository.
