@@ -66,12 +66,6 @@ def config():
     # learning rate for NER training
     ner_lr: float = 2e-5
 
-    # --
-    # one of : 'dekker', 'ontonotes'
-    dataset_name: str = "dekker"
-    # if dataset_name == 'ontonotes'
-    dataset_path: Optional[str] = None
-
 
 @ex.automain
 def main(
@@ -87,22 +81,10 @@ def main(
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
-    dataset_name: Literal["dekker", "ontonotes"],
-    dataset_path: Optional[str],
 ):
     print_config(_run)
 
-    if dataset_name == "dekker":
-        dataset = DekkerDataset(book_group=book_group)
-    elif dataset_name == "ontonotes":
-        assert not dataset_path is None
-        dataset = OntonotesDataset(dataset_path)
-        # keep only documents with a number of tokens >= 512
-        dataset.documents = [
-            doc for doc in dataset.documents if sum([len(sent) for sent in doc]) >= 512
-        ]
-    else:
-        raise ValueError(f"unknown dataset name {dataset_name}")
+    dataset = DekkerDataset(book_group=book_group)
     kfolds = dataset.kfolds(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )

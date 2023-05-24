@@ -105,7 +105,7 @@ class DekkerDataset(NERDataset):
             return re.search(r"[^.]*", (os.path.basename(path))).group(0)  # type: ignore
 
         documents = []
-        self.documents_attrs = []
+        documents_attrs = []
 
         for book_path in paths:
             # skip book if it's not in the given book group
@@ -117,4 +117,4 @@ class DekkerDataset(NERDataset):
             documents.append(load_book(book_path, keep_only_classes=keep_only_classes))
             self.documents_attrs.append({"name": os.path.basename(book_path)})
 
-        super().__init__(documents, **kwargs)
+        super().__init__(documents, documents_attrs=documents_attrs, **kwargs)
