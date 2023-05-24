@@ -12,7 +12,11 @@ from conivel.datas.ontonotes import OntonotesDataset
 from conivel.predict import predict
 from conivel.score import score_ner
 from conivel.train import train_ner_model
-from conivel.utils import RunLogScope, pretrained_bert_for_token_classification
+from conivel.utils import (
+    RunLogScope,
+    pretrained_bert_for_token_classification,
+    sacred_archive_huggingface_model,
+)
 
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
