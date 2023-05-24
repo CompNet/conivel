@@ -115,6 +115,6 @@ class DekkerDataset(NERDataset):
                     continue
 
             documents.append(load_book(book_path, keep_only_classes=keep_only_classes))
-            self.documents_attrs.append({"name": os.path.basename(book_path)})
+            documents_attrs.append({"name": os.path.basename(book_path)})
 
         super().__init__(documents, documents_attrs=documents_attrs, **kwargs)
