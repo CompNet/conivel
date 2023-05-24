@@ -6,6 +6,7 @@ from sacred.commands import print_config
 from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
+from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.ontonotes import OntonotesDataset
 from conivel.datas.context import context_retriever_name_to_class
@@ -106,6 +107,13 @@ def main(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
 
+    doc_indices_map = {
+        doc_attr["name"]: i for i, doc_attr in enumerate(dataset.documents_attrs)
+    }
+    _run.info["documents_names"] = [
+        doc_attrs["name"] for doc_attrs in dataset.documents_attrs
+    ]
+
     precision_matrix = np.zeros((runs_nb, k, len(sents_nb_list)))
     recall_matrix = np.zeros((runs_nb, k, len(sents_nb_list)))
     f1_matrix = np.zeros((runs_nb, k, len(sents_nb_list)))
@@ -115,10 +123,19 @@ def main(
         ("f1", f1_matrix),
     ]
 
+    doc_precision_matrix = np.zeros(
+        (runs_nb, len(sents_nb_list), len(dataset.documents))
+    )
+    doc_recall_matrix = np.zeros((runs_nb, len(sents_nb_list), len(dataset.documents)))
+    doc_f1_matrix = np.zeros((runs_nb, len(sents_nb_list), len(dataset.documents)))
+    doc_metrics_matrices = [
+        ("precision", doc_precision_matrix),
+        ("recall", doc_recall_matrix),
+        ("f1", doc_f1_matrix),
+    ]
+
     for run_i in range(runs_nb):
-
         for fold_i, (train_set, test_set) in enumerate(kfolds):
-
             ctx_retriever = context_retriever_name_to_class[context_retriever](
                 sents_nb=sents_nb_list, **context_retriever_kwargs
             )
@@ -126,7 +143,6 @@ def main(
 
             # train
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}"):
-
                 model = pretrained_bert_for_token_classification(
                     "bert-base-cased", ctx_train_set.tag_to_id
                 )
@@ -144,28 +160,34 @@ def main(
                     sacred_archive_huggingface_model(_run, model, "model")  # type: ignore
 
             for sents_nb_i, sents_nb in enumerate(sents_nb_list):
-
                 _run.log_scalar("gpu_usage", gpu_memory_usage())
 
                 ctx_retriever = context_retriever_name_to_class[context_retriever](
                     sents_nb=sents_nb, **context_retriever_kwargs
                 )
-                ctx_test_set = ctx_retriever(test_set)
 
-                # test
-                test_preds = predict(model, ctx_test_set, batch_size=batch_size).tags
-                precision, recall, f1 = score_ner(ctx_test_set.sents(), test_preds)
-                _run.log_scalar(
-                    f"run{run_i}.fold{fold_i}.test_precision",
-                    precision,
-                    step=sents_nb,
-                )
+                test_preds = []
+
+                for doc, doc_attrs in zip(test_set.documents, test_set.documents_attrs):
+                    doc_i = doc_indices_map[doc_attrs["name"]]
+
+                    ctx_doc_dataset = ctx_retriever(NERDataset([doc]))
+
+                    doc_preds = predict(
+                        model, ctx_doc_dataset, batch_size=batch_size
+                    ).tags
+                    test_preds += doc_preds
+
+                    precision, recall, f1 = score_ner(
+                        ctx_doc_dataset.sents(), doc_preds
+                    )
+                    doc_precision_matrix[run_i][sents_nb_i][doc_i] = precision
+                    doc_recall_matrix[run_i][sents_nb_i][doc_i] = recall
+                    doc_f1_matrix[run_i][sents_nb_i][doc_i] = f1
+
+                precision, recall, f1 = score_ner(test_set.sents(), test_preds)
                 precision_matrix[run_i][fold_i][sents_nb_i] = precision
-                _run.log_scalar(
-                    f"run{run_i}.fold{fold_i}.test_recall", recall, step=sents_nb
-                )
                 recall_matrix[run_i][fold_i][sents_nb_i] = recall
-                _run.log_scalar(f"run{run_i}.fold{fold_i}.test_f1", f1, step=sents_nb)
                 f1_matrix[run_i][fold_i][sents_nb_i] = f1
 
         # mean metrics for the current run
@@ -198,3 +220,14 @@ def main(
                 op(matrix, axis=(0, 1)),  # (sents_nb)
                 steps=sents_nb_list,
             )
+    for doc, doc_attrs in zip(dataset.documents, dataset.documents_attrs):
+        for metrics_name, matrix in doc_metrics_matrices:
+            for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
+                doc_name = doc_attrs["name"]
+                doc_i = doc_indices_map[doc_name]
+                sacred_log_series(
+                    _run,
+                    f"{op_name}_{doc_name}_test_{metrics_name}",
+                    op(matrix[:, :, doc_i], axis=0),
+                    steps=sents_nb_list,
+                )

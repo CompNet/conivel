@@ -43,9 +43,7 @@ def load_book(
     tags = []
 
     with open(path) as f:
-
         for i, line in enumerate(f):
-
             try:
                 token, tag = line.strip().split(" ")
             except ValueError:
@@ -65,7 +63,6 @@ def load_book(
     sent = NERSentence()
 
     for i, (token, tag) in enumerate(zip(tokens, tags)):
-
         fixed_token = '"' if token in {"``", "''"} else token
         fixed_token = "'" if token == "`" else fixed_token
         next_token = tokens[i + 1] if i < len(tokens) - 1 else None
@@ -108,10 +105,9 @@ class DekkerDataset(NERDataset):
             return re.search(r"[^.]*", (os.path.basename(path))).group(0)  # type: ignore
 
         documents = []
-        self.documents_names = []
+        self.documents_attrs = []
 
         for book_path in paths:
-
             # skip book if it's not in the given book group
             if not book_group is None:
                 name = book_name(book_path)
@@ -119,6 +115,6 @@ class DekkerDataset(NERDataset):
                     continue
 
             documents.append(load_book(book_path, keep_only_classes=keep_only_classes))
-            self.documents_names.append(os.path.basename(book_path))
+            self.documents_attrs.append({"name": os.path.basename(book_path)})
 
         super().__init__(documents, **kwargs)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 import math, itertools, copy, random
-from typing import TYPE_CHECKING, Set, List, Optional, Dict, Tuple, cast
+from typing import TYPE_CHECKING, Set, List, Optional, Dict, Tuple, cast, Any
 from collections import defaultdict
 
 from torch.utils.data import Dataset
@@ -24,12 +24,19 @@ class NERDataset(Dataset):
         documents: List[List[NERSentence]],
         tags: Optional[Set[str]] = None,
         tokenizer: Optional[BertTokenizerFast] = None,
+        documents_attrs: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """
         :param documents:
         :param tags:
         """
         self.documents = documents
+
+        if documents_attrs is None:
+            self.documents_attrs = [{} for _ in self.documents]
+        else:
+            assert len(documents_attrs) == len(documents)
+            self.documents_attrs = documents_attrs
 
         if tags is None:
             self.tags = set()
@@ -90,7 +97,10 @@ class NERDataset(Dataset):
         :return: a list of ``k`` tuples, each tuple being of the form
                  ``(train_set, test_set)``.
         """
-        documents = copy.copy(self.documents)
+        documents = [
+            (copy.copy(doc), copy.copy(doc_attrs))
+            for doc, doc_attrs in zip(self.documents, self.documents_attrs)
+        ]
         if shuffle:
             if shuffle_seed is None:
                 random.shuffle(documents)
@@ -108,8 +118,18 @@ class NERDataset(Dataset):
 
         return [
             (
-                NERDataset(train, self.tags, self.tokenizer),
-                NERDataset(test, self.tags, self.tokenizer),
+                NERDataset(
+                    [d[0] for d in train],
+                    self.tags,
+                    self.tokenizer,
+                    documents_attrs=[d[1] for d in train],
+                ),
+                NERDataset(
+                    [d[0] for d in test],
+                    self.tags,
+                    self.tokenizer,
+                    documents_attrs=[d[1] for d in test],
+                ),
             )
             for train, test in folds
         ]
@@ -122,16 +142,19 @@ class NERDataset(Dataset):
         :return: two datasets, the 1st having ``int(len(self.documents) * ratio)``
                  documents.
         """
+        split_point = int(ratio * len(self.documents))
         return (
             NERDataset(
-                self.documents[: int(ratio * len(self.documents))],
+                self.documents[:split_point],
                 self.tags,
                 self.tokenizer,
+                self.documents_attrs[:split_point],
             ),
             NERDataset(
-                self.documents[int(ratio * len(self.documents)) :],
+                self.documents[split_point:],
                 self.tags,
                 self.tokenizer,
+                self.documents_attrs[split_point:],
             ),
         )
 
@@ -157,7 +180,11 @@ class NERDataset(Dataset):
                 break
 
         return NERDataset(
-            flattened([dataset.documents for dataset in datasets]), tokenizer=tokenizer
+            flattened([dataset.documents for dataset in datasets]),
+            tokenizer=tokenizer,
+            documents_attrs=flattened(
+                [dataset.documents_attrs for dataset in datasets]
+            ),
         )
 
     def document_for_sent(self, sent_index: int) -> List[NERSentence]:
