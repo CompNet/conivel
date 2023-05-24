@@ -6,6 +6,7 @@ from sacred.commands import print_config
 from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
+from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
 from conivel.datas.ontonotes import OntonotesDataset
 from conivel.predict import predict
@@ -50,12 +51,6 @@ def config():
     # learning rate for NER training
     ner_lr: float = 2e-5
 
-    # --
-    # one of : 'dekker', 'ontonotes'
-    dataset_name: str = "dekker"
-    # if dataset_name == 'ontonotes'
-    dataset_path: Optional[str] = None
-
 
 @ex.automain
 def main(
@@ -68,25 +63,20 @@ def main(
     runs_nb: int,
     ner_epochs_nb: int,
     ner_lr: float,
-    dataset_name: str,
-    dataset_path: Optional[str],
 ):
     print_config(_run)
 
-    if dataset_name == "dekker":
-        dataset = DekkerDataset(book_group=book_group)
-    elif dataset_name == "ontonotes":
-        assert not dataset_path is None
-        dataset = OntonotesDataset(dataset_path)
-        # keep only documents with a number of tokens >= 512
-        dataset.documents = [
-            doc for doc in dataset.documents if sum([len(sent) for sent in doc]) >= 512
-        ]
-    else:
-        raise ValueError(f"unknown dataset name {dataset_name}")
+    dataset = DekkerDataset(book_group=book_group)
     kfolds = dataset.kfolds(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
+
+    doc_indices_map = {
+        doc_attr["name"]: i for i, doc_attr in enumerate(dataset.documents_attrs)
+    }
+    _run.info["documents_names"] = [
+        doc_attrs["name"] for doc_attrs in dataset.documents_attrs
+    ]
 
     precision_matrix = np.zeros((runs_nb, k))
     recall_matrix = np.zeros((runs_nb, k))
@@ -97,12 +87,18 @@ def main(
         ("f1", f1_matrix),
     ]
 
+    doc_precision_matrix = np.zeros((runs_nb, len(dataset.documents)))
+    doc_recall_matrix = np.zeros((runs_nb, len(dataset.documents)))
+    doc_f1_matrix = np.zeros((runs_nb, len(dataset.documents)))
+    doc_metrics_matrices = [
+        ("precision", doc_precision_matrix),
+        ("recall", doc_recall_matrix),
+        ("f1", doc_f1_matrix),
+    ]
+
     for run_i in range(runs_nb):
-
         for fold_i, (train_set, test_set) in enumerate(kfolds):
-
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}"):
-
                 model = pretrained_bert_for_token_classification(
                     "bert-base-cased", train_set.tag_to_id
                 )
@@ -119,13 +115,24 @@ def main(
                 if save_models:
                     sacred_archive_huggingface_model(_run, model, "model")  # type: ignore
 
-                preds = predict(model, test_set, batch_size=batch_size).tags
-                precision, recall, f1 = score_ner(test_set.sents(), preds)
-                _run.log_scalar(f"test_precision", precision)
+                test_preds = []
+
+                for doc, doc_attrs in zip(test_set.documents, test_set.documents_attrs):
+                    doc_i = doc_indices_map[doc_attrs["name"]]
+
+                    doc_dataset = NERDataset([doc])
+
+                    doc_preds = predict(model, doc_dataset, batch_size=batch_size).tags
+                    test_preds += doc_preds
+
+                    precision, recall, f1 = score_ner(doc_dataset.sents(), doc_preds)
+                    doc_precision_matrix[run_i][doc_i] = precision
+                    doc_recall_matrix[run_i][doc_i] = recall
+                    doc_f1_matrix[run_i][doc_i] = f1
+
+                precision, recall, f1 = score_ner(test_set.sents(), test_preds)
                 precision_matrix[run_i][fold_i] = precision
-                _run.log_scalar("test_recall", recall)
                 recall_matrix[run_i][fold_i] = recall
-                _run.log_scalar("test_f1", f1)
                 f1_matrix[run_i][fold_i] = f1
 
         # mean metrics for the current run
@@ -152,3 +159,13 @@ def main(
                 f"{op_name}_test_{name}",
                 op(matrix, axis=(0, 1)),
             )
+
+    for doc, doc_attrs in zip(dataset.documents, dataset.documents_attrs):
+        for metrics_name, matrix in doc_metrics_matrices:
+            for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
+                doc_name = doc_attrs["name"]
+                doc_i = doc_indices_map[doc_name]
+                _run.log_scalar(
+                    f"{op_name}_{doc_name}_test_{metrics_name}",
+                    op(matrix[:, doc_i], axis=0),
+                )
