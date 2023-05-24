@@ -292,6 +292,9 @@ def config():
     # -- NER parameters
     ner_epochs_nb: int = 2
     ner_lr: float = 2e-5
+    # supplied pretrained NER models (one per fold). If None, start
+    # from bert-base-cased and finetune.
+    ner_model_paths: Optional[list] = None
 
 
 @ex.automain
@@ -314,6 +317,7 @@ def main(
     cr_heuristics_kwargs: List[dict],
     ner_epochs_nb: int,
     ner_lr: float,
+    ner_model_paths: Optional[List[str]],
 ):
     print_config(_run)
 
@@ -410,28 +414,34 @@ def main(
                 _run.log_scalar(f"recall", recall)
                 _run.log_scalar(f"f1", f1)
 
-            with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_training"):
-                # train_and_ctx = neural_retriever(ner_train, quiet=False)
-                # Use random heuristic at train time
-                random_retriever = RandomContextRetriever(1)
-                train_and_ctx = random_retriever(ner_train, quiet=False)
+            if ner_model_paths is None:
+                with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_training"):
+                    # train_and_ctx = neural_retriever(ner_train, quiet=False)
+                    # Use random heuristic at train time
+                    random_retriever = RandomContextRetriever(1)
+                    train_and_ctx = random_retriever(ner_train, quiet=False)
+                    ner_model = pretrained_bert_for_token_classification(
+                        "bert-base-cased", ner_train.tag_to_id
+                    )
+                    ner_model = train_ner_model(
+                        ner_model,
+                        train_and_ctx,
+                        train_and_ctx,
+                        _run,
+                        epochs_nb=ner_epochs_nb,
+                        batch_size=batch_size,
+                        learning_rate=ner_lr,
+                    )
+                    if save_models:
+                        sacred_archive_huggingface_model(_run, ner_model, f"ner_model")
+            else:
+                assert len(ner_model_paths) == k
                 ner_model = pretrained_bert_for_token_classification(
-                    "bert-base-cased", ner_train.tag_to_id
+                    ner_model_paths[fold_i],
+                    ner_train.tag_to_id,
                 )
-                ner_model = train_ner_model(
-                    ner_model,
-                    train_and_ctx,
-                    train_and_ctx,
-                    _run,
-                    epochs_nb=ner_epochs_nb,
-                    batch_size=batch_size,
-                    learning_rate=ner_lr,
-                )
-                if save_models:
-                    sacred_archive_huggingface_model(_run, ner_model, f"ner_model")
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_testing"):
-
                 for sents_nb_i, (sents_nb, test_and_ctx) in enumerate(
                     zip(
                         cr_sents_nb_list,
