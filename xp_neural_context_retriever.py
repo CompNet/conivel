@@ -342,6 +342,13 @@ def main(
                 (cr_dataset_from_path(train_path), cr_dataset_from_path(test_path))
             )
 
+    doc_indices_map = {
+        doc_attr["name"]: i for i, doc_attr in enumerate(dataset.documents_attrs)
+    }
+    _run.info["documents_names"] = [
+        doc_attrs["name"] for doc_attrs in dataset.documents_attrs
+    ]
+
     # * Metrics matrices
     #   these are used to record mean metrics across folds, runs...
     cr_precision_matrix = np.zeros((runs_nb, folds_nb))
@@ -360,6 +367,21 @@ def main(
         ("ner_precision", ner_precision_matrix),
         ("ner_recall", ner_recall_matrix),
         ("ner_f1", ner_f1_matrix),
+    ]
+
+    ner_doc_precision_matrix = np.zeros(
+        (runs_nb, len(cr_sents_nb_list), len(dataset.documents))
+    )
+    ner_doc_recall_matrix = np.zeros(
+        (runs_nb, len(cr_sents_nb_list), len(dataset.documents))
+    )
+    ner_doc_f1_matrix = np.zeros(
+        (runs_nb, len(cr_sents_nb_list), len(dataset.documents))
+    )
+    doc_metrics_matrices = [
+        ("precision", ner_doc_precision_matrix),
+        ("recall", ner_doc_recall_matrix),
+        ("f1", ner_doc_f1_matrix),
     ]
 
     for run_i in range(runs_nb):
@@ -442,28 +464,43 @@ def main(
                 )
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_testing"):
-                for sents_nb_i, (sents_nb, test_and_ctx) in enumerate(
-                    zip(
-                        cr_sents_nb_list,
-                        neural_retriever.dataset_with_contexts(
-                            ner_test, cr_sents_nb_list, quiet=False
-                        ),
-                    )
-                ):
-                    sacred_archive_jsonifiable_as_file(
-                        _run,
-                        [s.to_jsonifiable() for s in test_and_ctx.sents()],
-                        "retrieved_dataset",
-                    )
-                    preds = predict(ner_model, test_and_ctx, batch_size=batch_size).tags
-                    precision, recall, f1 = score_ner(ner_test.sents(), preds)
+                test_preds = [[] * len(cr_sents_nb_list)]
 
-                    ner_precision_matrix[run_i][fold_i][sents_nb_i] = precision
-                    ner_recall_matrix[run_i][fold_i][sents_nb_i] = recall
-                    ner_f1_matrix[run_i][fold_i][sents_nb_i] = f1
-                    _run.log_scalar("precision", precision)
-                    _run.log_scalar(f"recall", recall)
-                    _run.log_scalar(f"f1", f1)
+                for doc, doc_attrs in zip(ner_test.documents, ner_test.documents_attrs):
+                    doc_name = doc_attrs["name"]
+                    doc_i = doc_indices_map[doc_name]
+                    doc_dataset = NERDataset([doc], documents_attrs=[doc_attrs])
+
+                    for sents_nb_i, ctx_doc_dataset in enumerate(
+                        neural_retriever.dataset_with_contexts(
+                            doc_dataset, cr_sents_nb_list, quiet=False
+                        )
+                    ):
+                        sacred_archive_jsonifiable_as_file(
+                            _run,
+                            [s.to_jsonifiable() for s in ctx_doc_dataset.sents()],
+                            f"{doc_name}_retrieved_dataset",
+                        )
+
+                        doc_preds = predict(
+                            ner_model, ctx_doc_dataset, batch_size=batch_size
+                        ).tags
+                        test_preds[sents_nb_i] += doc_preds
+                        precision, recall, f1 = score_ner(
+                            doc_dataset.sents(), doc_preds
+                        )
+
+                        ner_doc_precision_matrix[run_i][sents_nb_i][doc_i] = precision
+                        ner_doc_recall_matrix[run_i][sents_nb_i][doc_i] = recall
+                        ner_doc_f1_matrix[run_i][sents_nb_i][doc_i] = f1
+
+                    for sents_nb_i, sents_nb_test_preds in enumerate(test_preds):
+                        precision, recall, f1 = score_ner(
+                            ner_test.sents(), sents_nb_test_preds
+                        )
+                        ner_precision_matrix[run_i][fold_i][sents_nb_i] = precision
+                        ner_recall_matrix[run_i][fold_i][sents_nb_i] = recall
+                        ner_f1_matrix[run_i][fold_i][sents_nb_i] = f1
 
         # * Run mean metrics
         for metrics_name, matrix in metrics_matrices:
@@ -517,3 +554,15 @@ def main(
                 op(matrix, axis=(0, 1)),
                 steps=cr_sents_nb_list,
             )
+
+    for doc, doc_attrs in zip(dataset.documents, dataset.documents_attrs):
+        for metrics_name, matrix in doc_metrics_matrices:
+            for op_name, op in [("mean", np.mean), ("stdev", np.std)]:
+                doc_name = doc_attrs["name"]
+                doc_i = doc_indices_map[doc_name]
+                sacred_log_series(
+                    _run,
+                    f"{op_name}_{doc_name}_test_{metrics_name}",
+                    op(matrix[:, :, doc_i], axis=0),
+                    steps=cr_sents_nb_list,
+                )
