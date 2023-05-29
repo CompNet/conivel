@@ -464,7 +464,7 @@ def main(
                 )
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_testing"):
-                test_preds = [[] * len(cr_sents_nb_list)]
+                test_preds = [[] for _ in range(len(cr_sents_nb_list))]
 
                 for doc, doc_attrs in zip(ner_test.documents, ner_test.documents_attrs):
                     doc_name = doc_attrs["name"]
