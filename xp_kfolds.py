@@ -65,6 +65,9 @@ def config():
     ner_epochs_nb: int = 2
     # learning rate for NER training
     ner_lr: float = 2e-5
+    # supplied pretrained NER models (one per fold). If None, start
+    # from bert-base-cased and finetune.
+    ner_model_paths: Optional[list] = None
 
 
 @ex.automain
@@ -81,6 +84,7 @@ def main(
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
+    ner_model_paths: Optional[List[str]],
 ):
     print_config(_run)
 
@@ -124,22 +128,29 @@ def main(
             ctx_train_set = ctx_retriever(train_set)
 
             # train
-            with RunLogScope(_run, f"run{run_i}.fold{fold_i}"):
-                model = pretrained_bert_for_token_classification(
-                    "bert-base-cased", ctx_train_set.tag_to_id
+            if ner_model_paths is None:
+                with RunLogScope(_run, f"run{run_i}.fold{fold_i}"):
+                    model = pretrained_bert_for_token_classification(
+                        "bert-base-cased", ctx_train_set.tag_to_id
+                    )
+                    model = train_ner_model(
+                        model,
+                        ctx_train_set,
+                        ctx_train_set,
+                        _run=_run,
+                        epochs_nb=ner_epochs_nb,
+                        batch_size=batch_size,
+                        learning_rate=ner_lr,
+                        quiet=True,
+                    )
+                    if save_models:
+                        sacred_archive_huggingface_model(_run, model, "model")  # type: ignore
+            else:
+                assert len(ner_model_paths) == k
+                ner_model = pretrained_bert_for_token_classification(
+                    ner_model_paths[fold_i],
+                    train_set.tag_to_id,
                 )
-                model = train_ner_model(
-                    model,
-                    ctx_train_set,
-                    ctx_train_set,
-                    _run=_run,
-                    epochs_nb=ner_epochs_nb,
-                    batch_size=batch_size,
-                    learning_rate=ner_lr,
-                    quiet=True,
-                )
-                if save_models:
-                    sacred_archive_huggingface_model(_run, model, "model")  # type: ignore
 
             for sents_nb_i, sents_nb in enumerate(sents_nb_list):
                 _run.log_scalar("gpu_usage", gpu_memory_usage())
