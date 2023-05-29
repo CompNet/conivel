@@ -147,7 +147,7 @@ def main(
                         sacred_archive_huggingface_model(_run, model, "model")  # type: ignore
             else:
                 assert len(ner_model_paths) == k
-                ner_model = pretrained_bert_for_token_classification(
+                model = pretrained_bert_for_token_classification(
                     ner_model_paths[fold_i],
                     train_set.tag_to_id,
                 )
