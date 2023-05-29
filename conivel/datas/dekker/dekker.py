@@ -99,7 +99,7 @@ class DekkerDataset(NERDataset):
         if directory is None:
             directory = f"{script_dir}/dataset"
 
-        paths = glob.glob(f"{directory}/*.conll")
+        paths = sorted(glob.glob(f"{directory}/*.conll"))
 
         def book_name(path: str) -> str:
             return re.search(r"[^.]*", (os.path.basename(path))).group(0)  # type: ignore
