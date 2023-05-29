@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 import os
 import numpy as np
 from sacred import Experiment
@@ -54,6 +54,9 @@ def config():
     ner_epochs_nb: int = 2
     # learning rate for NER training
     ner_lr: float = 2e-5
+    # supplied pretrained NER models (one per fold). If None, start
+    # from bert-base-cased and finetune.
+    ner_model_paths: Optional[list] = None
 
 
 @ex.automain
@@ -67,6 +70,7 @@ def main(
     runs_nb: int,
     ner_epochs_nb: int,
     ner_lr: float,
+    ner_model_paths: Optional[List[str]],
 ):
     print_config(_run)
 
@@ -103,21 +107,29 @@ def main(
     for run_i in range(runs_nb):
         for fold_i, (train_set, test_set) in enumerate(kfolds):
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}"):
-                model = pretrained_bert_for_token_classification(
-                    "bert-base-cased", train_set.tag_to_id
-                )
-                model = train_ner_model(
-                    model,
-                    train_set,
-                    train_set,
-                    _run=_run,
-                    epochs_nb=ner_epochs_nb,
-                    batch_size=batch_size,
-                    learning_rate=ner_lr,
-                    quiet=True,
-                )
-                if save_models:
-                    sacred_archive_huggingface_model(_run, model, "model")  # type: ignore
+
+                if ner_model_paths is None:
+                    model = pretrained_bert_for_token_classification(
+                        "bert-base-cased", train_set.tag_to_id
+                    )
+                    model = train_ner_model(
+                        model,
+                        train_set,
+                        train_set,
+                        _run=_run,
+                        epochs_nb=ner_epochs_nb,
+                        batch_size=batch_size,
+                        learning_rate=ner_lr,
+                        quiet=True,
+                    )
+                    if save_models:
+                        sacred_archive_huggingface_model(_run, model, "model")  # type: ignore
+                else:
+                    assert len(ner_model_paths) == k
+                    model = pretrained_bert_for_token_classification(
+                        ner_model_paths[fold_i],
+                        train_set.tag_to_id,
+                    )
 
                 test_preds = []
 
