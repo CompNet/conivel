@@ -494,13 +494,13 @@ def main(
                         ner_doc_recall_matrix[run_i][sents_nb_i][doc_i] = recall
                         ner_doc_f1_matrix[run_i][sents_nb_i][doc_i] = f1
 
-                    for sents_nb_i, sents_nb_test_preds in enumerate(test_preds):
-                        precision, recall, f1 = score_ner(
-                            ner_test.sents(), sents_nb_test_preds
-                        )
-                        ner_precision_matrix[run_i][fold_i][sents_nb_i] = precision
-                        ner_recall_matrix[run_i][fold_i][sents_nb_i] = recall
-                        ner_f1_matrix[run_i][fold_i][sents_nb_i] = f1
+                for sents_nb_i, sents_nb_test_preds in enumerate(test_preds):
+                    precision, recall, f1 = score_ner(
+                        ner_test.sents(), sents_nb_test_preds
+                    )
+                    ner_precision_matrix[run_i][fold_i][sents_nb_i] = precision
+                    ner_recall_matrix[run_i][fold_i][sents_nb_i] = recall
+                    ner_f1_matrix[run_i][fold_i][sents_nb_i] = f1
 
         # * Run mean metrics
         for metrics_name, matrix in metrics_matrices:
