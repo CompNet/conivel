@@ -89,7 +89,7 @@ def generate_pos_example(
         ],
         "LOC": [
             f"'{sent_text}' - In the preceding sentence, {entity_text} is a location. Invent a one-sentence description for this location, mentioning its name.",
-            f"Invent a single sentence depicting a character of your invention going to {entity_text}. You must mention the name of the character.",
+            f"Invent a single sentence depicting a character of your invention going to {entity_text}.",
         ],
         "ORG": [
             f"'{sent_text}' - In the preceding sentence, {entity_text} is an organisation. Invent a one-sentence description for this organisation, mentioning its name."
