@@ -10,7 +10,9 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from tqdm import tqdm
 import numpy as np
 from sklearn.metrics import precision_recall_fscore_support
+import nltk
 from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset
@@ -76,7 +78,7 @@ def generate_pos_example(
     sent: NERSentence,
     entity: NEREntity,
     device: Literal["cpu", "cuda"],
-) -> ContextRetrievalExample:
+) -> Optional[ContextRetrievalExample]:
     sent_text = " ".join(sent.tokens)
     entity_text = " ".join(entity.tokens)
 
@@ -97,6 +99,18 @@ def generate_pos_example(
     example_text = request_alpaca(
         alpaca, tokenizer, random.choice(PROMPTS[entity.tag]), device
     )
+
+    # check that the example context contains at least part of the
+    # entity
+    nltk.download("stopwords", quiet=True)
+    entity_main_tokens = [
+        tok for tok in entity.tokens if not tok in stopwords.words("english")
+    ]
+    if not any(
+        [entity_token in " ".join(example_text) for entity_token in entity_main_tokens]
+    ):
+        return None
+
     return ContextRetrievalExample(sent.tokens, sent.tags, example_text, [], "right", 1)
 
 
@@ -115,9 +129,10 @@ def generate_pos_examples(
             entity_str = " ".join(entity.tokens)
 
             if not entity_str in exs:
-                exs[entity_str] = generate_pos_example(
-                    alpaca, tokenizer, sent, entity, device
-                )
+                ex = generate_pos_example(alpaca, tokenizer, sent, entity, device)
+                if ex is None:
+                    continue
+                exs[entity_str] = ex
 
             t.set_description(f"{len(exs)} examples")
 
