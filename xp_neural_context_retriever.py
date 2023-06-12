@@ -15,7 +15,7 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
-from conivel.datas.dekker import DekkerDataset
+from conivel.datas.dekker import DekkerDataset, load_extended_documents
 from conivel.datas.context import (
     CombinedContextRetriever,
     ContextRetrievalDataset,
@@ -303,6 +303,9 @@ def config():
     cr_heuristics: list
     # kwargs for the context retrieval heuristics
     cr_heuristics_kwargs: list
+    # A directory containing extended documents for retrieval purposes
+    # (see :meth:`.ContextRetriever.__call__)`
+    cr_extended_docs_dir = None
 
     # -- NER parameters
     ner_epochs_nb: int = 2
@@ -330,6 +333,7 @@ def main(
     cr_sents_nb_list: List[int],
     cr_heuristics: List[str],
     cr_heuristics_kwargs: List[dict],
+    cr_extended_docs_dir: Optional[str],
     ner_epochs_nb: int,
     ner_lr: float,
     ner_model_paths: Optional[List[str]],
@@ -343,6 +347,10 @@ def main(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
     folds_nb = len(ner_kfolds)
+
+    extended_docs = None
+    if cr_extended_docs_dir:
+        extended_docs = load_extended_documents(cr_extended_docs_dir, dataset)
 
     if cr_train_dataset_paths is None:
         cr_kfolds = gen_cr_dataset_kfolds(
@@ -488,7 +496,12 @@ def main(
 
                     for sents_nb_i, ctx_doc_dataset in enumerate(
                         neural_retriever.dataset_with_contexts(
-                            doc_dataset, cr_sents_nb_list, quiet=False
+                            doc_dataset,
+                            cr_sents_nb_list,
+                            quiet=False,
+                            extended_documents=[extended_docs[doc_i]]
+                            if extended_docs
+                            else None,
                         )
                     ):
                         sacred_archive_jsonifiable_as_file(

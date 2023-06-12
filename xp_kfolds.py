@@ -1,14 +1,14 @@
-from typing import List, Optional, Literal
+from typing import List, Optional
 import os
 import numpy as np
+import torch
 from sacred import Experiment
 from sacred.commands import print_config
 from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 from conivel.datas.dataset import NERDataset
-from conivel.datas.dekker import DekkerDataset
-from conivel.datas.ontonotes import OntonotesDataset
+from conivel.datas.dekker import DekkerDataset, load_extended_documents
 from conivel.datas.context import context_retriever_name_to_class
 from conivel.predict import predict
 from conivel.score import score_ner
@@ -56,7 +56,10 @@ def config():
     # context retriever heuristic name
     context_retriever: str
     # context retriever extra args (not including ``sents_nb``)
-    context_retriever_kwargs: dict
+    cr_kwargs = None
+    # A directory containing extended documents for retrieval purposes
+    # (see :meth:`.ContextRetriever.__call__)`
+    cr_extended_docs_dir = None
 
     # -- NER training parameters
     # list of number of sents to test
@@ -80,18 +83,25 @@ def main(
     save_models: bool,
     runs_nb: int,
     context_retriever: str,
-    context_retriever_kwargs: dict,
+    cr_kwargs: Optional[dict],
+    cr_extended_docs_dir: Optional[str],
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
     ner_model_paths: Optional[List[str]],
 ):
+    cr_kwargs = cr_kwargs or {}
+
     print_config(_run)
 
     dataset = DekkerDataset(book_group=book_group)
     kfolds = dataset.kfolds(
         k, shuffle=not shuffle_kfolds_seed is None, shuffle_seed=shuffle_kfolds_seed
     )
+
+    extended_docs = None
+    if cr_extended_docs_dir:
+        extended_docs = load_extended_documents(cr_extended_docs_dir, dataset)
 
     doc_indices_map = {
         doc_attr["name"]: i for i, doc_attr in enumerate(dataset.documents_attrs)
@@ -123,7 +133,7 @@ def main(
     for run_i in range(runs_nb):
         for fold_i, (train_set, test_set) in enumerate(kfolds):
             ctx_retriever = context_retriever_name_to_class[context_retriever](
-                sents_nb=sents_nb_list, **context_retriever_kwargs
+                sents_nb=sents_nb_list, **cr_kwargs
             )
             ctx_train_set = ctx_retriever(train_set)
 
@@ -153,10 +163,11 @@ def main(
                 )
 
             for sents_nb_i, sents_nb in enumerate(sents_nb_list):
-                _run.log_scalar("gpu_usage", gpu_memory_usage())
+                if torch.cuda.is_available():
+                    _run.log_scalar("gpu_usage", gpu_memory_usage())
 
                 ctx_retriever = context_retriever_name_to_class[context_retriever](
-                    sents_nb=sents_nb, **context_retriever_kwargs
+                    sents_nb=sents_nb, **cr_kwargs
                 )
 
                 test_preds = []
@@ -164,7 +175,12 @@ def main(
                 for doc, doc_attrs in zip(test_set.documents, test_set.documents_attrs):
                     doc_i = doc_indices_map[doc_attrs["name"]]
 
-                    ctx_doc_dataset = ctx_retriever(NERDataset([doc]))
+                    ctx_doc_dataset = ctx_retriever(
+                        NERDataset([doc]),
+                        extended_documents=[extended_docs[doc_i]]
+                        if extended_docs
+                        else None,
+                    )
 
                     doc_preds = predict(
                         model, ctx_doc_dataset, batch_size=batch_size

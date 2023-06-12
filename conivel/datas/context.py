@@ -59,15 +59,38 @@ class ContextRetriever:
     def __init__(self, sents_nb: Union[int, List[int]], **kwargs) -> None:
         self.sents_nb = sents_nb
 
-    def __call__(self, dataset: NERDataset, quiet: bool = True) -> NERDataset:
-        """retrieve context for each sentence of a :class:`NERDataset`"""
+    def __call__(
+        self,
+        dataset: NERDataset,
+        quiet: bool = True,
+        extended_documents: Optional[List[List[NERSentence]]] = None,
+    ) -> NERDataset:
+        """Retrieve context for each sentence of a :class:`NERDataset`
+
+        :param dataset:
+        :param quiet:
+        :param extended_documents: Extended version of
+            ``dataset.documents`` for retrieval purposes.
+        """
+        if extended_documents:
+            assert len(extended_documents) == len(dataset.documents)
+
         new_docs = []
-        for document in tqdm(dataset.documents, disable=quiet):
+
+        for doc_i, document in enumerate(tqdm(dataset.documents, disable=quiet)):
+
             new_doc = []
+
+            retrieval_doc = (
+                extended_documents[doc_i] if extended_documents else document
+            )
+
             for sent_i, sent in enumerate(document):
+
                 retrieval_matchs = sorted(
-                    self.retrieve(sent_i, document), key=lambda m: m.sentence_idx
+                    self.retrieve(sent_i, retrieval_doc), key=lambda m: m.sentence_idx
                 )
+
                 new_doc.append(
                     NERSentence(
                         sent.tokens,
@@ -80,11 +103,17 @@ class ContextRetriever:
                         },
                     )
                 )
+
             new_docs.append(new_doc)
+
         return NERDataset(new_docs, tags=dataset.tags, tokenizer=dataset.tokenizer)
 
     def dataset_with_contexts(
-        self, dataset: NERDataset, sents_nb_list: List[int], quiet: bool = True
+        self,
+        dataset: NERDataset,
+        sents_nb_list: List[int],
+        quiet: bool = True,
+        extended_documents: Optional[List[List[NERSentence]]] = None,
     ) -> Generator[NERDataset, None, None]:
         """
         retrieve context for each sentence of the given
@@ -100,14 +129,18 @@ class ContextRetriever:
         :param dataset:
         :param sents_nb_list:
         :param quiet:
+        :param extended_documents:
         """
         assert self.sents_nb == max(sents_nb_list)
+        if extended_documents:
+            assert len(extended_documents) == len(dataset.documents)
 
         matchs: List[List[List[ContextRetrievalMatch]]] = []
-        for doc in tqdm(dataset.documents, disable=quiet):
+        for doc_i, doc in enumerate(tqdm(dataset.documents, disable=quiet)):
             doc_matchs = []
+            retrieval_doc = extended_documents[doc_i] if extended_documents else doc
             for sent_i, sent in enumerate(doc):
-                doc_matchs.append(self.retrieve(sent_i, doc))
+                doc_matchs.append(self.retrieve(sent_i, retrieval_doc))
             matchs.append(doc_matchs)
 
         for sents_nb in sorted(sents_nb_list):

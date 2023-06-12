@@ -1,5 +1,8 @@
 from typing import List, Optional, Set
 import os, glob, re
+from collections import Counter
+import nltk
+from tqdm import tqdm
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
 
@@ -118,3 +121,66 @@ class DekkerDataset(NERDataset):
             documents_attrs.append({"name": os.path.basename(book_path)})
 
         super().__init__(documents, documents_attrs=documents_attrs, **kwargs)
+
+
+def load_extended_documents(
+    directory: str, dataset: DekkerDataset
+) -> List[List[NERSentence]]:
+    """Load dekker's dataset full documents.  Use for retrieval
+    purposes only, as tags wont be included.
+
+    :param directory: Directory containing the extended documents.
+        They must have the same name as documents in the dekker
+        dataset, and end in .txt
+    :param dataset:
+
+    :return:
+    """
+
+    dir_files = sorted(glob.glob(f"{directory}/*.txt"))
+
+    extended_documents = []
+
+    for doc, doc_attrs in tqdm(
+        zip(dataset.documents, dataset.documents_attrs), total=len(dataset.documents)
+    ):
+        # NOTE: this is because names in DekkerDataset have the form
+        # 'title.conll`, but we only care about the title! Kind of a
+        # hack.
+        doc_name = os.path.splitext(doc_attrs["name"])[0]
+
+        # find corresponding file
+        dir_file = None
+        for df in dir_files:
+            df_name = os.path.splitext(os.path.basename(df))[0]
+            if df_name == doc_name:
+                dir_file = df
+                break
+        assert not dir_file is None
+
+        with open(dir_file) as f:
+            extended_sents = [
+                nltk.word_tokenize(sent) for sent in nltk.sent_tokenize(f.read())
+            ]
+
+        # Loosely (loosely !) find the end of doc in its extended
+        # sents. Kinda hacky but it seems to work for the most part.
+        ex_sents_counter = Counter([tuple(s) for s in extended_sents])
+        for i in range(1, len(doc)):
+            last_sent = doc[-i].tokens
+            # sentence must be unique
+            if not ex_sents_counter.get(tuple(last_sent), 0) == 1:
+                continue
+            try:
+                last_sent_index = extended_sents.index(last_sent)
+                break
+            except ValueError:
+                continue
+
+        extension_sents = [
+            NERSentence(tokens, ["O"] * len(tokens))
+            for tokens in extended_sents[last_sent_index:]
+        ]
+        extended_documents.append(doc + extension_sents)
+
+    return extended_documents
