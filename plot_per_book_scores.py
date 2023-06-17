@@ -70,7 +70,7 @@ if __name__ == "__main__":
         "neural": {"values": full_neural_all_y, "color": "tab:red"},
     }
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 4.5))
 
     width = 1 / (2 * len(plot_data))
     x = np.array(list(range(len(doc_names))))
@@ -84,9 +84,10 @@ if __name__ == "__main__":
         x + width, [os.path.splitext(name)[0] for name in doc_names], rotation=90
     )
     ax.set_ylabel("F1 score", fontsize=FONTSIZE)
+    ax.set_ylim(0.65, 1.0)
     ax.legend(
         loc="lower center",
-        ncols=len(plot_data),
+        ncol=len(plot_data),
         bbox_to_anchor=(0.5, 1),
         fontsize=FONTSIZE,
     )
