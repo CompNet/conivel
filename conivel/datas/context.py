@@ -78,7 +78,6 @@ class ContextRetriever:
         new_docs = []
 
         for doc_i, document in enumerate(tqdm(dataset.documents, disable=quiet)):
-
             new_doc = []
 
             retrieval_doc = (
@@ -86,7 +85,6 @@ class ContextRetriever:
             )
 
             for sent_i, sent in enumerate(document):
-
                 retrieval_matchs = sorted(
                     self.retrieve(sent_i, retrieval_doc), key=lambda m: m.sentence_idx
                 )
@@ -516,6 +514,7 @@ class NeuralContextRetriever(ContextRetriever):
         heuristic_context_selector: ContextRetriever,
         batch_size: int,
         sents_nb: int,
+        threshold: float = 0.0,
     ) -> None:
         """
         :param pretrained_model_name: pretrained model name, used to
@@ -547,6 +546,8 @@ class NeuralContextRetriever(ContextRetriever):
         self.heuristic_context_selector = heuristic_context_selector
 
         self.batch_size = batch_size
+
+        self.threshold = threshold
 
         super().__init__(sents_nb)
 
@@ -631,7 +632,7 @@ class NeuralContextRetriever(ContextRetriever):
         return [
             m
             for m in sorted(ctx_matchs, key=lambda m: -m.score)[: self.sents_nb]  # type: ignore
-            if m.score > 0.5  # type: ignore
+            if m.score > self.threshold  # type: ignore
         ]
 
     def heuristic_retrieve_ctx(

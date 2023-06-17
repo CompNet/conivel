@@ -6,7 +6,7 @@ from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM  # type: ignore
 from tqdm import tqdm
 import numpy as np
 from sklearn.metrics import precision_recall_fscore_support
@@ -306,6 +306,9 @@ def config():
     # A directory containing extended documents for retrieval purposes
     # (see :meth:`.ContextRetriever.__call__)`
     cr_extended_docs_dir = None
+    # a threshold to filter retrieved sentence or not.  must be a
+    # float between 0 and 1.
+    cr_threshold: float = 0.0
 
     # -- NER parameters
     ner_epochs_nb: int = 2
@@ -334,6 +337,7 @@ def main(
     cr_heuristics: List[str],
     cr_heuristics_kwargs: List[dict],
     cr_extended_docs_dir: Optional[str],
+    cr_threshold: float,
     ner_epochs_nb: int,
     ner_lr: float,
     ner_model_paths: Optional[List[str]],
@@ -434,6 +438,7 @@ def main(
                     ),
                     batch_size,
                     max(cr_sents_nb_list),
+                    threshold=cr_threshold,
                 )
                 if save_models:
                     sacred_archive_huggingface_model(
