@@ -5,7 +5,6 @@ import scienceplots
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--output", type=str, default=None)
     parser.add_argument("-m", "--metrics", type=str, default="f1")
@@ -39,6 +38,28 @@ if __name__ == "__main__":
     full_samenoun_y = [full_samenoun_metrics[key]["values"][0] for key in keys]
     full_neural_all_y = [full_neural_all_metrics[key]["values"][0] for key in keys]
 
+    # number of time each method is better or equal to its
+    # counterparts
+    maxs_count = [0] * 5
+    for values in zip(
+        bare_y, surrounding_y, full_bm25_y, full_samenoun_y, full_neural_all_y
+    ):
+        values = np.array(values)
+        maxs_i = np.where(values == max(values))[0]
+        for i in maxs_i:
+            maxs_count[i] += 1
+    for name, max_value in zip(
+        ["no retrieval", "surrounding", "bm25", "samenoun", "neural"], maxs_count
+    ):
+        print(f"{name}: {max_value}")
+
+    # max enhancement of the neural method compared to no retrieval
+    max_enhancement = max(
+        [neural - bare for bare, neural in zip(bare_y, full_neural_all_y)]
+    )
+    print(f"neural method max enhancement : {max_enhancement}")
+
+    # per-book F1 plot
     plt.style.use("science")
 
     plot_data = {
@@ -69,6 +90,8 @@ if __name__ == "__main__":
         bbox_to_anchor=(0.5, 1),
         fontsize=FONTSIZE,
     )
+
+    plt.tight_layout()
 
     if args.output:
         plt.savefig(os.path.expanduser(args.output))
