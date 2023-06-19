@@ -1,7 +1,6 @@
 import argparse, json, os
 import matplotlib.pyplot as plt
 import scienceplots
-from tqdm import tqdm
 
 
 parser = argparse.ArgumentParser()
@@ -9,7 +8,7 @@ parser.add_argument("-o", "--output", type=str, default=None)
 parser.add_argument("-m", "--metrics", type=str, default="f1")
 args = parser.parse_args()
 
-FONTSIZE = 10
+FONTSIZE = 15
 MARKERS = ["o", "v", "^", "p", "s", "*", "D"]
 
 runs = {
@@ -19,7 +18,14 @@ runs = {
     },
     "full_bm25": {"name": "bm25", "metrics": f"mean_test_{args.metrics}"},
     "full_samenoun": {"name": "samenoun", "metrics": f"mean_test_{args.metrics}"},
-    "full_gen_all": {"name": "neural", "metrics": f"mean_test_ner_{args.metrics}"},
+    "full_gen_all_noT": {
+        "name": "neural alpaca-7b",
+        "metrics": f"mean_test_ner_{args.metrics}",
+    },
+    "full_gen_13b_all_noT": {
+        "name": "neural alpaca-13b",
+        "metrics": f"mean_test_ner_{args.metrics}",
+    },
 }
 
 plt.style.use("science")
@@ -27,7 +33,7 @@ plt.rc("xtick", labelsize=FONTSIZE)  # fontsize of the tick labels
 plt.rc("ytick", labelsize=FONTSIZE)  # fontsize of the tick labels
 fig, ax = plt.subplots()
 
-fig.set_size_inches(9, 6)
+fig.set_size_inches(9, 5)
 
 # plot baseline
 with open("./runs/gen/gen_base_models/metrics.json") as f:
@@ -54,7 +60,10 @@ for run_i, (run, run_attrs) in enumerate(runs.items()):
     )
 
 ax.legend(
-    loc="lower center", ncols=len(runs) + 1, bbox_to_anchor=(0.5, 1), fontsize=FONTSIZE
+    loc="lower center",
+    ncols=(len(runs) + 1) // 2,
+    bbox_to_anchor=(0.5, 1),
+    fontsize=FONTSIZE,
 )
 ax.grid()
 ax.set_ylabel(args.metrics.capitalize(), fontsize=FONTSIZE)

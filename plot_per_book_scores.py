@@ -1,4 +1,5 @@
 import json, argparse, os
+from typing import Any, Dict
 import numpy as np
 import matplotlib.pyplot as plt
 import scienceplots
@@ -16,68 +17,59 @@ if __name__ == "__main__":
         doc_names = json.load(f)["documents_names"]
     pretty_doc_names = [os.path.splitext(name)[0] for name in doc_names]
 
-    with open("./runs/gen/gen_base_models/metrics.json") as f:
-        bare_metrics = json.load(f)
-
-    with open("./runs/gen/vanilla_neighbors/metrics.json") as f:
-        surrounding_metrics = json.load(f)
-
-    with open("./runs/gen/full_gen_all/metrics.json") as f:
-        full_neural_all_metrics = json.load(f)
-
-    with open("./runs/gen/full_bm25/metrics.json") as f:
-        full_bm25_metrics = json.load(f)
-
-    with open("./runs/gen/full_samenoun/metrics.json") as f:
-        full_samenoun_metrics = json.load(f)
+    runs: Dict[str, Dict[str, Any]] = {
+        "gen_base_models": {"name": "no retrieval", "color": "black"},
+        "vanilla_neighbors": {"name": "surrounding", "color": "tab:blue"},
+        "full_bm25": {"name": "bm25", "color": "tab:green"},
+        "full_samenoun": {"name": "samenoun", "color": "tab:orange"},
+        "full_gen_all_noT": {"name": "neural alpaca-7b", "color": "tab:red"},
+    }
 
     keys = [f"mean_{doc_name}_test_{args.metrics}" for doc_name in doc_names]
-    bare_y = [bare_metrics[key]["values"][0] for key in keys]
-    surrounding_y = [surrounding_metrics[key]["values"][0] for key in keys]
-    full_bm25_y = [full_bm25_metrics[key]["values"][0] for key in keys]
-    full_samenoun_y = [full_samenoun_metrics[key]["values"][0] for key in keys]
-    full_neural_all_y = [full_neural_all_metrics[key]["values"][0] for key in keys]
+    for run, run_dict in runs.items():
+        with open(f"./runs/gen/{run}/metrics.json") as f:
+            metrics = json.load(f)
+        run_dict["values"] = [metrics[key]["values"][0] for key in keys]
 
     # number of time each method is better or equal to its
     # counterparts
-    maxs_count = [0] * 5
-    for values in zip(
-        bare_y, surrounding_y, full_bm25_y, full_samenoun_y, full_neural_all_y
-    ):
+    maxs_count = [0] * len(runs)
+    for values in zip(*[run_dict["values"] for run_dict in runs.values()]):
         values = np.array(values)
         maxs_i = np.where(values == max(values))[0]
         for i in maxs_i:
             maxs_count[i] += 1
     for name, max_value in zip(
-        ["no retrieval", "surrounding", "bm25", "samenoun", "neural"], maxs_count
+        [run_dict["name"] for run_dict in runs.values()], maxs_count
     ):
         print(f"{name}: {max_value}")
 
     # max enhancement of the neural method compared to no retrieval
     max_enhancement = max(
-        [neural - bare for bare, neural in zip(bare_y, full_neural_all_y)]
+        [
+            neural - bare
+            for bare, neural in zip(
+                runs["gen_base_models"]["values"], runs["full_gen_all_noT"]["values"]
+            )
+        ]
     )
     print(f"neural method max enhancement : {max_enhancement}")
 
     # per-book F1 plot
     plt.style.use("science")
 
-    plot_data = {
-        "no retrieval": {"values": bare_y, "color": "black"},
-        "surrounding": {"values": surrounding_y, "color": "tab:blue"},
-        "bm25": {"values": full_bm25_y, "color": "tab:green"},
-        "samenoun": {"values": full_samenoun_y, "color": "tab:orange"},
-        "neural": {"values": full_neural_all_y, "color": "tab:red"},
-    }
-
     fig, ax = plt.subplots(figsize=(10, 4.5))
 
-    width = 1 / (2 * len(plot_data))
+    width = 1 / (2 * len(runs))
     x = np.array(list(range(len(doc_names))))
-    for i, (label, data) in enumerate(plot_data.items()):
+    for i, run_dict in enumerate(runs.values()):
         offset = width * i
         rects = ax.bar(
-            x + offset, data["values"], width, color=data["color"], label=label
+            x + offset,
+            run_dict["values"],
+            width,
+            color=run_dict["color"],
+            label=run_dict["name"],
         )
 
     ax.set_xticks(
@@ -87,7 +79,7 @@ if __name__ == "__main__":
     ax.set_ylim(0.65, 1.0)
     ax.legend(
         loc="lower center",
-        ncol=len(plot_data),
+        ncol=len(runs) // 2,
         bbox_to_anchor=(0.5, 1),
         fontsize=FONTSIZE,
     )
