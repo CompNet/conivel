@@ -19,10 +19,10 @@ if __name__ == "__main__":
 
     runs: Dict[str, Dict[str, Any]] = {
         "gen_base_models": {"name": "no retrieval", "color": "black"},
-        "vanilla_neighbors": {"name": "surrounding", "color": "tab:blue"},
-        "full_bm25": {"name": "bm25", "color": "tab:green"},
-        "full_samenoun": {"name": "samenoun", "color": "tab:orange"},
-        "full_gen_all_noT": {"name": "neural alpaca-7b", "color": "tab:red"},
+        "chapter_neighbors": {"name": "surrounding", "color": "tab:blue"},
+        "book_bm25": {"name": "bm25", "color": "tab:green"},
+        "book_samenoun": {"name": "samenoun", "color": "tab:orange"},
+        "neural_book_s13b_n8": {"name": "neural", "color": "tab:red"},
     }
 
     keys = [f"mean_{doc_name}_test_{args.metrics}" for doc_name in doc_names]
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         [
             neural - bare
             for bare, neural in zip(
-                runs["gen_base_models"]["values"], runs["full_gen_all_noT"]["values"]
+                runs["gen_base_models"]["values"], runs["neural_book_s13b_n8"]["values"]
             )
         ]
     )

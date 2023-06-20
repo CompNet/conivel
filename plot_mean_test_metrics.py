@@ -12,18 +12,14 @@ FONTSIZE = 15
 MARKERS = ["o", "v", "^", "p", "s", "*", "D"]
 
 runs = {
-    "vanilla_neighbors": {
+    "chapter_neighbors": {
         "name": "surrounding",
         "metrics": f"mean_test_{args.metrics}",
     },
-    "full_bm25": {"name": "bm25", "metrics": f"mean_test_{args.metrics}"},
-    "full_samenoun": {"name": "samenoun", "metrics": f"mean_test_{args.metrics}"},
-    "full_gen_all_noT": {
-        "name": "neural alpaca-7b",
-        "metrics": f"mean_test_ner_{args.metrics}",
-    },
-    "full_gen_13b_all_noT": {
-        "name": "neural alpaca-13b",
+    "book_bm25": {"name": "bm25", "metrics": f"mean_test_{args.metrics}"},
+    "book_samenoun": {"name": "samenoun", "metrics": f"mean_test_{args.metrics}"},
+    "neural_book_s13b_n8": {
+        "name": "neural",
         "metrics": f"mean_test_ner_{args.metrics}",
     },
 }
@@ -61,7 +57,7 @@ for run_i, (run, run_attrs) in enumerate(runs.items()):
 
 ax.legend(
     loc="lower center",
-    ncols=(len(runs) + 1) // 2,
+    ncol=(len(runs) + 1) // 2,
     bbox_to_anchor=(0.5, 1),
     fontsize=FONTSIZE,
 )

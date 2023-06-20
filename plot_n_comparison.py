@@ -45,7 +45,7 @@ for i, (n, model_data) in enumerate(plot_data.items()):
             linewidth=3,
         )
         axs[i].set_title(f"n = {n}", fontsize=FONTSIZE)
-
+    axs[i].grid()
 
 handles, labels = axs[-1].get_legend_handles_labels()
 fig.legend(handles, labels, bbox_to_anchor=(0.4, 1.2), fontsize=FONTSIZE, ncol=2)
