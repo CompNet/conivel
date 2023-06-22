@@ -25,19 +25,16 @@ if __name__ == "__main__":
             print(f"[warning] run {run_dir} failed - ignoring...")
             continue
 
-        run_type = run["experiment"]["name"]
-        if run_type == "xp_kfolds":
-            name = config["context_retriever"]
-        elif run_type == "xp_kfolds_neural":
-            name = "neural_" + config["retrieval_heuristic"]
-        elif run_type == "xp_neural_context_retriever":
-            name = "neural_test_" + config["retrieval_heuristic"]
-        elif run_type == "xp_ideal_neural_retriever":
-            name = "neural_ideal_" + config["retrieval_heuristic"]
-        else:
-            print(f"[warning] unknown run_type {run_type} - ignoring...")
-            continue
+        is_7b = (
+            config["cr_test_dataset_paths"][0]
+            == "./runs/gen/genv3/fold0.cr_test_dataset.json"
+        )
+        size_str = "7b" if is_7b else "13b"
 
-        print(f"moving {run_dir} to ./runs/{name}")
+        k = config["cr_heuristics_kwargs"][0]["sents_nb"]
+
+        name = f"neural_book_s{size_str}_k{k}"
+
+        print(f"moving {run_dir} to ./runs/gen/{name}")
         if not args.dry_run:
-            shutil.move(run_dir, f"./runs/{name}")
+            shutil.move(run_dir, f"./runs/gen/{name}")
