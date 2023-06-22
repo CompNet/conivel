@@ -11,7 +11,9 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--metrics", type=str, default="f1")
     args = parser.parse_args()
 
-    FONTSIZE = 15
+    FONTSIZE = 10
+    TEXT_WIDTH_IN = 6.29921
+    ASPECT_RATIO = 0.25
 
     with open("./runs/gen/gen_base_models/info.json") as f:
         doc_names = json.load(f)["documents_names"]
@@ -45,20 +47,20 @@ if __name__ == "__main__":
         print(f"{name}: {max_value}")
 
     # max enhancement of the neural method compared to no retrieval
-    max_enhancement = max(
-        [
-            neural - bare
-            for bare, neural in zip(
-                runs["gen_base_models"]["values"], runs["neural_book_s13b_n8"]["values"]
-            )
-        ]
-    )
-    print(f"neural method max enhancement : {max_enhancement}")
+    enhancements = [
+        neural - bare
+        for bare, neural in zip(
+            runs["gen_base_models"]["values"], runs["neural_book_s13b_n8"]["values"]
+        )
+    ]
+    max_enhancement = max(enhancements)
+    max_enhanced_book = pretty_doc_names[enhancements.index(max_enhancement)]
+    print(f"neural method max enhancement : {max_enhancement} for {max_enhanced_book}")
 
     # per-book F1 plot
     plt.style.use("science")
 
-    fig, ax = plt.subplots(figsize=(10, 4.5))
+    fig, ax = plt.subplots(figsize=(TEXT_WIDTH_IN, TEXT_WIDTH_IN * ASPECT_RATIO))
 
     width = 1 / (2 * len(runs))
     x = np.array(list(range(len(doc_names))))

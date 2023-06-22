@@ -1,5 +1,6 @@
 import argparse, json, os
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import scienceplots
 
 
@@ -8,7 +9,10 @@ parser.add_argument("-o", "--output", type=str, default=None)
 parser.add_argument("-m", "--metrics", type=str, default="f1")
 args = parser.parse_args()
 
-FONTSIZE = 25
+FONTSIZE = 10
+TEXT_WIDTH_IN = 6.29921
+ASPECT_RATIO = 0.25
+MARKERS = ["x", "+", "h", "*", "d", "p", "^"]
 
 models = ["7b", "13b"]
 n_list = [4, 8, 12, 16, 24]
@@ -25,27 +29,40 @@ for model in models:
             metrics = json.load(f)
 
         metrics_key = f"mean_test_ner_{args.metrics}"
-        plot_data[n][model]["values"] = metrics[metrics_key]["values"]
-        plot_data[n][model]["steps"] = metrics[metrics_key]["steps"]
+        try:
+            plot_data[n][model]["values"] = metrics[metrics_key]["values"]
+            plot_data[n][model]["steps"] = metrics[metrics_key]["steps"]
+        except KeyError as e:
+            print(f"error reading run neural_book_s{model}_n{n}: {e}")
+            exit(1)
 
 
 plt.style.use("science")
 plt.rc("xtick", labelsize=FONTSIZE)  # fontsize of the tick labels
 plt.rc("ytick", labelsize=FONTSIZE)  # fontsize of the tick labels
 
-fig, axs = plt.subplots(1, len(plot_data), figsize=(20, 3), sharex=True, sharey=True)
+fig, axs = plt.subplots(
+    1,
+    len(plot_data),
+    figsize=(TEXT_WIDTH_IN, TEXT_WIDTH_IN * ASPECT_RATIO),
+    sharex=True,
+    sharey=True,
+)
 axs[0].set_ylabel("F1", fontsize=FONTSIZE)
 
 for i, (n, model_data) in enumerate(plot_data.items()):
-    for model in models:
+    for model_i, model in enumerate(models):
         axs[i].plot(
             model_data[model]["steps"],
             model_data[model]["values"],
             label=f"alpaca-{model}",
-            linewidth=3,
+            linewidth=1,
+            marker=MARKERS[model_i],
+            markersize=4,
         )
         axs[i].set_title(f"n = {n}", fontsize=FONTSIZE)
     axs[i].grid()
+    axs[i].xaxis.set_major_locator(MaxNLocator(integer=True))
 
 handles, labels = axs[-1].get_legend_handles_labels()
 fig.legend(handles, labels, bbox_to_anchor=(0.4, 1.2), fontsize=FONTSIZE, ncol=2)

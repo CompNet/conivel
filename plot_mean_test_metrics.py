@@ -1,5 +1,6 @@
 import argparse, json, os
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import scienceplots
 
 
@@ -8,8 +9,10 @@ parser.add_argument("-o", "--output", type=str, default=None)
 parser.add_argument("-m", "--metrics", type=str, default="f1")
 args = parser.parse_args()
 
-FONTSIZE = 15
-MARKERS = ["o", "v", "^", "p", "s", "*", "D"]
+FONTSIZE = 10
+COLUMN_WIDTH_IN = 3.0315
+
+MARKERS = ["x", "+", "h", "*", "d", "p", "^"]
 
 runs = {
     "chapter_neighbors": {
@@ -29,7 +32,7 @@ plt.rc("xtick", labelsize=FONTSIZE)  # fontsize of the tick labels
 plt.rc("ytick", labelsize=FONTSIZE)  # fontsize of the tick labels
 fig, ax = plt.subplots()
 
-fig.set_size_inches(9, 5)
+fig.set_size_inches(COLUMN_WIDTH_IN, COLUMN_WIDTH_IN * 0.6)
 
 # plot baseline
 with open("./runs/gen/gen_base_models/metrics.json") as f:
@@ -37,7 +40,7 @@ with open("./runs/gen/gen_base_models/metrics.json") as f:
 ax.plot(
     [1, 6],
     [bare_metrics[f"mean_test_{args.metrics}"]["values"][0]] * 2,
-    linewidth=3,
+    linewidth=1,
     c="black",
     label="no retrieval",
 )
@@ -50,8 +53,8 @@ for run_i, (run, run_attrs) in enumerate(runs.items()):
         [int(step) for step in metrics[run_attrs["metrics"]]["steps"]],
         metrics[run_attrs["metrics"]]["values"],
         marker=MARKERS[run_i],
-        markersize=8,
-        linewidth=3,
+        markersize=3,
+        linewidth=1,
         label=run_attrs["name"],
     )
 
@@ -63,7 +66,8 @@ ax.legend(
 )
 ax.grid()
 ax.set_ylabel(args.metrics.capitalize(), fontsize=FONTSIZE)
-ax.set_xlabel("Max number of retrieved sentences", fontsize=FONTSIZE)
+ax.set_xlabel("Number of retrieved sentences $k$", fontsize=FONTSIZE)
+ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
 
 if args.output:
