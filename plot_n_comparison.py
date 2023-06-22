@@ -1,4 +1,5 @@
 import argparse, json, os
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import scienceplots
@@ -25,15 +26,27 @@ for model in models:
 
     for n in n_list:
 
-        with open(f"./runs/gen/neural_book_s{model}_n{n}/metrics.json") as f:
+        run_dir = f"./runs/gen/neural_book_s{model}_n{n}"
+
+        with open(f"{run_dir}/config.json") as f:
+            config = json.load(f)
+
+        with open(f"{run_dir}/metrics.json") as f:
             metrics = json.load(f)
 
         metrics_key = f"mean_test_ner_{args.metrics}"
+
         try:
             plot_data[n][model]["values"] = metrics[metrics_key]["values"]
             plot_data[n][model]["steps"] = metrics[metrics_key]["steps"]
+
+            run_metrics = []
+            for run_i in range(config["runs_nb"]):
+                run_metrics.append(metrics[f"run{run_i}.{metrics_key}"]["values"])
+            plot_data[n][model]["stdev"] = np.std(np.array(run_metrics), axis=0)
+
         except KeyError as e:
-            print(f"error reading run neural_book_s{model}_n{n}: {e}")
+            print(f"error reading run {run_dir}: {e}")
             exit(1)
 
 
@@ -52,10 +65,12 @@ axs[0].set_ylabel("F1", fontsize=FONTSIZE)
 
 for i, (n, model_data) in enumerate(plot_data.items()):
     for model_i, model in enumerate(models):
-        axs[i].plot(
+        axs[i].errorbar(
             model_data[model]["steps"],
             model_data[model]["values"],
+            yerr=model_data[model]["stdev"],
             label=f"alpaca-{model}",
+            capsize=3,
             linewidth=1,
             marker=MARKERS[model_i],
             markersize=4,

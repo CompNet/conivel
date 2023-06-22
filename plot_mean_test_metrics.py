@@ -1,4 +1,5 @@
 import argparse, json, os
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import scienceplots
@@ -20,10 +21,15 @@ runs = {
         "metrics": f"mean_test_{args.metrics}",
     },
     "book_bm25": {"name": "bm25", "metrics": f"mean_test_{args.metrics}"},
-    "book_samenoun": {"name": "samenoun", "metrics": f"mean_test_{args.metrics}"},
+    "book_samenoun": {
+        "name": "samenoun",
+        "metrics": f"mean_test_{args.metrics}",
+        "report_stdev": True,
+    },
     "neural_book_s13b_n8": {
         "name": "neural",
         "metrics": f"mean_test_ner_{args.metrics}",
+        "report_stdev": True,
     },
 }
 
@@ -47,11 +53,28 @@ ax.plot(
 
 # plot runs in general
 for run_i, (run, run_attrs) in enumerate(runs.items()):
-    with open(f"./runs/gen/{run}/metrics.json") as f:
+
+    run_dir = f"./runs/gen/{run}"
+
+    with open(f"{run_dir}/config.json") as f:
+        config = json.load(f)
+
+    with open(f"{run_dir}/metrics.json") as f:
         metrics = json.load(f)
-    ax.plot(
-        [int(step) for step in metrics[run_attrs["metrics"]]["steps"]],
-        metrics[run_attrs["metrics"]]["values"],
+
+    metrics_name = run_attrs["metrics"]
+
+    if run_attrs.get("report_stdev"):
+        run_metrics = []
+        for run_i in range(config["runs_nb"]):
+            run_metrics.append(metrics[f"run{run_i}.{metrics_name}"]["values"])
+        stdev = np.std(np.array(run_metrics), axis=0)
+
+    ax.errorbar(
+        [int(step) for step in metrics[metrics_name]["steps"]],
+        metrics[metrics_name]["values"],
+        yerr=stdev if run_attrs.get("report_stdev") else None,
+        capsize=3,
         marker=MARKERS[run_i],
         markersize=3,
         linewidth=1,

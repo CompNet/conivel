@@ -1,4 +1,5 @@
 import argparse, json, os
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import scienceplots
@@ -19,30 +20,49 @@ runs = {
     "book_samenoun": {
         "name": "book",
         "metrics": f"mean_test_{args.metrics}",
+        "report_stdev": True,
     },
     "chapter_samenoun": {
         "name": "chapter",
         "metrics": f"mean_test_{args.metrics}",
+        "report_stdev": True,
     },
     "neural_book_s13b_n8": {
         "name": "book",
         "metrics": f"mean_test_ner_{args.metrics}",
+        "report_stdev": True,
     },
     "neural_chapter_s13b_n8": {
         "name": "chapter",
         "metrics": f"mean_test_ner_{args.metrics}",
+        "report_stdev": True,
     },
 }
 
 for run_name, run_dict in runs.items():
-    with open(f"./runs/gen/{run_name}/metrics.json") as f:
+
+    run_dir = f"./runs/gen/{run_name}"
+
+    with open(f"{run_dir}/config.json") as f:
+        config = json.load(f)
+
+    with open(f"{run_dir}/metrics.json") as f:
         metrics = json.load(f)
+
+    metrics_name = run_dict["metrics"]
+
     try:
-        run_dict["values"] = metrics[run_dict["metrics"]]["values"]
+        run_dict["values"] = metrics[metrics_name]["values"]
+
+        if run_dict.get("report_stdev"):
+            run_metrics = []
+            for run_i in range(config["runs_nb"]):
+                run_metrics.append(metrics[f"run{run_i}.{metrics_name}"]["values"])
+            run_dict["stdev"] = np.std(np.array(run_metrics), axis=0)
+
     except KeyError:
         print(f"error reading run {run_name}")
-        # default debug value
-        run_dict["values"] = [1.0] * 6  # type: ignore
+        exit(1)
 
 
 plt.style.use("science")
@@ -54,11 +74,25 @@ fig, axs = plt.subplots(1, 3, figsize=(TEXT_WIDTH_IN, TEXT_WIDTH_IN * ASPECT_RAT
 
 def plot_duo(ax, run_1: dict, run_2: dict, title: str):
     x = list(range(1, 7))
-    ax.plot(
-        x, run_1["values"], label=run_1["name"], linewidth=1, marker="x", markersize=4
+    ax.errorbar(
+        x,
+        run_1["values"],
+        yerr=run_1.get("stdev"),
+        label=run_1["name"],
+        capsize=3,
+        linewidth=1,
+        marker="x",
+        markersize=4,
     )
-    ax.plot(
-        x, run_2["values"], label=run_2["name"], linewidth=1, marker="+", markersize=4
+    ax.errorbar(
+        x,
+        run_2["values"],
+        yerr=run_2.get("stdev"),
+        label=run_2["name"],
+        capsize=3,
+        linewidth=1,
+        marker="+",
+        markersize=4,
     )
     ax.grid()
     ax.set_ylabel("F1", fontsize=FONTSIZE)
