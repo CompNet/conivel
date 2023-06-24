@@ -1,0 +1,422 @@
+INFO - xp_neural_context_retriever - Running command 'main'
+INFO - xp_neural_context_retriever - Started run with ID "1"
+Configuration ([34mmodified[0m, [32madded[0m, [31mtypechanged[0m, [2mdoc[0m):
+[32m  batch_size = 8[0m
+  cr_dropout = 0.1
+  cr_epochs_nb = 3
+[34m  cr_gen_alpaca_model = 'chavinlo/alpaca-native'[0m
+[34m  cr_gen_device = 'cuda'[0m
+[32m  cr_heuristics = ['bm25', 'samenoun', 'left', 'right'][0m
+[32m  cr_heuristics_kwargs = [{'sents_nb': 16}, {'sents_nb': 16}, {'sents_nb': 16}, {'sents_nb': 16}][0m
+  cr_lr = 2e-05
+[34m  cr_sents_nb_list = [1, 2, 3, 4, 5, 6][0m
+  cr_test_dataset_paths = None
+  cr_train_dataset_paths = None      [2m# wont be generated[0m
+  k = 5
+  ner_epochs_nb = 2
+  ner_lr = 2e-05
+[34m  ner_model_paths = ['./runs/gen/gen_base_models/fold0_nermodel',
+ './runs/gen/gen_base_models/fold1_nermodel',
+ './runs/gen/gen_base_models/fold2_nermodel',
+ './runs/gen/gen_base_models/fold3_nermodel',
+ './runs/gen/gen_base_models/fold4_nermodel'][0m
+[32m  runs_nb = 1[0m
+[34m  save_models = False[0m
+  seed = 835463143                   [2m# the random seed for this experiment[0m
+[34m  shuffle_kfolds_seed = 0[0m
+  __annotations__:
+    batch_size = <class 'int'>
+    cr_dropout = <class 'float'>
+    cr_epochs_nb = <class 'int'>
+    cr_gen_alpaca_model = <class 'str'>
+    cr_gen_device = <class 'str'>
+    cr_heuristics = <class 'list'>
+    cr_heuristics_kwargs = <class 'list'>
+    cr_lr = <class 'float'>
+    cr_sents_nb_list = <class 'list'>
+    k = <class 'int'>
+    ner_epochs_nb = <class 'int'>
+    ner_lr = <class 'float'>
+    ner_model_paths = typing.Union[list, NoneType]
+    runs_nb = <class 'int'>
+    save_models = <class 'bool'>
+    shuffle_kfolds_seed = typing.Union[int, NoneType]
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s].00s/it]
+starting alpaca.cpp...
+  0%|          | 0/2575 [00:00<?, ?it/s]/users/aamalvy/conivel/env/lib/python3.8/site-packages/transformers/generation/utils.py:1219: UserWarning: You have modified the pretrained model configuration to control generation. This is a deprecated strategy to control generation and will be removed soon, in a future version. Please use a generation configuration file (see https://huggingface.co/docs/transformers/main_classes/text_generation)
+  warnings.warn(
+4 examples:   1%|          | 24/2575 [00:06<10:05,  4.22it/s] ]]]
+318 examples: : 8it [00:00, 328.01it/s]
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s].00s/it]starting alpaca.cpp...
+
+6 examples:   0%|          | 12/2473 [00:07<20:15,  2.02it/s]]]]]
+249 examples: : 8it [00:00, 365.19it/s]
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s].11s/it]
+starting alpaca.cpp...
+2 examples:   0%|          | 3/2288 [00:02<33:13,  1.15it/s]s]]]]
+312 examples: : 8it [00:00, 340.12it/s]
+Loading checkpoint shards:  33%|███▎      | 1/3 [00:07<00:14,  7.00s/it]
+starting alpaca.cpp...
+5 examples:   0%|          | 3/3108 [00:05<1:29:58,  1.74s/it]]]]
+279 examples: : 8it [00:00, 315.85it/s]
+Loading checkpoint shards:  33%|███▎      | 1/3 [00:07<00:14,  7.18s/it]
+starting alpaca.cpp...
+4 examples:   2%|▏         | 46/2131 [00:04<02:35, 13.44it/s]s]]]
+242 examples: : 8it [00:00, 400.83it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForSequenceClassification: ['cls.seq_relationship.bias', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.weight', 'cls.predictions.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.transform.dense.bias']
+- This IS expected if you are initializing BertForSequenceClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForSequenceClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForSequenceClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+  0%|          | 0/265 [00:00<?, ?it/s]You're using a BertTokenizerFast tokenizer. Please note that with a fast tokenizer, using the `__call__` method is faster than using a method to encode the text followed by a call to the `pad` method to get a padded encoding.
+loss : 0.468:  30%|██▉       | 79/265 [00:05<00:13, 13.54it/s]]
+epoch mean loss : 0.303
+loss : 0.010:  42%|████▏     | 110/265 [00:07<00:10, 14.55it/s]
+epoch mean loss : 0.033
+loss : 0.002:  50%|████▉     | 132/265 [00:09<00:08, 14.96it/s]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+epoch mean loss : 0.020
+  0%|          | 0/1 [00:00<?, ?it/s].15s/it]
+100%|██████████| 40/40 [00:00<00:00, 45.89it/s]
+100%|██████████| 40/40 [00:00<00:00, 41.88it/s]
+100%|██████████| 40/40 [00:01<00:00, 37.83it/s]
+  0%|          | 0/40 [00:00<?, ?it/s]4.05it/s]
+100%|██████████| 40/40 [00:01<00:00, 31.74it/s]
+100%|██████████| 40/40 [00:01<00:00, 29.06it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].38s/it]
+100%|██████████| 105/105 [00:01<00:00, 66.52it/s]
+100%|██████████| 105/105 [00:01<00:00, 59.77it/s]
+  0%|          | 0/105 [00:00<?, ?it/s]52.73it/s]
+100%|██████████| 105/105 [00:02<00:00, 48.27it/s]
+100%|██████████| 105/105 [00:02<00:00, 43.83it/s]
+100%|██████████| 105/105 [00:02<00:00, 39.71it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].72s/it]
+100%|██████████| 42/42 [00:00<00:00, 73.38it/s]
+100%|██████████| 42/42 [00:00<00:00, 68.77it/s]
+ 12%|█▏        | 5/42 [00:00<00:00, 45.48it/s]]
+100%|██████████| 42/42 [00:00<00:00, 60.21it/s]
+100%|██████████| 42/42 [00:00<00:00, 55.10it/s]
+100%|██████████| 42/42 [00:00<00:00, 51.33it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].90s/it]
+100%|██████████| 29/29 [00:00<00:00, 73.23it/s]
+100%|██████████| 29/29 [00:00<00:00, 69.11it/s]
+100%|██████████| 29/29 [00:00<00:00, 67.02it/s]
+100%|██████████| 29/29 [00:00<00:00, 67.01it/s]
+100%|██████████| 29/29 [00:00<00:00, 66.27it/s]
+100%|██████████| 29/29 [00:00<00:00, 65.28it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].38s/it]
+  0%|          | 0/43 [00:00<?, ?it/s]0.82it/s]
+100%|██████████| 43/43 [00:01<00:00, 42.51it/s]
+100%|██████████| 43/43 [00:01<00:00, 35.75it/s]
+100%|██████████| 43/43 [00:01<00:00, 31.08it/s]
+100%|██████████| 43/43 [00:01<00:00, 27.60it/s]
+100%|██████████| 43/43 [00:01<00:00, 24.94it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].93s/it]
+100%|██████████| 18/18 [00:00<00:00, 64.03it/s]
+100%|██████████| 18/18 [00:00<00:00, 59.02it/s]
+100%|██████████| 18/18 [00:00<00:00, 51.54it/s]
+100%|██████████| 18/18 [00:00<00:00, 48.45it/s]
+100%|██████████| 18/18 [00:00<00:00, 46.32it/s]
+100%|██████████| 18/18 [00:00<00:00, 45.32it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].09s/it]
+100%|██████████| 38/38 [00:00<00:00, 71.39it/s]
+100%|██████████| 38/38 [00:00<00:00, 65.58it/s]
+100%|██████████| 38/38 [00:00<00:00, 59.28it/s]
+ 47%|████▋     | 18/38 [00:00<00:00, 48.91it/s]
+100%|██████████| 38/38 [00:00<00:00, 47.31it/s]
+100%|██████████| 38/38 [00:00<00:00, 42.63it/s]
+100%|██████████| 1/1 [00:06<00:00,  6.37s/it]
+100%|██████████| 12/12 [00:00<00:00, 68.96it/s]
+100%|██████████| 12/12 [00:00<00:00, 58.93it/s]
+100%|██████████| 12/12 [00:00<00:00, 50.23it/s]
+100%|██████████| 12/12 [00:00<00:00, 44.65it/s]
+100%|██████████| 12/12 [00:00<00:00, 39.86it/s]
+ 33%|███▎      | 4/12 [00:00<00:00, 31.91it/s]]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForSequenceClassification: ['cls.seq_relationship.bias', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.weight', 'cls.predictions.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.transform.dense.bias']
+- This IS expected if you are initializing BertForSequenceClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForSequenceClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForSequenceClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.269:  33%|███▎      | 92/278 [00:06<00:12, 14.85it/s]]
+epoch mean loss : 0.254
+loss : 0.004:  36%|███▌      | 100/278 [00:07<00:12, 14.24it/s]
+epoch mean loss : 0.043
+loss : 0.025:  37%|███▋      | 103/278 [00:07<00:12, 13.86it/s]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+epoch mean loss : 0.023
+  0%|          | 0/1 [00:00<?, ?it/s].79s/it]
+100%|██████████| 42/42 [00:00<00:00, 72.31it/s]
+100%|██████████| 42/42 [00:00<00:00, 64.61it/s]
+100%|██████████| 42/42 [00:00<00:00, 56.63it/s]
+100%|██████████| 42/42 [00:00<00:00, 50.48it/s]
+100%|██████████| 42/42 [00:00<00:00, 45.36it/s]
+100%|██████████| 42/42 [00:01<00:00, 41.38it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].93s/it]
+100%|██████████| 35/35 [00:00<00:00, 53.53it/s]
+100%|██████████| 35/35 [00:00<00:00, 45.66it/s]
+100%|██████████| 35/35 [00:00<00:00, 39.12it/s]
+ 14%|█▍        | 5/35 [00:00<00:00, 44.69it/s]]
+100%|██████████| 35/35 [00:01<00:00, 32.15it/s]
+100%|██████████| 35/35 [00:01<00:00, 29.02it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].88s/it]
+100%|██████████| 38/38 [00:01<00:00, 36.25it/s]
+100%|██████████| 38/38 [00:01<00:00, 25.70it/s]
+  0%|          | 0/38 [00:00<?, ?it/s]1.53it/s]
+100%|██████████| 38/38 [00:01<00:00, 19.60it/s]
+100%|██████████| 38/38 [00:02<00:00, 18.24it/s]
+100%|██████████| 38/38 [00:02<00:00, 17.49it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].15s/it]
+100%|██████████| 50/50 [00:00<00:00, 73.73it/s]
+100%|██████████| 50/50 [00:00<00:00, 66.84it/s]
+100%|██████████| 50/50 [00:00<00:00, 59.37it/s]
+100%|██████████| 50/50 [00:00<00:00, 52.75it/s]
+100%|██████████| 50/50 [00:01<00:00, 49.09it/s]
+100%|██████████| 50/50 [00:01<00:00, 45.52it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].33s/it]
+100%|██████████| 29/29 [00:00<00:00, 39.62it/s]
+100%|██████████| 29/29 [00:00<00:00, 30.07it/s]
+100%|██████████| 29/29 [00:01<00:00, 24.40it/s]
+ 90%|████████▉ | 26/29 [00:01<00:00, 19.33it/s]
+100%|██████████| 29/29 [00:01<00:00, 18.15it/s]
+100%|██████████| 29/29 [00:01<00:00, 16.53it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].09s/it]
+ 21%|██▏       | 10/47 [00:00<00:00, 47.93it/s]
+100%|██████████| 47/47 [00:01<00:00, 43.71it/s]
+100%|██████████| 47/47 [00:01<00:00, 39.46it/s]
+100%|██████████| 47/47 [00:01<00:00, 35.19it/s]
+100%|██████████| 47/47 [00:01<00:00, 31.29it/s]
+100%|██████████| 47/47 [00:01<00:00, 28.18it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].05s/it]
+100%|██████████| 28/28 [00:00<00:00, 48.43it/s]
+ 14%|█▍        | 4/28 [00:00<00:00, 33.64it/s]]
+100%|██████████| 28/28 [00:00<00:00, 36.82it/s]
+100%|██████████| 28/28 [00:00<00:00, 31.77it/s]
+100%|██████████| 28/28 [00:00<00:00, 28.70it/s]
+100%|██████████| 28/28 [00:01<00:00, 26.79it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].73s/it]
+100%|██████████| 43/43 [00:00<00:00, 45.77it/s]
+100%|██████████| 43/43 [00:01<00:00, 38.08it/s]
+100%|██████████| 43/43 [00:01<00:00, 33.69it/s]
+100%|██████████| 43/43 [00:01<00:00, 30.24it/s]
+100%|██████████| 43/43 [00:01<00:00, 28.14it/s]
+100%|██████████| 43/43 [00:01<00:00, 25.96it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForSequenceClassification: ['cls.seq_relationship.bias', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.weight', 'cls.predictions.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.transform.dense.bias']
+- This IS expected if you are initializing BertForSequenceClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForSequenceClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForSequenceClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.141:  45%|████▍     | 118/264 [00:08<00:09, 14.85it/s]
+epoch mean loss : 0.277
+loss : 0.009:  55%|█████▍    | 144/264 [00:09<00:07, 16.13it/s]
+epoch mean loss : 0.050
+loss : 0.003:  10%|▉         | 26/264 [00:01<00:15, 15.39it/s]]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+epoch mean loss : 0.025
+  0%|          | 0/1 [00:00<?, ?it/s].30s/it]
+100%|██████████| 39/39 [00:00<00:00, 76.50it/s]
+100%|██████████| 39/39 [00:00<00:00, 68.94it/s]
+100%|██████████| 39/39 [00:00<00:00, 62.61it/s]
+100%|██████████| 39/39 [00:00<00:00, 56.86it/s]
+100%|██████████| 39/39 [00:00<00:00, 51.41it/s]
+100%|██████████| 39/39 [00:00<00:00, 47.76it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].96s/it]
+ 44%|████▍     | 16/36 [00:00<00:00, 31.65it/s]
+100%|██████████| 36/36 [00:01<00:00, 24.97it/s]
+100%|██████████| 36/36 [00:01<00:00, 20.80it/s]
+100%|██████████| 36/36 [00:02<00:00, 17.88it/s]
+100%|██████████| 36/36 [00:02<00:00, 15.61it/s]
+ 44%|████▍     | 16/36 [00:01<00:01, 14.38it/s]
+100%|██████████| 1/1 [00:07<00:00,  7.25s/it]
+100%|██████████| 14/14 [00:00<00:00, 76.91it/s]
+100%|██████████| 14/14 [00:00<00:00, 71.25it/s]
+100%|██████████| 14/14 [00:00<00:00, 59.99it/s]
+100%|██████████| 14/14 [00:00<00:00, 52.89it/s]
+100%|██████████| 14/14 [00:00<00:00, 48.50it/s]
+ 36%|███▌      | 5/14 [00:00<00:00, 42.20it/s]]
+  0%|          | 0/1 [00:00<?, ?it/s].63s/it]
+100%|██████████| 40/40 [00:00<00:00, 67.71it/s]
+100%|██████████| 40/40 [00:00<00:00, 57.06it/s]
+100%|██████████| 40/40 [00:00<00:00, 48.49it/s]
+ 88%|████████▊ | 35/40 [00:00<00:00, 42.46it/s]
+100%|██████████| 40/40 [00:01<00:00, 38.55it/s]
+100%|██████████| 40/40 [00:01<00:00, 35.18it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].41s/it]
+100%|██████████| 30/30 [00:00<00:00, 44.97it/s]
+ 47%|████▋     | 14/30 [00:00<00:00, 38.21it/s]
+100%|██████████| 30/30 [00:00<00:00, 32.89it/s]
+100%|██████████| 30/30 [00:01<00:00, 28.37it/s]
+100%|██████████| 30/30 [00:01<00:00, 25.04it/s]
+100%|██████████| 30/30 [00:01<00:00, 23.91it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].97s/it]
+100%|██████████| 43/43 [00:00<00:00, 46.28it/s]
+100%|██████████| 43/43 [00:01<00:00, 41.03it/s]
+100%|██████████| 43/43 [00:01<00:00, 36.11it/s]
+100%|██████████| 43/43 [00:01<00:00, 32.41it/s]
+100%|██████████| 43/43 [00:01<00:00, 28.30it/s]
+100%|██████████| 43/43 [00:01<00:00, 25.29it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].57s/it]
+100%|██████████| 46/46 [00:00<00:00, 50.41it/s]
+100%|██████████| 46/46 [00:01<00:00, 41.21it/s]
+100%|██████████| 46/46 [00:01<00:00, 34.98it/s]
+ 85%|████████▍ | 39/46 [00:01<00:00, 30.95it/s]
+100%|██████████| 46/46 [00:01<00:00, 25.86it/s]
+100%|██████████| 46/46 [00:01<00:00, 23.23it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].86s/it]
+  0%|          | 0/40 [00:00<?, ?it/s]0.37it/s]
+100%|██████████| 40/40 [00:00<00:00, 64.38it/s]
+100%|██████████| 40/40 [00:00<00:00, 57.15it/s]
+100%|██████████| 40/40 [00:00<00:00, 50.45it/s]
+100%|██████████| 40/40 [00:00<00:00, 46.23it/s]
+100%|██████████| 40/40 [00:00<00:00, 42.09it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForSequenceClassification: ['cls.seq_relationship.bias', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.weight', 'cls.predictions.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.transform.dense.bias']
+- This IS expected if you are initializing BertForSequenceClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForSequenceClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForSequenceClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.615:  10%|▉         | 26/272 [00:01<00:18, 13.29it/s]]
+epoch mean loss : 0.328
+loss : 0.005:  13%|█▎        | 36/272 [00:02<00:16, 14.27it/s]]
+epoch mean loss : 0.051
+loss : 0.010:  17%|█▋        | 46/272 [00:03<00:15, 14.43it/s]]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+epoch mean loss : 0.042
+  0%|          | 0/1 [00:00<?, ?it/s].00s/it]
+100%|██████████| 49/49 [00:00<00:00, 67.15it/s]
+100%|██████████| 49/49 [00:00<00:00, 55.43it/s]
+100%|██████████| 49/49 [00:01<00:00, 46.73it/s]
+100%|██████████| 49/49 [00:01<00:00, 40.35it/s]
+100%|██████████| 49/49 [00:01<00:00, 35.67it/s]
+ 53%|█████▎    | 26/49 [00:00<00:00, 30.66it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].50s/it]
+100%|██████████| 58/58 [00:00<00:00, 63.86it/s]
+100%|██████████| 58/58 [00:01<00:00, 54.51it/s]
+100%|██████████| 58/58 [00:01<00:00, 47.52it/s]
+100%|██████████| 58/58 [00:01<00:00, 43.50it/s]
+100%|██████████| 58/58 [00:01<00:00, 40.45it/s]
+ 26%|██▌       | 15/58 [00:00<00:01, 40.49it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].55s/it]
+100%|██████████| 68/68 [00:01<00:00, 60.41it/s]
+100%|██████████| 68/68 [00:01<00:00, 49.17it/s]
+100%|██████████| 68/68 [00:01<00:00, 42.25it/s]
+ 88%|████████▊ | 60/68 [00:01<00:00, 39.13it/s]
+100%|██████████| 68/68 [00:02<00:00, 32.73it/s]
+100%|██████████| 68/68 [00:02<00:00, 29.09it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].41s/it]
+ 70%|███████   | 31/44 [00:00<00:00, 56.95it/s]
+100%|██████████| 44/44 [00:00<00:00, 49.87it/s]
+100%|██████████| 44/44 [00:00<00:00, 44.84it/s]
+100%|██████████| 44/44 [00:01<00:00, 41.63it/s]
+100%|██████████| 44/44 [00:01<00:00, 37.81it/s]
+100%|██████████| 44/44 [00:01<00:00, 36.33it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].94s/it]
+100%|██████████| 30/30 [00:00<00:00, 63.42it/s]
+100%|██████████| 30/30 [00:00<00:00, 53.18it/s]
+100%|██████████| 30/30 [00:00<00:00, 47.77it/s]
+100%|██████████| 30/30 [00:00<00:00, 44.39it/s]
+100%|██████████| 30/30 [00:00<00:00, 39.61it/s]
+100%|██████████| 30/30 [00:00<00:00, 36.33it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].25s/it]
+ 63%|██████▎   | 37/59 [00:00<00:00, 44.14it/s]
+100%|██████████| 59/59 [00:01<00:00, 35.51it/s]
+100%|██████████| 59/59 [00:01<00:00, 30.96it/s]
+100%|██████████| 59/59 [00:02<00:00, 27.48it/s]
+100%|██████████| 59/59 [00:02<00:00, 26.63it/s]
+ 39%|███▉      | 23/59 [00:00<00:01, 25.78it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].15s/it]
+100%|██████████| 38/38 [00:00<00:00, 44.22it/s]
+100%|██████████| 38/38 [00:01<00:00, 37.78it/s]
+100%|██████████| 38/38 [00:01<00:00, 33.88it/s]
+  8%|▊         | 3/38 [00:00<00:01, 29.46it/s]]
+100%|██████████| 38/38 [00:01<00:00, 29.79it/s]
+100%|██████████| 38/38 [00:01<00:00, 28.18it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].97s/it]
+100%|██████████| 46/46 [00:00<00:00, 75.17it/s]
+100%|██████████| 46/46 [00:00<00:00, 65.26it/s]
+100%|██████████| 46/46 [00:00<00:00, 57.45it/s]
+100%|██████████| 46/46 [00:00<00:00, 50.62it/s]
+100%|██████████| 46/46 [00:00<00:00, 47.10it/s]
+ 59%|█████▊    | 27/46 [00:00<00:00, 44.12it/s]
+Some weights of the model checkpoint at bert-base-cased were not used when initializing BertForSequenceClassification: ['cls.seq_relationship.bias', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.weight', 'cls.predictions.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.transform.dense.bias']
+- This IS expected if you are initializing BertForSequenceClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForSequenceClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForSequenceClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+loss : 0.506:  32%|███▏      | 90/281 [00:06<00:11, 16.19it/s]]
+epoch mean loss : 0.291
+loss : 0.014:  36%|███▌      | 100/281 [00:06<00:12, 14.65it/s]
+epoch mean loss : 0.052
+loss : 0.004:  39%|███▉      | 110/281 [00:07<00:11, 14.64it/s]
+[nltk_data] Downloading package averaged_perceptron_tagger to
+[nltk_data]     /users/aamalvy/nltk_data...
+[nltk_data]   Package averaged_perceptron_tagger is already up-to-
+[nltk_data]       date!
+epoch mean loss : 0.027
+  0%|          | 0/1 [00:00<?, ?it/s].93s/it]
+100%|██████████| 44/44 [00:00<00:00, 51.23it/s]
+100%|██████████| 44/44 [00:01<00:00, 43.44it/s]
+ 11%|█▏        | 5/44 [00:00<00:00, 47.47it/s]]
+100%|██████████| 44/44 [00:01<00:00, 34.89it/s]
+100%|██████████| 44/44 [00:01<00:00, 32.19it/s]
+100%|██████████| 44/44 [00:01<00:00, 30.84it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].24s/it]
+100%|██████████| 21/21 [00:00<00:00, 71.14it/s]
+100%|██████████| 21/21 [00:00<00:00, 65.88it/s]
+100%|██████████| 21/21 [00:00<00:00, 59.96it/s]
+100%|██████████| 21/21 [00:00<00:00, 54.00it/s]
+100%|██████████| 21/21 [00:00<00:00, 51.00it/s]
+100%|██████████| 21/21 [00:00<00:00, 49.77it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].83s/it]
+100%|██████████| 43/43 [00:00<00:00, 70.47it/s]
+100%|██████████| 43/43 [00:00<00:00, 59.49it/s]
+100%|██████████| 43/43 [00:00<00:00, 50.68it/s]
+100%|██████████| 43/43 [00:00<00:00, 44.97it/s]
+100%|██████████| 43/43 [00:01<00:00, 39.84it/s]
+100%|██████████| 43/43 [00:01<00:00, 36.47it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].26s/it]
+100%|██████████| 37/37 [00:00<00:00, 50.65it/s]
+100%|██████████| 37/37 [00:00<00:00, 44.71it/s]
+100%|██████████| 37/37 [00:00<00:00, 40.01it/s]
+100%|██████████| 37/37 [00:01<00:00, 36.45it/s]
+ 32%|███▏      | 12/37 [00:00<00:00, 25.30it/s]
+100%|██████████| 37/37 [00:01<00:00, 32.31it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].06s/it]
+100%|██████████| 40/40 [00:00<00:00, 73.38it/s]
+ 88%|████████▊ | 35/40 [00:00<00:00, 66.19it/s]
+100%|██████████| 40/40 [00:00<00:00, 57.66it/s]
+100%|██████████| 40/40 [00:00<00:00, 51.95it/s]
+100%|██████████| 40/40 [00:00<00:00, 47.33it/s]
+100%|██████████| 40/40 [00:00<00:00, 43.97it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].14s/it]
+100%|██████████| 29/29 [00:00<00:00, 72.39it/s]
+100%|██████████| 29/29 [00:00<00:00, 69.24it/s]
+100%|██████████| 29/29 [00:00<00:00, 67.19it/s]
+100%|██████████| 29/29 [00:00<00:00, 64.67it/s]
+100%|██████████| 29/29 [00:00<00:00, 63.06it/s]
+100%|██████████| 29/29 [00:00<00:00, 62.35it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].90s/it]
+100%|██████████| 29/29 [00:00<00:00, 61.26it/s]
+ 21%|██        | 6/29 [00:00<00:00, 53.71it/s]]
+100%|██████████| 29/29 [00:00<00:00, 49.95it/s]
+100%|██████████| 29/29 [00:00<00:00, 45.19it/s]
+100%|██████████| 29/29 [00:00<00:00, 42.71it/s]
+100%|██████████| 29/29 [00:00<00:00, 38.82it/s]
+  0%|          | 0/1 [00:00<?, ?it/s].70s/it]
+100%|██████████| 27/27 [00:00<00:00, 60.36it/s]
+100%|██████████| 27/27 [00:00<00:00, 53.19it/s]
+100%|██████████| 27/27 [00:00<00:00, 47.04it/s]
+100%|██████████| 27/27 [00:00<00:00, 40.33it/s]
+100%|██████████| 27/27 [00:00<00:00, 34.15it/s]
+100%|██████████| 27/27 [00:00<00:00, 29.53it/s]
+INFO - xp_neural_context_retriever - Completed after 1:18:58
