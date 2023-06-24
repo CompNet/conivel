@@ -27,12 +27,12 @@ runs = {
         "metrics": f"mean_test_{args.metrics}",
         "report_stdev": True,
     },
-    "neural_book_s13b_n8": {
+    "neural_book_s7b_n8": {
         "name": "book",
         "metrics": f"mean_test_ner_{args.metrics}",
         "report_stdev": True,
     },
-    "neural_chapter_s13b_n8": {
+    "neural_chapter_s7b_n8": {
         "name": "chapter",
         "metrics": f"mean_test_ner_{args.metrics}",
         "report_stdev": True,
@@ -73,21 +73,23 @@ fig, axs = plt.subplots(1, 3, figsize=(TEXT_WIDTH_IN, TEXT_WIDTH_IN * ASPECT_RAT
 
 
 def plot_duo(ax, run_1: dict, run_2: dict, title: str):
-    x = list(range(1, 7))
+    x = list(range(1, 9))
+    run_1_stdev = run_1.get("stdev")
     ax.errorbar(
         x,
-        run_1["values"],
-        yerr=run_1.get("stdev"),
+        run_1["values"][:8],
+        yerr=None if run_1_stdev is None else run_1_stdev[:8],
         label=run_1["name"],
         capsize=3,
         linewidth=1,
         marker="x",
         markersize=4,
     )
+    run_2_stdev = run_2.get("stdev")
     ax.errorbar(
         x,
-        run_2["values"],
-        yerr=run_2.get("stdev"),
+        run_2["values"][:8],
+        yerr=None if run_2_stdev is None else run_2_stdev[:8],
         label=run_2["name"],
         capsize=3,
         linewidth=1,
@@ -102,7 +104,7 @@ def plot_duo(ax, run_1: dict, run_2: dict, title: str):
 
 plot_duo(axs[0], runs["book_bm25"], runs["chapter_bm25"], "bm25")
 plot_duo(axs[1], runs["book_samenoun"], runs["chapter_samenoun"], "samenoun")
-plot_duo(axs[2], runs["neural_book_s13b_n8"], runs["neural_chapter_s13b_n8"], "neural")
+plot_duo(axs[2], runs["neural_book_s7b_n8"], runs["neural_chapter_s7b_n8"], "neural")
 
 handles, labels = axs[-1].get_legend_handles_labels()
 fig.legend(handles, labels, bbox_to_anchor=(0.4, 1.1), fontsize=FONTSIZE, ncol=2)

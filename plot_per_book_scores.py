@@ -21,10 +21,10 @@ if __name__ == "__main__":
 
     runs: Dict[str, Dict[str, Any]] = {
         "gen_base_models": {"name": "no retrieval", "color": "black"},
-        "chapter_neighbors": {"name": "surrounding", "color": "tab:blue"},
+        "book_neighbors": {"name": "surrounding", "color": "tab:blue"},
         "book_bm25": {"name": "bm25", "color": "tab:green"},
         "book_samenoun": {"name": "samenoun", "color": "tab:orange"},
-        "neural_book_s13b_n8": {"name": "neural", "color": "tab:red"},
+        "neural_book_s7b_n8": {"name": "neural", "color": "tab:red"},
     }
 
     keys = [f"mean_{doc_name}_test_{args.metrics}" for doc_name in doc_names]
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     enhancements = [
         neural - bare
         for bare, neural in zip(
-            runs["gen_base_models"]["values"], runs["neural_book_s13b_n8"]["values"]
+            runs["gen_base_models"]["values"], runs["neural_book_s7b_n8"]["values"]
         )
     ]
     max_enhancement = max(enhancements)

@@ -16,7 +16,7 @@ COLUMN_WIDTH_IN = 3.0315
 MARKERS = ["x", "+", "h", "*", "d", "p", "^"]
 
 runs = {
-    "chapter_neighbors": {
+    "book_neighbors": {
         "name": "surrounding",
         "metrics": f"mean_test_{args.metrics}",
     },
@@ -26,7 +26,7 @@ runs = {
         "metrics": f"mean_test_{args.metrics}",
         "report_stdev": True,
     },
-    "neural_book_s13b_n8": {
+    "neural_book_s7b_n8": {
         "name": "neural",
         "metrics": f"mean_test_ner_{args.metrics}",
         "report_stdev": True,
@@ -44,7 +44,7 @@ fig.set_size_inches(COLUMN_WIDTH_IN, COLUMN_WIDTH_IN * 0.6)
 with open("./runs/gen/gen_base_models/metrics.json") as f:
     bare_metrics = json.load(f)
 ax.plot(
-    [1, 6],
+    [1, 8],
     [bare_metrics[f"mean_test_{args.metrics}"]["values"][0]] * 2,
     linewidth=1,
     c="black",
@@ -71,9 +71,9 @@ for run_i, (run, run_attrs) in enumerate(runs.items()):
         stdev = np.std(np.array(run_metrics), axis=0)
 
     ax.errorbar(
-        [int(step) for step in metrics[metrics_name]["steps"]],
-        metrics[metrics_name]["values"],
-        yerr=stdev if run_attrs.get("report_stdev") else None,
+        [int(step) for step in metrics[metrics_name]["steps"] if int(step) <= 8],
+        metrics[metrics_name]["values"][:8],
+        yerr=stdev[:8] if run_attrs.get("report_stdev") else None,
         capsize=3,
         marker=MARKERS[run_i],
         markersize=3,
