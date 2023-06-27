@@ -8,8 +8,7 @@ Use `poetry install` to install dependencies, and `poetry shell` to activate the
 
 # Generated Dataset
 
-The generated context retrieval can be found under `runs/gen/genv3`
-for Alpaca-7b, and under `runs/gen/genv3_13b/` for Alpaca-13b.
+The generated context retrieval can be found under `runs/gen/genv3` for Alpaca-7b, and under `runs/gen/genv3_13b/` for Alpaca-13b.
 
 
 
@@ -21,7 +20,7 @@ for Alpaca-7b, and under `runs/gen/genv3_13b/` for Alpaca-13b.
 python xp_bare.py with runs/gen/gen_base_models/config.json
 ```
 
-For the following experiences, we suppose you save your runs and the produced models as follows:
+For the following experiments, we suppose you save your runs and the produced models as follows:
 
 ```sh
 # supposing that the xp_bare.py run ID is 1
