@@ -1,0 +1,129 @@
+{
+  "__annotations__": {
+    "batch_size": {
+      "py/type": "builtins.int"
+    },
+    "book_group": {
+      "py/reduce": [
+        {
+          "py/function": "_operator.getitem"
+        },
+        {
+          "py/tuple": [
+            {
+              "py/id": 1
+            },
+            {
+              "py/tuple": [
+                {
+                  "py/type": "builtins.str"
+                },
+                {
+                  "py/type": "builtins.NoneType"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "context_retriever": {
+      "py/type": "builtins.str"
+    },
+    "k": {
+      "py/type": "builtins.int"
+    },
+    "ner_epochs_nb": {
+      "py/type": "builtins.int"
+    },
+    "ner_lr": {
+      "py/type": "builtins.float"
+    },
+    "ner_model_paths": {
+      "py/reduce": [
+        {
+          "py/function": "_operator.getitem"
+        },
+        {
+          "py/tuple": [
+            {
+              "py/id": 1
+            },
+            {
+              "py/tuple": [
+                {
+                  "py/type": "builtins.list"
+                },
+                {
+                  "py/type": "builtins.NoneType"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "runs_nb": {
+      "py/type": "builtins.int"
+    },
+    "save_models": {
+      "py/type": "builtins.bool"
+    },
+    "sents_nb_list": {
+      "py/type": "builtins.list"
+    },
+    "shuffle_kfolds_seed": {
+      "py/reduce": [
+        {
+          "py/function": "_operator.getitem"
+        },
+        {
+          "py/tuple": [
+            {
+              "py/object": "typing._SpecialForm"
+            },
+            {
+              "py/tuple": [
+                {
+                  "py/type": "builtins.int"
+                },
+                {
+                  "py/type": "builtins.NoneType"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "batch_size": 8,
+  "book_group": null,
+  "context_retriever": "bm25",
+  "cr_extended_docs_dir": null,
+  "cr_kwargs": null,
+  "k": 5,
+  "ner_epochs_nb": 2,
+  "ner_lr": 2e-05,
+  "ner_model_paths": [
+    "./runs/gen/gen_base_models/fold0_nermodel",
+    "./runs/gen/gen_base_models/fold1_nermodel",
+    "./runs/gen/gen_base_models/fold2_nermodel",
+    "./runs/gen/gen_base_models/fold3_nermodel",
+    "./runs/gen/gen_base_models/fold4_nermodel"
+  ],
+  "runs_nb": 3,
+  "save_models": false,
+  "seed": 208398803,
+  "sents_nb_list": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "shuffle_kfolds_seed": 0
+}

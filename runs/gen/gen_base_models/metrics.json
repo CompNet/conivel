@@ -1,0 +1,3407 @@
+{
+  "fold0.mean_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760436"
+    ],
+    "values": [
+      0.9123711340206185
+    ]
+  },
+  "fold0.mean_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760323"
+    ],
+    "values": [
+      0.9155172413793103
+    ]
+  },
+  "fold0.mean_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760381"
+    ],
+    "values": [
+      0.9092465753424658
+    ]
+  },
+  "fold0.stdev_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760469"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold0.stdev_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760359"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold0.stdev_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760415"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold1.mean_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760598"
+    ],
+    "values": [
+      0.9474516001580404
+    ]
+  },
+  "fold1.mean_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760491"
+    ],
+    "values": [
+      0.9478260869565217
+    ]
+  },
+  "fold1.mean_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760544"
+    ],
+    "values": [
+      0.9470774091627172
+    ]
+  },
+  "fold1.stdev_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760629"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold1.stdev_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760523"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold1.stdev_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760577"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold2.mean_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760783"
+    ],
+    "values": [
+      0.9038550859266141
+    ]
+  },
+  "fold2.mean_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760650"
+    ],
+    "values": [
+      0.9179245283018868
+    ]
+  },
+  "fold2.mean_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760705"
+    ],
+    "values": [
+      0.8902104300091491
+    ]
+  },
+  "fold2.stdev_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760818"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold2.stdev_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760682"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold2.stdev_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760736"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold3.mean_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760952"
+    ],
+    "values": [
+      0.8783658310120704
+    ]
+  },
+  "fold3.mean_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760840"
+    ],
+    "values": [
+      0.8686868686868687
+    ]
+  },
+  "fold3.mean_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760896"
+    ],
+    "values": [
+      0.888262910798122
+    ]
+  },
+  "fold3.stdev_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760985"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold3.stdev_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760874"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold3.stdev_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760930"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold4.mean_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761117"
+    ],
+    "values": [
+      0.9297241020301926
+    ]
+  },
+  "fold4.mean_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761007"
+    ],
+    "values": [
+      0.94
+    ]
+  },
+  "fold4.mean_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761062"
+    ],
+    "values": [
+      0.9196704428424305
+    ]
+  },
+  "fold4.stdev_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761151"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold4.stdev_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761041"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "fold4.stdev_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761096"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "gpu_usage": {
+    "steps": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "timestamps": [
+      "2023-06-08T14:23:16.619845",
+      "2023-06-08T14:27:57.977130",
+      "2023-06-08T14:32:42.935880",
+      "2023-06-08T14:37:10.234156",
+      "2023-06-08T14:42:00.989045"
+    ],
+    "values": [
+      0.6274367452966633,
+      0.7479510637453137,
+      0.7479510637453137,
+      0.7479510637453137,
+      0.7479510637453137
+    ]
+  },
+  "mean_1984.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761480"
+    ],
+    "values": [
+      0.7774086378737542
+    ]
+  },
+  "mean_1984.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761363"
+    ],
+    "values": [
+      0.7548387096774194
+    ]
+  },
+  "mean_1984.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761423"
+    ],
+    "values": [
+      0.8013698630136986
+    ]
+  },
+  "mean_AGameOfThrones.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761649"
+    ],
+    "values": [
+      0.9488636363636364
+    ]
+  },
+  "mean_AGameOfThrones.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761538"
+    ],
+    "values": [
+      0.9277777777777778
+    ]
+  },
+  "mean_AGameOfThrones.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761594"
+    ],
+    "values": [
+      0.9709302325581395
+    ]
+  },
+  "mean_AStudyInScarlet.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761818"
+    ],
+    "values": [
+      0.8245614035087718
+    ]
+  },
+  "mean_AStudyInScarlet.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761707"
+    ],
+    "values": [
+      0.8103448275862069
+    ]
+  },
+  "mean_AStudyInScarlet.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761762"
+    ],
+    "values": [
+      0.8392857142857143
+    ]
+  },
+  "mean_AliceInWonderland.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761987"
+    ],
+    "values": [
+      0.9487870619946093
+    ]
+  },
+  "mean_AliceInWonderland.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761876"
+    ],
+    "values": [
+      0.9513513513513514
+    ]
+  },
+  "mean_AliceInWonderland.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761932"
+    ],
+    "values": [
+      0.946236559139785
+    ]
+  },
+  "mean_AssassinsApprentice.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762163"
+    ],
+    "values": [
+      0.9115646258503401
+    ]
+  },
+  "mean_AssassinsApprentice.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762058"
+    ],
+    "values": [
+      0.9054054054054054
+    ]
+  },
+  "mean_AssassinsApprentice.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762111"
+    ],
+    "values": [
+      0.9178082191780822
+    ]
+  },
+  "mean_BlackPrism.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762324"
+    ],
+    "values": [
+      0.9372384937238494
+    ]
+  },
+  "mean_BlackPrism.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762217"
+    ],
+    "values": [
+      0.9333333333333333
+    ]
+  },
+  "mean_BlackPrism.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762271"
+    ],
+    "values": [
+      0.9411764705882353
+    ]
+  },
+  "mean_BraveNewWorld.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762486"
+    ],
+    "values": [
+      0.8042328042328042
+    ]
+  },
+  "mean_BraveNewWorld.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762379"
+    ],
+    "values": [
+      0.7755102040816326
+    ]
+  },
+  "mean_BraveNewWorld.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762433"
+    ],
+    "values": [
+      0.8351648351648352
+    ]
+  },
+  "mean_DavidCopperfield.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762654"
+    ],
+    "values": [
+      0.9494949494949495
+    ]
+  },
+  "mean_DavidCopperfield.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762542"
+    ],
+    "values": [
+      0.9894736842105263
+    ]
+  },
+  "mean_DavidCopperfield.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762604"
+    ],
+    "values": [
+      0.912621359223301
+    ]
+  },
+  "mean_Dracula.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762806"
+    ],
+    "values": [
+      0.8456375838926175
+    ]
+  },
+  "mean_Dracula.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762707"
+    ],
+    "values": [
+      0.875
+    ]
+  },
+  "mean_Dracula.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762757"
+    ],
+    "values": [
+      0.8181818181818182
+    ]
+  },
+  "mean_Elantris.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762956"
+    ],
+    "values": [
+      0.8507042253521125
+    ]
+  },
+  "mean_Elantris.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762858"
+    ],
+    "values": [
+      0.8118279569892473
+    ]
+  },
+  "mean_Elantris.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762907"
+    ],
+    "values": [
+      0.893491124260355
+    ]
+  },
+  "mean_Emma.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763106"
+    ],
+    "values": [
+      0.9772727272727272
+    ]
+  },
+  "mean_Emma.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763008"
+    ],
+    "values": [
+      0.9828571428571429
+    ]
+  },
+  "mean_Emma.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763057"
+    ],
+    "values": [
+      0.9717514124293786
+    ]
+  },
+  "mean_Frankenstein.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763258"
+    ],
+    "values": [
+      0.8571428571428571
+    ]
+  },
+  "mean_Frankenstein.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763159"
+    ],
+    "values": [
+      0.8709677419354839
+    ]
+  },
+  "mean_Frankenstein.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763209"
+    ],
+    "values": [
+      0.84375
+    ]
+  },
+  "mean_GardensOfTheMoon.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763406"
+    ],
+    "values": [
+      0.8947368421052632
+    ]
+  },
+  "mean_GardensOfTheMoon.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763309"
+    ],
+    "values": [
+      0.8947368421052632
+    ]
+  },
+  "mean_GardensOfTheMoon.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763358"
+    ],
+    "values": [
+      0.8947368421052632
+    ]
+  },
+  "mean_HarryPotter.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763556"
+    ],
+    "values": [
+      0.9624724061810155
+    ]
+  },
+  "mean_HarryPotter.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763458"
+    ],
+    "values": [
+      0.960352422907489
+    ]
+  },
+  "mean_HarryPotter.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763507"
+    ],
+    "values": [
+      0.9646017699115044
+    ]
+  },
+  "mean_HuckleberryFinn.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763705"
+    ],
+    "values": [
+      0.9575757575757574
+    ]
+  },
+  "mean_HuckleberryFinn.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763607"
+    ],
+    "values": [
+      0.9404761904761905
+    ]
+  },
+  "mean_HuckleberryFinn.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763656"
+    ],
+    "values": [
+      0.9753086419753086
+    ]
+  },
+  "mean_JekyllAndHyde.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763854"
+    ],
+    "values": [
+      0.8923076923076922
+    ]
+  },
+  "mean_JekyllAndHyde.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763756"
+    ],
+    "values": [
+      0.90625
+    ]
+  },
+  "mean_JekyllAndHyde.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763805"
+    ],
+    "values": [
+      0.8787878787878788
+    ]
+  },
+  "mean_Magician.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764002"
+    ],
+    "values": [
+      0.9785407725321887
+    ]
+  },
+  "mean_Magician.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763905"
+    ],
+    "values": [
+      0.9743589743589743
+    ]
+  },
+  "mean_Magician.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763954"
+    ],
+    "values": [
+      0.9827586206896551
+    ]
+  },
+  "mean_Mistborn.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764150"
+    ],
+    "values": [
+      0.95625
+    ]
+  },
+  "mean_Mistborn.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764052"
+    ],
+    "values": [
+      0.95625
+    ]
+  },
+  "mean_Mistborn.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764101"
+    ],
+    "values": [
+      0.95625
+    ]
+  },
+  "mean_MobyDick.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764301"
+    ],
+    "values": [
+      0.7129629629629628
+    ]
+  },
+  "mean_MobyDick.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764203"
+    ],
+    "values": [
+      0.7333333333333333
+    ]
+  },
+  "mean_MobyDick.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764252"
+    ],
+    "values": [
+      0.6936936936936937
+    ]
+  },
+  "mean_OliverTwist.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764448"
+    ],
+    "values": [
+      0.9511400651465798
+    ]
+  },
+  "mean_OliverTwist.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764350"
+    ],
+    "values": [
+      0.9605263157894737
+    ]
+  },
+  "mean_OliverTwist.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764399"
+    ],
+    "values": [
+      0.9419354838709677
+    ]
+  },
+  "mean_PrideAndPrejudice.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764595"
+    ],
+    "values": [
+      0.990228013029316
+    ]
+  },
+  "mean_PrideAndPrejudice.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764498"
+    ],
+    "values": [
+      0.9934640522875817
+    ]
+  },
+  "mean_PrideAndPrejudice.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764546"
+    ],
+    "values": [
+      0.987012987012987
+    ]
+  },
+  "mean_StormFront.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764742"
+    ],
+    "values": [
+      0.9166666666666666
+    ]
+  },
+  "mean_StormFront.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764645"
+    ],
+    "values": [
+      0.9166666666666666
+    ]
+  },
+  "mean_StormFront.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764694"
+    ],
+    "values": [
+      0.9166666666666666
+    ]
+  },
+  "mean_TheBlackCompany.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764938"
+    ],
+    "values": [
+      0.7488584474885844
+    ]
+  },
+  "mean_TheBlackCompany.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764818"
+    ],
+    "values": [
+      0.845360824742268
+    ]
+  },
+  "mean_TheBlackCompany.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764882"
+    ],
+    "values": [
+      0.6721311475409836
+    ]
+  },
+  "mean_TheBladeItself.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765105"
+    ],
+    "values": [
+      0.8181818181818181
+    ]
+  },
+  "mean_TheBladeItself.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764994"
+    ],
+    "values": [
+      0.6923076923076923
+    ]
+  },
+  "mean_TheBladeItself.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765050"
+    ],
+    "values": [
+      1.0
+    ]
+  },
+  "mean_TheCallOfTheWild.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765276"
+    ],
+    "values": [
+      0.9585253456221199
+    ]
+  },
+  "mean_TheCallOfTheWild.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765163"
+    ],
+    "values": [
+      0.9541284403669725
+    ]
+  },
+  "mean_TheCallOfTheWild.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765219"
+    ],
+    "values": [
+      0.9629629629629629
+    ]
+  },
+  "mean_TheColourOfMagic.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765446"
+    ],
+    "values": [
+      0.8761904761904762
+    ]
+  },
+  "mean_TheColourOfMagic.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765334"
+    ],
+    "values": [
+      0.9583333333333334
+    ]
+  },
+  "mean_TheColourOfMagic.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765390"
+    ],
+    "values": [
+      0.8070175438596491
+    ]
+  },
+  "mean_TheCountOfMonteCristo.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765619"
+    ],
+    "values": [
+      0.926470588235294
+    ]
+  },
+  "mean_TheCountOfMonteCristo.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765504"
+    ],
+    "values": [
+      0.9333333333333333
+    ]
+  },
+  "mean_TheCountOfMonteCristo.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765568"
+    ],
+    "values": [
+      0.9197080291970803
+    ]
+  },
+  "mean_TheFellowshipoftheRing.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765793"
+    ],
+    "values": [
+      0.9385863267670915
+    ]
+  },
+  "mean_TheFellowshipoftheRing.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765672"
+    ],
+    "values": [
+      0.9619952494061758
+    ]
+  },
+  "mean_TheFellowshipoftheRing.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765736"
+    ],
+    "values": [
+      0.916289592760181
+    ]
+  },
+  "mean_TheGunslinger.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765965"
+    ],
+    "values": [
+      0.9428571428571428
+    ]
+  },
+  "mean_TheGunslinger.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765851"
+    ],
+    "values": [
+      0.9705882352941176
+    ]
+  },
+  "mean_TheGunslinger.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765908"
+    ],
+    "values": [
+      0.9166666666666666
+    ]
+  },
+  "mean_TheLiesOfLockeLamora.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766139"
+    ],
+    "values": [
+      0.9463955637707948
+    ]
+  },
+  "mean_TheLiesOfLockeLamora.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766033"
+    ],
+    "values": [
+      0.9309090909090909
+    ]
+  },
+  "mean_TheLiesOfLockeLamora.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766086"
+    ],
+    "values": [
+      0.9624060150375939
+    ]
+  },
+  "mean_TheNameOfTheWind.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766298"
+    ],
+    "values": [
+      0.963855421686747
+    ]
+  },
+  "mean_TheNameOfTheWind.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766193"
+    ],
+    "values": [
+      0.96
+    ]
+  },
+  "mean_TheNameOfTheWind.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766245"
+    ],
+    "values": [
+      0.967741935483871
+    ]
+  },
+  "mean_ThePaintedMan.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766455"
+    ],
+    "values": [
+      0.9448441247002398
+    ]
+  },
+  "mean_ThePaintedMan.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766352"
+    ],
+    "values": [
+      0.9609756097560975
+    ]
+  },
+  "mean_ThePaintedMan.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766403"
+    ],
+    "values": [
+      0.9292452830188679
+    ]
+  },
+  "mean_TheThreeMusketeers.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766614"
+    ],
+    "values": [
+      0.8828125
+    ]
+  },
+  "mean_TheThreeMusketeers.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766509"
+    ],
+    "values": [
+      0.8968253968253969
+    ]
+  },
+  "mean_TheThreeMusketeers.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766562"
+    ],
+    "values": [
+      0.8692307692307693
+    ]
+  },
+  "mean_TheWayOfKings.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766778"
+    ],
+    "values": [
+      0.9021739130434783
+    ]
+  },
+  "mean_TheWayOfKings.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766672"
+    ],
+    "values": [
+      0.9120879120879121
+    ]
+  },
+  "mean_TheWayOfKings.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766725"
+    ],
+    "values": [
+      0.8924731182795699
+    ]
+  },
+  "mean_TheWayOfShadows.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766950"
+    ],
+    "values": [
+      0.8943089430894309
+    ]
+  },
+  "mean_TheWayOfShadows.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766835"
+    ],
+    "values": [
+      0.9016393442622951
+    ]
+  },
+  "mean_TheWayOfShadows.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766899"
+    ],
+    "values": [
+      0.8870967741935484
+    ]
+  },
+  "mean_TheWayWeLiveNow.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767122"
+    ],
+    "values": [
+      0.8673835125448028
+    ]
+  },
+  "mean_TheWayWeLiveNow.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767015"
+    ],
+    "values": [
+      0.9097744360902256
+    ]
+  },
+  "mean_TheWayWeLiveNow.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767069"
+    ],
+    "values": [
+      0.8287671232876712
+    ]
+  },
+  "mean_TheWheelOfTime.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767283"
+    ],
+    "values": [
+      0.9190839694656489
+    ]
+  },
+  "mean_TheWheelOfTime.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767177"
+    ],
+    "values": [
+      0.9093655589123867
+    ]
+  },
+  "mean_TheWheelOfTime.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767231"
+    ],
+    "values": [
+      0.9290123456790124
+    ]
+  },
+  "mean_TinkerTailorSoldierSpy.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767442"
+    ],
+    "values": [
+      0.8817204301075269
+    ]
+  },
+  "mean_TinkerTailorSoldierSpy.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767337"
+    ],
+    "values": [
+      0.8874458874458875
+    ]
+  },
+  "mean_TinkerTailorSoldierSpy.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767390"
+    ],
+    "values": [
+      0.8760683760683761
+    ]
+  },
+  "mean_Ulysses.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767601"
+    ],
+    "values": [
+      0.938388625592417
+    ]
+  },
+  "mean_Ulysses.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767496"
+    ],
+    "values": [
+      0.9519230769230769
+    ]
+  },
+  "mean_Ulysses.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767548"
+    ],
+    "values": [
+      0.9252336448598131
+    ]
+  },
+  "mean_VanityFair.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767763"
+    ],
+    "values": [
+      0.9437819420783646
+    ]
+  },
+  "mean_VanityFair.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767664"
+    ],
+    "values": [
+      0.9358108108108109
+    ]
+  },
+  "mean_VanityFair.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767714"
+    ],
+    "values": [
+      0.9518900343642611
+    ]
+  },
+  "mean_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761293"
+    ],
+    "values": [
+      0.9143535506295072
+    ]
+  },
+  "mean_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761175"
+    ],
+    "values": [
+      0.9179909450649173
+    ]
+  },
+  "mean_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761236"
+    ],
+    "values": [
+      0.9108935536309769
+    ]
+  },
+  "run0.fold0.ner_training.mean_epoch_loss": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:20:12.890262",
+      "2023-06-08T14:22:12.729726"
+    ],
+    "values": [
+      0.04335042979164282,
+      0.005601233898400096
+    ]
+  },
+  "run0.fold0.ner_training.validation_f1": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:20:44.533335",
+      "2023-06-08T14:22:44.661970"
+    ],
+    "values": [
+      0.9775958148527238,
+      0.995793064241046
+    ]
+  },
+  "run0.fold0.ner_training.validation_precision": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:20:44.533251",
+      "2023-06-08T14:22:44.661906"
+    ],
+    "values": [
+      0.977262391996362,
+      0.9952272727272727
+    ]
+  },
+  "run0.fold0.ner_training.validation_recall": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:20:44.533326",
+      "2023-06-08T14:22:44.661961"
+    ],
+    "values": [
+      0.977929465301479,
+      0.9963594994311717
+    ]
+  },
+  "run0.fold1.ner_training.mean_epoch_loss": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:24:51.997865",
+      "2023-06-08T14:26:53.457340"
+    ],
+    "values": [
+      0.0462686946367837,
+      0.005685989189661098
+    ]
+  },
+  "run0.fold1.ner_training.validation_f1": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:25:24.372668",
+      "2023-06-08T14:27:25.936173"
+    ],
+    "values": [
+      0.9826764329729102,
+      0.9951094550535631
+    ]
+  },
+  "run0.fold1.ner_training.validation_precision": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:25:24.372588",
+      "2023-06-08T14:27:25.936085"
+    ],
+    "values": [
+      0.9818773234200744,
+      0.995805173619203
+    ]
+  },
+  "run0.fold1.ner_training.validation_recall": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:25:24.372660",
+      "2023-06-08T14:27:25.936165"
+    ],
+    "values": [
+      0.9834768443099837,
+      0.9944147079357691
+    ]
+  },
+  "run0.fold2.ner_training.mean_epoch_loss": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:29:34.668365",
+      "2023-06-08T14:31:37.675776"
+    ],
+    "values": [
+      0.04528867835628881,
+      0.0051373625306274885
+    ]
+  },
+  "run0.fold2.ner_training.validation_f1": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:30:07.328872",
+      "2023-06-08T14:32:10.635199"
+    ],
+    "values": [
+      0.9849279892821258,
+      0.9961951656222023
+    ]
+  },
+  "run0.fold2.ner_training.validation_precision": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:30:07.328822",
+      "2023-06-08T14:32:10.635163"
+    ],
+    "values": [
+      0.9830621796300424,
+      0.996641289744738
+    ]
+  },
+  "run0.fold2.ner_training.validation_recall": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:30:07.328864",
+      "2023-06-08T14:32:10.635193"
+    ],
+    "values": [
+      0.9868008948545861,
+      0.9957494407158837
+    ]
+  },
+  "run0.fold3.ner_training.mean_epoch_loss": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:34:13.339399",
+      "2023-06-08T14:36:07.336067"
+    ],
+    "values": [
+      0.047189043067855645,
+      0.006005253201102598
+    ]
+  },
+  "run0.fold3.ner_training.validation_f1": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:34:43.473898",
+      "2023-06-08T14:36:37.769633"
+    ],
+    "values": [
+      0.9842791838555023,
+      0.9955555555555555
+    ]
+  },
+  "run0.fold3.ner_training.validation_precision": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:34:43.473815",
+      "2023-06-08T14:36:37.769572"
+    ],
+    "values": [
+      0.9872511742339521,
+      0.9951132829853399
+    ]
+  },
+  "run0.fold3.ner_training.validation_recall": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:34:43.473890",
+      "2023-06-08T14:36:37.769624"
+    ],
+    "values": [
+      0.9813250333481547,
+      0.9959982214317474
+    ]
+  },
+  "run0.fold4.ner_training.mean_epoch_loss": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:38:49.595408",
+      "2023-06-08T14:40:54.373002"
+    ],
+    "values": [
+      0.04490152183491566,
+      0.005749716192688163
+    ]
+  },
+  "run0.fold4.ner_training.validation_f1": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:39:22.731384",
+      "2023-06-08T14:41:28.452139"
+    ],
+    "values": [
+      0.9858603437024146,
+      0.9932402965547317
+    ]
+  },
+  "run0.fold4.ner_training.validation_precision": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:39:22.731325",
+      "2023-06-08T14:41:28.452093"
+    ],
+    "values": [
+      0.9847892220773576,
+      0.9945414847161572
+    ]
+  },
+  "run0.fold4.ner_training.validation_recall": {
+    "steps": [
+      0,
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:39:22.731376",
+      "2023-06-08T14:41:28.452128"
+    ],
+    "values": [
+      0.9869337979094077,
+      0.9919425087108014
+    ]
+  },
+  "run0.mean_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760261"
+    ],
+    "values": [
+      0.9143535506295072
+    ]
+  },
+  "run0.mean_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760044"
+    ],
+    "values": [
+      0.9179909450649173
+    ]
+  },
+  "run0.mean_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760195"
+    ],
+    "values": [
+      0.9108935536309769
+    ]
+  },
+  "run0.stdev_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760297"
+    ],
+    "values": [
+      0.023413664527137494
+    ]
+  },
+  "run0.stdev_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760167"
+    ],
+    "values": [
+      0.027609961098960998
+    ]
+  },
+  "run0.stdev_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.760237"
+    ],
+    "values": [
+      0.021582193218664628
+    ]
+  },
+  "stdev_1984.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761514"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_1984.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761399"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_1984.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761458"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_AGameOfThrones.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761683"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_AGameOfThrones.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761573"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_AGameOfThrones.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761628"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_AStudyInScarlet.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761852"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_AStudyInScarlet.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761740"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_AStudyInScarlet.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761796"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_AliceInWonderland.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762034"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_AliceInWonderland.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761910"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_AliceInWonderland.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761966"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_AssassinsApprentice.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762194"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_AssassinsApprentice.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762090"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_AssassinsApprentice.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762142"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_BlackPrism.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762356"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_BlackPrism.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762250"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_BlackPrism.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762303"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_BraveNewWorld.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762517"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_BraveNewWorld.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762412"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_BraveNewWorld.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762465"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_DavidCopperfield.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762684"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_DavidCopperfield.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762584"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_DavidCopperfield.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762634"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Dracula.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762836"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Dracula.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762737"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Dracula.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762787"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Elantris.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762986"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Elantris.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762888"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Elantris.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.762937"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Emma.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763136"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Emma.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763038"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Emma.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763087"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Frankenstein.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763288"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Frankenstein.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763189"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Frankenstein.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763239"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_GardensOfTheMoon.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763436"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_GardensOfTheMoon.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763339"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_GardensOfTheMoon.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763387"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_HarryPotter.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763585"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_HarryPotter.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763487"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_HarryPotter.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763536"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_HuckleberryFinn.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763735"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_HuckleberryFinn.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763636"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_HuckleberryFinn.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763686"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_JekyllAndHyde.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763884"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_JekyllAndHyde.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763786"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_JekyllAndHyde.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763835"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Magician.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764031"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Magician.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763934"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Magician.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.763983"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Mistborn.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764179"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Mistborn.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764082"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Mistborn.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764131"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_MobyDick.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764330"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_MobyDick.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764233"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_MobyDick.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764282"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_OliverTwist.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764477"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_OliverTwist.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764380"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_OliverTwist.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764429"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_PrideAndPrejudice.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764625"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_PrideAndPrejudice.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764527"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_PrideAndPrejudice.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764576"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_StormFront.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764796"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_StormFront.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764674"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_StormFront.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764723"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheBlackCompany.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764971"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheBlackCompany.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764850"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheBlackCompany.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.764916"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheBladeItself.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765139"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheBladeItself.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765028"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheBladeItself.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765083"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheCallOfTheWild.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765310"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheCallOfTheWild.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765197"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheCallOfTheWild.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765254"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheColourOfMagic.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765479"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheColourOfMagic.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765368"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheColourOfMagic.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765424"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheCountOfMonteCristo.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765650"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheCountOfMonteCristo.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765547"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheCountOfMonteCristo.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765599"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheFellowshipoftheRing.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765827"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheFellowshipoftheRing.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765704"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheFellowshipoftheRing.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765771"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheGunslinger.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765999"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheGunslinger.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765886"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheGunslinger.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.765942"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheLiesOfLockeLamora.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766171"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheLiesOfLockeLamora.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766065"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheLiesOfLockeLamora.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766118"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheNameOfTheWind.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766329"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheNameOfTheWind.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766225"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheNameOfTheWind.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766277"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_ThePaintedMan.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766486"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_ThePaintedMan.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766383"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_ThePaintedMan.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766435"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheThreeMusketeers.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766648"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheThreeMusketeers.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766541"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheThreeMusketeers.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766593"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheWayOfKings.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766811"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheWayOfKings.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766704"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheWayOfKings.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766757"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheWayOfShadows.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766981"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheWayOfShadows.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766868"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheWayOfShadows.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.766930"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheWayWeLiveNow.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767154"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheWayWeLiveNow.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767046"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheWayWeLiveNow.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767101"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheWheelOfTime.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767314"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheWheelOfTime.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767210"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TheWheelOfTime.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767262"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TinkerTailorSoldierSpy.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767473"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TinkerTailorSoldierSpy.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767369"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_TinkerTailorSoldierSpy.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767422"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Ulysses.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767632"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Ulysses.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767528"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_Ulysses.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767580"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_VanityFair.conll_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767793"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_VanityFair.conll_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767694"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_VanityFair.conll_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.767744"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "stdev_test_f1": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761328"
+    ],
+    "values": [
+      0.023413664527137494
+    ]
+  },
+  "stdev_test_precision": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761214"
+    ],
+    "values": [
+      0.027609961098960998
+    ]
+  },
+  "stdev_test_recall": {
+    "steps": [
+      1
+    ],
+    "timestamps": [
+      "2023-06-08T14:42:06.761271"
+    ],
+    "values": [
+      0.021582193218664628
+    ]
+  }
+}

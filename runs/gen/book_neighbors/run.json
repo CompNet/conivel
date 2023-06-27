@@ -1,0 +1,191 @@
+{
+  "artifacts": [],
+  "command": "main",
+  "experiment": {
+    "base_dir": "/users/aamalvy/conivel",
+    "dependencies": [
+      "numpy==1.22.4",
+      "sacred==0.8.4",
+      "torch==2.0.1"
+    ],
+    "mainfile": "xp_kfolds.py",
+    "name": "xp_kfolds",
+    "repositories": [
+      {
+        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      },
+      {
+        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "dirty": false,
+        "url": "https://github.com/CompNet/conivel.git"
+      }
+    ],
+    "sources": [
+      [
+        "conivel/datas/__init__.py",
+        "_sources/__init___cc54710e28256ef3d4b4d54698544e49.py"
+      ],
+      [
+        "conivel/datas/dataset.py",
+        "_sources/dataset_1f1f8b96cff9a133e845737a969e9617.py"
+      ],
+      [
+        "conivel/datas/dekker/__init__.py",
+        "_sources/__init___f07596ce0678c94aa815c9b1816b85fb.py"
+      ],
+      [
+        "conivel/datas/dekker/dekker.py",
+        "_sources/dekker_1489a37dbc12b0f10fcfa3311e3e8d68.py"
+      ],
+      [
+        "conivel/predict.py",
+        "_sources/predict_a0c9fc8e163dcf5da7e044e94f623f7f.py"
+      ],
+      [
+        "conivel/score.py",
+        "_sources/score_b8d0bca86249ac9f90e787045f25efa4.py"
+      ],
+      [
+        "conivel/train.py",
+        "_sources/train_df7c67bf1b1e004ca15bf913f6e726ad.py"
+      ],
+      [
+        "conivel/utils.py",
+        "_sources/utils_9720ffdcdfa487c4e880f815e03bc504.py"
+      ],
+      [
+        "xp_kfolds.py",
+        "_sources/xp_kfolds_d6a6be0638a3462ba5ac64077883894c.py"
+      ]
+    ]
+  },
+  "heartbeat": "2023-06-23T12:15:53.375199",
+  "host": {
+    "ENV": {},
+    "cpu": "Intel(R) Xeon(R) Silver 4210R CPU @ 2.40GHz",
+    "gpus": {
+      "driver_version": "495.29.05",
+      "gpus": [
+        {
+          "model": "NVIDIA GeForce RTX 2080 Ti",
+          "persistence_mode": false,
+          "total_memory": 11019
+        }
+      ]
+    },
+    "hostname": "calypso",
+    "os": [
+      "Linux",
+      "Linux-5.4.0-73-generic-x86_64-with-glibc2.27"
+    ],
+    "python_version": "3.8.0"
+  },
+  "meta": {
+    "command": "main",
+    "config_updates": {
+      "batch_size": 8,
+      "context_retriever": "neighbors",
+      "cr_extended_docs_dir": "./dekker_full_books",
+      "k": 5,
+      "ner_epochs_nb": 2,
+      "ner_lr": 2e-05,
+      "ner_model_paths": [
+        "./runs/gen/gen_base_models/fold0_nermodel",
+        "./runs/gen/gen_base_models/fold1_nermodel",
+        "./runs/gen/gen_base_models/fold2_nermodel",
+        "./runs/gen/gen_base_models/fold3_nermodel",
+        "./runs/gen/gen_base_models/fold4_nermodel"
+      ],
+      "runs_nb": 3,
+      "save_models": false,
+      "sents_nb_list": [
+        2,
+        4,
+        6,
+        8
+      ],
+      "shuffle_kfolds_seed": 0
+    },
+    "named_configs": [],
+    "options": {
+      "--beat-interval": null,
+      "--capture": null,
+      "--comment": null,
+      "--debug": false,
+      "--enforce_clean": false,
+      "--file_storage": null,
+      "--force": false,
+      "--help": false,
+      "--id": null,
+      "--loglevel": null,
+      "--mongo_db": null,
+      "--name": null,
+      "--pdb": false,
+      "--print-config": false,
+      "--priority": null,
+      "--queue": false,
+      "--s3": null,
+      "--sql": null,
+      "--tiny_db": null,
+      "--unobserved": false,
+      "COMMAND": null,
+      "UPDATE": [
+        "k=5",
+        "shuffle_kfolds_seed=0",
+        "batch_size=8",
+        "save_models=False",
+        "runs_nb=3",
+        "context_retriever=neighbors",
+        "cr_extended_docs_dir=./dekker_full_books",
+        "sents_nb_list=[2, 4, 6, 8]",
+        "ner_epochs_nb=2",
+        "ner_lr=2e-5",
+        "ner_model_paths=[\"./runs/gen/gen_base_models/fold0_nermodel\", \"./runs/gen/gen_base_models/fold1_nermodel\", \"./runs/gen/gen_base_models/fold2_nermodel\", \"./runs/gen/gen_base_models/fold3_nermodel\", \"./runs/gen/gen_base_models/fold4_nermodel\"]"
+      ],
+      "help": false,
+      "with": true
+    }
+  },
+  "resources": [],
+  "result": null,
+  "start_time": "2023-06-23T12:00:19.871666",
+  "status": "COMPLETED",
+  "stop_time": "2023-06-23T12:15:53.363987"
+}
