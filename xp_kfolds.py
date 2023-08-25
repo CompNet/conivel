@@ -69,7 +69,7 @@ def config():
     # learning rate for NER training
     ner_lr: float = 2e-5
     # Huggingface ID of the NER model to finetune
-    ner_model: str = "bert-base-cased"
+    ner_model_id: str = "bert-base-cased"
     # supplied pretrained NER models (one per fold). If None, start
     # from bert-base-cased and finetune.
     ner_model_paths: Optional[list] = None
@@ -90,7 +90,7 @@ def main(
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
-    ner_model: str,
+    ner_model_id: str,
     ner_model_paths: Optional[List[str]],
 ):
     cr_kwargs = cr_kwargs or {}
@@ -144,7 +144,7 @@ def main(
             if ner_model_paths is None:
                 with RunLogScope(_run, f"run{run_i}.fold{fold_i}"):
                     model = pretrained_bert_for_token_classification(
-                        ner_model, ctx_train_set.tag_to_id
+                        ner_model_id, ctx_train_set.tag_to_id
                     )
                     model = train_ner_model(
                         model,
