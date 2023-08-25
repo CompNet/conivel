@@ -313,6 +313,8 @@ def config():
     # -- NER parameters
     ner_epochs_nb: int = 2
     ner_lr: float = 2e-5
+    # Huggingface ID of the NER model to finetune
+    ner_model: str = "bert-base-cased"
     # supplied pretrained NER models (one per fold). If None, start
     # from bert-base-cased and finetune.
     ner_model_paths: Optional[list] = None
@@ -340,6 +342,7 @@ def main(
     cr_threshold: float,
     ner_epochs_nb: int,
     ner_lr: float,
+    ner_model: str,
     ner_model_paths: Optional[List[str]],
 ):
     print_config(_run)
@@ -471,7 +474,7 @@ def main(
                     random_retriever = RandomContextRetriever(1)
                     train_and_ctx = random_retriever(ner_train, quiet=False)
                     ner_model = pretrained_bert_for_token_classification(
-                        "bert-base-cased", ner_train.tag_to_id
+                        ner_model, ner_train.tag_to_id
                     )
                     ner_model = train_ner_model(
                         ner_model,
