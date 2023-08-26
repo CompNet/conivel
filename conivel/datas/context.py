@@ -939,6 +939,60 @@ class AllContextRetriever(ContextRetriever):
         return matchs
 
 
+class MonoBERTContextRetriever(ContextRetriever):
+    """"""
+
+    def __init__(
+        self,
+        sents_nb: Union[int, List[int]],
+        heuristic_context_selector: ContextRetriever,
+    ) -> None:
+        from pygaggle.rerank.transformer import MonoBERT
+
+        self.ranker = MonoBERT()
+        self.heuristic_context_selector = heuristic_context_selector
+
+        super().__init__(sents_nb)
+
+    def predict(
+        self, sent: NERSentence, matchs: List[ContextRetrievalMatch]
+    ) -> List[float]:
+        from pygaggle.rerank.base import Query, Text
+
+        matchs_texts = [" ".join(m.sentence.tokens) for m in matchs]
+        out = self.ranker.rerank(
+            Query(" ".join(sent.tokens)), [Text(m) for m in matchs_texts]
+        )
+
+        scores = []
+        out_texts = [t.text for t in out]
+        for m, m_text in zip(matchs, matchs_texts):
+            out_i = out_texts.index(m_text)
+            scores.append(out[out_i].score)
+
+        return scores
+
+    def retrieve(
+        self, sent_idx: int, document: List[NERSentence]
+    ) -> List[ContextRetrievalMatch]:
+        if isinstance((sents_nb := self.sents_nb), list):
+            sents_nb = random.choice(sents_nb)
+
+        sent = document[sent_idx]
+
+        matchs = self.heuristic_context_selector.retrieve(sent_idx, document)
+        matchs = [m for m in matchs if not m.sentence == sent]
+        if len(matchs) == 0:
+            return []
+
+        scores = self.predict(sent, matchs)
+
+        for score, m in zip(scores, matchs):
+            m.score = score
+
+        return [m for m in sorted(matchs, key=lambda m: -m.score)[:sents_nb]]  # type: ignore
+
+
 context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
     "neural": NeuralContextRetriever,
     "neighbors": NeighborsContextRetriever,
@@ -948,5 +1002,6 @@ context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
     "bm25_restricted": BM25RestrictedContextRetriever,
     "samenoun": SameNounRetriever,
     "random": RandomContextRetriever,
+    "monobert": MonoBERTContextRetriever,
     "all": AllContextRetriever,
 }
