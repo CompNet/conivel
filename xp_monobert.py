@@ -62,7 +62,7 @@ def config():
     # context retriever heuristics names
     cr_heuristics: list
     # kwargs for the context retrieval heuristics
-    cr_heuristics_kwargs = None
+    cr_heuristics_kwargs: list
     # A directory containing extended documents for retrieval purposes
     # (see :meth:`.ContextRetriever.__call__)`
     cr_extended_docs_dir = None
@@ -90,7 +90,7 @@ def main(
     batch_size: int,
     save_models: bool,
     runs_nb: int,
-    cr_heuristics: str,
+    cr_heuristics: List[str],
     cr_heuristics_kwargs: List[dict],
     cr_extended_docs_dir: Optional[str],
     sents_nb_list: List[int],
