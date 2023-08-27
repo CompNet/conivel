@@ -11,6 +11,8 @@ from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset, load_extended_documents
 from conivel.datas.context import (
     MonoBERTContextRetriever,
+    CombinedContextRetriever,
+    RandomContextRetriever,
     context_retriever_name_to_class,
 )
 from conivel.predict import predict
@@ -22,6 +24,7 @@ from conivel.utils import (
     sacred_archive_huggingface_model,
     sacred_log_series,
     pretrained_bert_for_token_classification,
+    sacred_archive_jsonifiable_as_file,
 )
 
 
@@ -56,10 +59,10 @@ def config():
     runs_nb: int = 5
 
     # -- context retrieval
-    # context retriever heuristic name
-    context_retriever: str
-    # context retriever extra args (not including ``sents_nb``)
-    cr_kwargs = None
+    # context retriever heuristics names
+    cr_heuristics: list
+    # kwargs for the context retrieval heuristics
+    cr_heuristics_kwargs = None
     # A directory containing extended documents for retrieval purposes
     # (see :meth:`.ContextRetriever.__call__)`
     cr_extended_docs_dir = None
@@ -87,8 +90,8 @@ def main(
     batch_size: int,
     save_models: bool,
     runs_nb: int,
-    context_retriever: str,
-    cr_kwargs: Optional[dict],
+    cr_heuristics: str,
+    cr_heuristics_kwargs: List[dict],
     cr_extended_docs_dir: Optional[str],
     sents_nb_list: List[int],
     ner_epochs_nb: int,
@@ -96,8 +99,6 @@ def main(
     ner_model_id: str,
     ner_model_paths: Optional[List[str]],
 ):
-    cr_kwargs = cr_kwargs or {}
-
     print_config(_run)
 
     dataset = DekkerDataset(book_group=book_group)
@@ -138,18 +139,12 @@ def main(
 
     for run_i in range(runs_nb):
         for fold_i, (train_set, test_set) in enumerate(kfolds):
-            heuristic_ctx_retriever = context_retriever_name_to_class[
-                context_retriever
-            ](sents_nb=sents_nb_list, **cr_kwargs)
-            monobert_retriever = MonoBERTContextRetriever(
-                sents_nb_list, heuristic_ctx_retriever
-            )
-
-            ctx_train_set = monobert_retriever(train_set)
 
             # train
             if ner_model_paths is None:
                 with RunLogScope(_run, f"run{run_i}.fold{fold_i}"):
+                    random_retriever = RandomContextRetriever(1)
+                    ctx_train_set = random_retriever(train_set, quiet=False)
                     model = pretrained_bert_for_token_classification(
                         ner_model_id, ctx_train_set.tag_to_id
                     )
@@ -172,45 +167,64 @@ def main(
                     train_set.tag_to_id,
                 )
 
-            for sents_nb_i, sents_nb in enumerate(sents_nb_list):
-                if torch.cuda.is_available():
-                    _run.log_scalar("gpu_usage", gpu_memory_usage())
+            monobert_retriever = MonoBERTContextRetriever(
+                max(sents_nb_list),
+                CombinedContextRetriever(
+                    sum([kw["sents_nb"] for kw in cr_heuristics_kwargs]),
+                    [
+                        context_retriever_name_to_class[name](**kw)
+                        for name, kw in zip(cr_heuristics, cr_heuristics_kwargs)
+                    ],
+                ),
+            )
 
-                heuristic_ctx_retriever = context_retriever_name_to_class[
-                    context_retriever
-                ](sents_nb=sents_nb, **cr_kwargs)
-                monobert_retriever = MonoBERTContextRetriever(
-                    sents_nb, heuristic_ctx_retriever
-                )
-
-                test_preds = []
+            with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_testing"):
+                test_preds = [[] for _ in range(len(sents_nb_list))]
 
                 for doc, doc_attrs in zip(test_set.documents, test_set.documents_attrs):
+                    doc_name = doc_attrs["name"]
                     doc_i = doc_indices_map[doc_attrs["name"]]
+                    doc_dataset = NERDataset([doc], documents_attrs=[doc_attrs])
 
-                    ctx_doc_dataset = monobert_retriever(
-                        NERDataset([doc]),
-                        extended_documents=[extended_docs[doc_i]]
-                        if extended_docs
-                        else None,
-                    )
+                    if torch.cuda.is_available():
+                        _run.log_scalar("gpu_usage", gpu_memory_usage())
 
-                    doc_preds = predict(
-                        model, ctx_doc_dataset, batch_size=batch_size
-                    ).tags
-                    test_preds += doc_preds
+                    for sents_nb_i, ctx_doc_dataset in enumerate(
+                        monobert_retriever.dataset_with_contexts(
+                            doc_dataset,
+                            sents_nb_list,
+                            quiet=False,
+                            extended_documents=[extended_docs[doc_i]]
+                            if extended_docs
+                            else None,
+                        )
+                    ):
 
+                        sacred_archive_jsonifiable_as_file(
+                            _run,
+                            [s.to_jsonifiable() for s in ctx_doc_dataset.sents()],
+                            f"{doc_name}_retrieved_dataset",
+                        )
+
+                        doc_preds = predict(
+                            model, ctx_doc_dataset, batch_size=batch_size
+                        ).tags
+                        test_preds[sents_nb_i] += doc_preds
+
+                        precision, recall, f1 = score_ner(
+                            doc_dataset.sents(), doc_preds
+                        )
+                        doc_precision_matrix[run_i][sents_nb_i][doc_i] = precision
+                        doc_recall_matrix[run_i][sents_nb_i][doc_i] = recall
+                        doc_f1_matrix[run_i][sents_nb_i][doc_i] = f1
+
+                for sents_nb_i, sents_nb_test_preds in enumerate(test_preds):
                     precision, recall, f1 = score_ner(
-                        ctx_doc_dataset.sents(), doc_preds
+                        test_set.sents(), sents_nb_test_preds
                     )
-                    doc_precision_matrix[run_i][sents_nb_i][doc_i] = precision
-                    doc_recall_matrix[run_i][sents_nb_i][doc_i] = recall
-                    doc_f1_matrix[run_i][sents_nb_i][doc_i] = f1
-
-                precision, recall, f1 = score_ner(test_set.sents(), test_preds)
-                precision_matrix[run_i][fold_i][sents_nb_i] = precision
-                recall_matrix[run_i][fold_i][sents_nb_i] = recall
-                f1_matrix[run_i][fold_i][sents_nb_i] = f1
+                    precision_matrix[run_i][fold_i][sents_nb_i] = precision
+                    recall_matrix[run_i][fold_i][sents_nb_i] = recall
+                    f1_matrix[run_i][fold_i][sents_nb_i] = f1
 
         # mean metrics for the current run
         for metrics_name, matrix in metrics_matrices:
