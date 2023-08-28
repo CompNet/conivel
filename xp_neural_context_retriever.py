@@ -529,6 +529,11 @@ def main(
                         ner_doc_precision_matrix[run_i][sents_nb_i][doc_i] = precision
                         ner_doc_recall_matrix[run_i][sents_nb_i][doc_i] = recall
                         ner_doc_f1_matrix[run_i][sents_nb_i][doc_i] = f1
+                        _run.log_scalar(
+                            f"precision", precision, cr_sents_nb_list[sents_nb_i]
+                        )
+                        _run.log_scalar(f"recall", recall, cr_sents_nb_list[sents_nb_i])
+                        _run.log_scalar(f"f1", f1, cr_sents_nb_list[sents_nb_i])
 
                 for sents_nb_i, sents_nb_test_preds in enumerate(test_preds):
                     precision, recall, f1 = score_ner(
