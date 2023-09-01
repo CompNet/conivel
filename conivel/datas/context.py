@@ -952,8 +952,16 @@ class MonoContextRetriever(ContextRetriever):
         ],
     ) -> None:
         from pygaggle.rerank.transformer import MonoBERT, MonoT5
+        from transformers import T5ForConditionalGeneration
 
-        self.ranker = ranker_class()
+        if ranker_class == MonoT5:
+            model = T5ForConditionalGeneration.from_pretrained(
+                "castorini/monot5-base-msmarco-10k"
+            )
+            self.ranker = MonoT5(model=model)
+        else:
+            self.ranker = ranker_class()
+
         self.heuristic_context_selector = heuristic_context_selector
 
         super().__init__(sents_nb)
