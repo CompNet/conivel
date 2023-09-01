@@ -7,10 +7,11 @@ from sacred.commands import print_config
 from sacred.run import Run
 from sacred.observers import FileStorageObserver, TelegramObserver
 from sacred.utils import apply_backspaces_and_linefeeds
+from pygaggle.rerank.transformer import MonoBERT, MonoT5
 from conivel.datas.dataset import NERDataset
 from conivel.datas.dekker import DekkerDataset, load_extended_documents
 from conivel.datas.context import (
-    MonoBERTContextRetriever,
+    MonoContextRetriever,
     CombinedContextRetriever,
     RandomContextRetriever,
     context_retriever_name_to_class,
@@ -66,6 +67,8 @@ def config():
     # A directory containing extended documents for retrieval purposes
     # (see :meth:`.ContextRetriever.__call__)`
     cr_extended_docs_dir = None
+    # Which mono reranker to use ('monobert' or 'monot5')
+    cr_reranker: str
 
     # -- NER training parameters
     # list of number of sents to test
@@ -93,6 +96,7 @@ def main(
     cr_heuristics: List[str],
     cr_heuristics_kwargs: List[dict],
     cr_extended_docs_dir: Optional[str],
+    cr_reranker: str,
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
@@ -167,7 +171,13 @@ def main(
                     train_set.tag_to_id,
                 )
 
-            monobert_retriever = MonoBERTContextRetriever(
+            if cr_reranker == "monobert":
+                cr_reranker_class = MonoBERT
+            elif cr_reranker == "monot5":
+                cr_reranker_class = MonoT5
+            else:
+                raise ValueError(f"unknown reranker: {cr_reranker}")
+            monobert_retriever = MonoContextRetriever(
                 max(sents_nb_list),
                 CombinedContextRetriever(
                     sum([kw["sents_nb"] for kw in cr_heuristics_kwargs]),
@@ -176,6 +186,7 @@ def main(
                         for name, kw in zip(cr_heuristics, cr_heuristics_kwargs)
                     ],
                 ),
+                cr_reranker_class,
             )
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_testing"):

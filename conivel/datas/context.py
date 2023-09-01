@@ -939,17 +939,21 @@ class AllContextRetriever(ContextRetriever):
         return matchs
 
 
-class MonoBERTContextRetriever(ContextRetriever):
-    """"""
+class MonoContextRetriever(ContextRetriever):
+    """Class for MonoBERT and MonoT5 retriever."""
 
     def __init__(
         self,
         sents_nb: Union[int, List[int]],
         heuristic_context_selector: ContextRetriever,
+        ranker_class: Union[
+            Type["pygaggle.rerank.transformer.MonoBERT"],
+            Type["pygaggle.rerank.transformer.MonoT5"],
+        ],
     ) -> None:
-        from pygaggle.rerank.transformer import MonoBERT
+        from pygaggle.rerank.transformer import MonoBERT, MonoT5
 
-        self.ranker = MonoBERT()
+        self.ranker = ranker_class()
         self.heuristic_context_selector = heuristic_context_selector
 
         super().__init__(sents_nb)
@@ -1002,6 +1006,5 @@ context_retriever_name_to_class: Dict[str, Type[ContextRetriever]] = {
     "bm25_restricted": BM25RestrictedContextRetriever,
     "samenoun": SameNounRetriever,
     "random": RandomContextRetriever,
-    "monobert": MonoBERTContextRetriever,
     "all": AllContextRetriever,
 }
