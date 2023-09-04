@@ -955,10 +955,9 @@ class MonoContextRetriever(ContextRetriever):
         from transformers import T5ForConditionalGeneration
 
         if ranker_class == MonoT5:
-            model = T5ForConditionalGeneration.from_pretrained(
-                "castorini/monot5-base-msmarco-10k"
+            self.ranker = MonoT5(
+                pretrained_model_name_or_path="castorini/monot5-base-msmarco-10k",
             )
-            self.ranker = MonoT5(model=model)
         else:
             self.ranker = ranker_class()
 
