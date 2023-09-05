@@ -228,11 +228,6 @@ def main(
                         doc_precision_matrix[run_i][sents_nb_i][doc_i] = precision
                         doc_recall_matrix[run_i][sents_nb_i][doc_i] = recall
                         doc_f1_matrix[run_i][sents_nb_i][doc_i] = f1
-                        _run.log_scalar(
-                            f"precision", precision, sents_nb_list[sents_nb_i]
-                        )
-                        _run.log_scalar(f"recall", recall, sents_nb_list[sents_nb_i])
-                        _run.log_scalar(f"f1", f1, sents_nb_list[sents_nb_i])
 
                 for sents_nb_i, sents_nb_test_preds in enumerate(test_preds):
                     precision, recall, f1 = score_ner(
@@ -241,6 +236,9 @@ def main(
                     precision_matrix[run_i][fold_i][sents_nb_i] = precision
                     recall_matrix[run_i][fold_i][sents_nb_i] = recall
                     f1_matrix[run_i][fold_i][sents_nb_i] = f1
+                sacred_log_series(
+                    _run, "f1", f1_matrix[run_i][fold_i], steps=sents_nb_list
+                )
 
         # mean metrics for the current run
         for metrics_name, matrix in metrics_matrices:
