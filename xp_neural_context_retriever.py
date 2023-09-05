@@ -309,6 +309,8 @@ def config():
     # a threshold to filter retrieved sentence or not.  must be a
     # float between 0 and 1.
     cr_threshold: float = 0.0
+    # Huggingface ID of the context retrieval model to finetune
+    cr_model_id: str = "bert-base-cased"
 
     # -- NER parameters
     ner_epochs_nb: int = 2
@@ -340,6 +342,7 @@ def main(
     cr_heuristics_kwargs: List[dict],
     cr_extended_docs_dir: Optional[str],
     cr_threshold: float,
+    cr_model_id: str,
     ner_epochs_nb: int,
     ner_lr: float,
     ner_model_id: str,
@@ -429,6 +432,7 @@ def main(
                     _run=_run,
                     log_full_loss=True,
                     dropout=cr_dropout,
+                    huggingface_id=cr_model_id,
                 )
                 neural_retriever = NeuralContextRetriever(
                     neural_retriever_model,

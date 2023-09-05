@@ -681,6 +681,7 @@ class NeuralContextRetriever(ContextRetriever):
         quiet: bool = False,
         valid_dataset: Optional[ContextRetrievalDataset] = None,
         dropout: float = 0.1,
+        huggingface_id: str = "bert-base-cased",
     ) -> BertForSequenceClassification:
         """Instantiate and train a context classifier.
 
@@ -707,7 +708,7 @@ class NeuralContextRetriever(ContextRetriever):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         ctx_classifier = BertForSequenceClassification.from_pretrained(
-            "bert-base-cased",
+            huggingface_id,
             num_labels=2,
             attention_probs_dropout_prob=dropout,
             hidden_dropout_prob=dropout,
