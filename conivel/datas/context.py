@@ -28,7 +28,7 @@ class ContextRetrievalMatch:
     sentence_idx: int
     side: Literal["left", "right"]
     score: Optional[float]
-    #: additional annotations for debug purposes
+    #: additional annotations
     _custom_annotations: Dict[str, Any] = field(default_factory=lambda: dict())
 
     def to_jsonifiable(self) -> Dict[str, Any]:
@@ -819,7 +819,16 @@ class CombinedContextRetriever(ContextRetriever):
             sents_nb = random.choice(sents_nb)
 
         # retrieve match for all retrievers
-        matchs = flattened([r.retrieve(sent_idx, document) for r in self.retrievers])
+        matchs = []
+        for retriever in self.retrievers:
+            r_matchs = retriever.retrieve(sent_idx, document)
+            for m in r_matchs:
+                # for each match, annotate the retriever it originally
+                # came from
+                m._custom_annotations["original_retriever_class"] = str(
+                    retriever.__class__
+                )
+                matchs.append(m)
 
         uniq_matchs_sents = set()
         uniq_matchs = []

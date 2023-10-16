@@ -1,4 +1,5 @@
-from typing import List, Optional, Union
+from collections import defaultdict
+from typing import List, Literal, Optional, Union
 import os, random
 import numpy as np
 import torch
@@ -47,10 +48,19 @@ class RandomReranker(ContextRetriever):
     def __init__(
         self,
         sents_nb: Union[int, List[int]],
-        heuristic_context_selector: ContextRetriever,
+        combined_retriever: CombinedContextRetriever,
+        mode: Literal["global", "bucket"],
         **kwargs,
     ) -> None:
-        self.heuristic_context_selector = heuristic_context_selector
+        """
+        :param mode: if ``'global'``, retrieves ``sents_nb`` sentences
+            from ``combined_retriever``.  If ``'bucket'``, retrieves
+            ``sents_nb`` / n sentence per retriever of
+            ``combined_retriever``, n being the number of retrievers
+            in ``combined_retriever``.
+        """
+        self.combined_retriever = combined_retriever
+        self.mode = mode
         super().__init__(sents_nb, **kwargs)
 
     def retrieve(
@@ -61,12 +71,34 @@ class RandomReranker(ContextRetriever):
 
         sent = document[sent_idx]
 
-        matchs = self.heuristic_context_selector.retrieve(sent_idx, document)
+        matchs = self.combined_retriever.retrieve(sent_idx, document)
         matchs = [m for m in matchs if not m.sentence == sent]
+
         if len(matchs) == 0:
             return []
 
-        return random.sample(matchs, k=min(len(matchs), sents_nb))
+        if self.mode == "global":
+            # in global mode, simply return k random matchs from all
+            # subretrievers
+            return random.sample(matchs, k=min(len(matchs), sents_nb))
+
+        elif self.mode == "bucket":
+            # in bucket mode, return up to k/len(subretrievers) random
+            # matchs from each subretrievers
+            retrievers_matchs = defaultdict(list)
+            for m in matchs:
+                # CombinedContextRetriever annotate each retrieved
+                # match with its original retriever
+                m_retriever = m._custom_annotations["original_retriever_class"]
+                retrievers_matchs[m_retriever].append(m)
+            out_matchs = []
+            for _, rmatchs in retrievers_matchs:
+                k = sents_nb // len(retrievers_matchs)
+                out_matchs += random.sample(rmatchs, k=min(len(rmatchs), k))
+            return out_matchs
+
+        else:
+            raise ValueError(f"unknown mode: {self.mode}")
 
 
 @ex.config
@@ -96,6 +128,8 @@ def config():
     # A directory containing extended documents for retrieval purposes
     # (see :meth:`.ContextRetriever.__call__)`
     cr_extended_docs_dir = None
+    # RandomReranker mode. Either 'global' or 'bucket'
+    cr_mode: str = "global"
 
     # -- NER training parameters
     # list of number of sents to test
@@ -123,6 +157,7 @@ def main(
     cr_heuristics: List[str],
     cr_heuristics_kwargs: List[dict],
     cr_extended_docs_dir: Optional[str],
+    cr_mode: Literal["bucket", "global"],
     sents_nb_list: List[int],
     ner_epochs_nb: int,
     ner_lr: float,
@@ -206,6 +241,7 @@ def main(
                         for name, kw in zip(cr_heuristics, cr_heuristics_kwargs)
                     ],
                 ),
+                cr_mode,
             )
 
             with RunLogScope(_run, f"run{run_i}.fold{fold_i}.ner_model_testing"):
