@@ -92,7 +92,7 @@ class RandomReranker(ContextRetriever):
                 m_retriever = m._custom_annotations["original_retriever_class"]
                 retrievers_matchs[m_retriever].append(m)
             out_matchs = []
-            for _, rmatchs in retrievers_matchs:
+            for _, rmatchs in retrievers_matchs.items():
                 k = sents_nb // len(retrievers_matchs)
                 out_matchs += random.sample(rmatchs, k=min(len(rmatchs), k))
             return out_matchs
