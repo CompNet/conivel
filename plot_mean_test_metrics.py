@@ -8,6 +8,13 @@ import scienceplots
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--output", type=str, default=None)
 parser.add_argument("-m", "--metrics", type=str, default="f1")
+parser.add_argument(
+    "-g",
+    "--runs-group",
+    type=str,
+    default="unsupervised",
+    help="Runs group to plot. Either 'unsupervised' or 'supervised'.",
+)
 args = parser.parse_args()
 
 FONTSIZE = 10
@@ -15,23 +22,54 @@ COLUMN_WIDTH_IN = 3.0315
 
 MARKERS = ["x", "+", "h", "*", "d", "p", "^"]
 
-runs = {
-    "book_neighbors": {
-        "name": "surrounding",
-        "metrics": f"mean_test_{args.metrics}",
-    },
-    "book_bm25": {"name": "bm25", "metrics": f"mean_test_{args.metrics}"},
-    "book_samenoun": {
-        "name": "samenoun",
-        "metrics": f"mean_test_{args.metrics}",
-        "report_stdev": True,
-    },
-    "neural_book_s7b_n8": {
-        "name": "neural",
-        "metrics": f"mean_test_ner_{args.metrics}",
-        "report_stdev": True,
-    },
+neural_run = {
+    "name": "neural (our)",
+    "metrics": f"mean_test_ner_{args.metrics}",
+    "report_stdev": True,
 }
+
+if args.runs_group == "unsupervised":
+    runs = {
+        "book_neighbors": {
+            "name": "surrounding",
+            "metrics": f"mean_test_{args.metrics}",
+        },
+        "book_bm25": {"name": "bm25", "metrics": f"mean_test_{args.metrics}"},
+        "book_samenoun": {
+            "name": "samenoun",
+            "metrics": f"mean_test_{args.metrics}",
+            "report_stdev": True,
+        },
+        "neural_book_s7b_n8": neural_run,
+    }
+elif args.runs_group == "supervised":
+    runs = {
+        "monobert_bm25": {
+            "name": "bm25+monobert",
+            "metrics": f"mean_test_{args.metrics}",
+            "report_stdev": True,
+        },
+        "monobert_all": {
+            "name": "all+monobert",
+            "metrics": f"mean_test_{args.metrics}",
+            "report_stdev": True,
+        },
+        "monot5_bm25": {
+            "name": "bm25+monot5",
+            "metrics": f"mean_test_{args.metrics}",
+            "report_stdev": True,
+        },
+        "monot5_all": {
+            "name": "all+monot5",
+            "metrics": f"mean_test_{args.metrics}",
+            "report_stdev": True,
+        },
+        "neural_book_s7b_n8": neural_run,
+    }
+else:
+    raise ValueError(
+        f"unknown run group: {args.runs_group} (should be one of: 'unsupervised', 'supervised')"
+    )
 
 plt.style.use("science")
 plt.rc("xtick", labelsize=FONTSIZE)  # fontsize of the tick labels
@@ -83,7 +121,7 @@ for run_i, (run, run_attrs) in enumerate(runs.items()):
 
 ax.legend(
     loc="lower center",
-    ncol=(len(runs) + 1) // 2,
+    ncol=len(runs) // 2,
     bbox_to_anchor=(0.5, 1),
     fontsize=FONTSIZE,
 )

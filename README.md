@@ -84,12 +84,13 @@ python xp_neural_context_retriever.py with "${NEURAL_CONFIG}" ner_model_paths="$
 
 # Reproducing Plots
 
-| Figure   | Script                      |
-|----------|-----------------------------|
-| Figure 2 | `plot_n_comparison.py`      |
-| Figure 3 | `plot_mean_test_metrics.py` |
-| Figure 4 | `plot_mean_test_metrics.py` |
-| Figure 5 | `plot_mean_test_metrics.py` |
-| Figure 6 | `plot_per_book_scores.py`   |
-| Figure 7 | `plot_chapter_vs_book.py`   |
+| Figure   | Script                      | Arguments       |
+|----------|-----------------------------|-----------------|
+| Figure 2 | `plot_n_comparison.py`      |                 |
+| Figure 3 | `plot_mean_test_metrics.py` |                 |
+| Figure 7 | `plot_mean_test_metrics.py` | `-m precision`  |
+| Figure 8 | `plot_mean_test_metrics.py` | `-m recall`     |
+| Figure 5 | `plot_mean_test_metrics.py` | `-g supervised` |
+| Figure 4 | `plot_per_book_scores.py`   |                 |
+| Figure 6 | `plot_chapter_vs_book.py`   |                 |
 
