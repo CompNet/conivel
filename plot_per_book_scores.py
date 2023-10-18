@@ -11,9 +11,9 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--metrics", type=str, default="f1")
     args = parser.parse_args()
 
-    FONTSIZE = 10
+    FONTSIZE = 8
     TEXT_WIDTH_IN = 6.29921
-    ASPECT_RATIO = 0.25
+    ASPECT_RATIO = 0.15
 
     with open("./runs/gen/gen_base_models/info.json") as f:
         doc_names = json.load(f)["documents_names"]
@@ -24,7 +24,7 @@ if __name__ == "__main__":
         "book_neighbors": {"name": "surrounding", "color": "tab:blue"},
         "book_bm25": {"name": "bm25", "color": "tab:green"},
         "book_samenoun": {"name": "samenoun", "color": "tab:orange"},
-        "neural_book_s7b_n8": {"name": "neural", "color": "tab:red"},
+        "neural_book_s7b_n8": {"name": "neural (our)", "color": "tab:red"},
     }
 
     keys = [f"mean_{doc_name}_test_{args.metrics}" for doc_name in doc_names]
@@ -59,6 +59,8 @@ if __name__ == "__main__":
 
     # per-book F1 plot
     plt.style.use("science")
+    plt.rc("xtick", labelsize=FONTSIZE - 2)  # fontsize of the tick labels
+    plt.rc("ytick", labelsize=FONTSIZE)  # fontsize of the tick labels
 
     fig, ax = plt.subplots(figsize=(TEXT_WIDTH_IN, TEXT_WIDTH_IN * ASPECT_RATIO))
 
@@ -81,7 +83,7 @@ if __name__ == "__main__":
     ax.set_ylim(0.65, 1.0)
     ax.legend(
         loc="lower center",
-        ncol=len(runs) // 2,
+        ncol=3,
         bbox_to_anchor=(0.5, 1),
         fontsize=FONTSIZE,
     )

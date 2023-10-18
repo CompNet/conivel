@@ -13,7 +13,7 @@ parser.add_argument(
     "--runs-group",
     type=str,
     default="unsupervised",
-    help="Runs group to plot. Either 'unsupervised' or 'supervised'.",
+    help="Runs group to plot. Either 'unsupervised' or 're-rankers'.",
 )
 args = parser.parse_args()
 
@@ -42,12 +42,11 @@ if args.runs_group == "unsupervised":
         },
         "neural_book_s7b_n8": neural_run,
     }
-elif args.runs_group == "supervised":
+elif args.runs_group == "re-rankers":
     runs = {
         "monobert_bm25": {
             "name": "bm25+monobert",
             "metrics": f"mean_test_{args.metrics}",
-            "report_stdev": True,
         },
         "monobert_all": {
             "name": "all+monobert",
@@ -57,10 +56,19 @@ elif args.runs_group == "supervised":
         "monot5_bm25": {
             "name": "bm25+monot5",
             "metrics": f"mean_test_{args.metrics}",
-            "report_stdev": True,
         },
         "monot5_all": {
             "name": "all+monot5",
+            "metrics": f"mean_test_{args.metrics}",
+            "report_stdev": True,
+        },
+        "random_reranker_bucket": {
+            "name": "bucket random reranker",
+            "metrics": f"mean_test_{args.metrics}",
+            "report_stdev": True,
+        },
+        "random_reranker_global": {
+            "name": "random reranker",
             "metrics": f"mean_test_{args.metrics}",
             "report_stdev": True,
         },
@@ -121,7 +129,7 @@ for run_i, (run, run_attrs) in enumerate(runs.items()):
 
 ax.legend(
     loc="lower center",
-    ncol=len(runs) // 2,
+    ncol=2,
     bbox_to_anchor=(0.5, 1),
     fontsize=FONTSIZE,
 )
