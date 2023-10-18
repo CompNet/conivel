@@ -1,3 +1,4 @@
+from typing import List
 import argparse, json, os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,6 +34,26 @@ runs = {
         "report_stdev": True,
     },
     "neural_chapter_s7b_n8": {
+        "name": "chapter",
+        "metrics": f"mean_test_ner_{args.metrics}",
+        "report_stdev": True,
+    },
+    "neural_book_s7b_n4": {
+        "name": "book",
+        "metrics": f"mean_test_ner_{args.metrics}",
+        "report_stdev": True,
+    },
+    "neural_chapter_s7b_n4": {
+        "name": "chapter",
+        "metrics": f"mean_test_ner_{args.metrics}",
+        "report_stdev": True,
+    },
+    "neural_book_s7b_n12": {
+        "name": "book",
+        "metrics": f"mean_test_ner_{args.metrics}",
+        "report_stdev": True,
+    },
+    "neural_chapter_s7b_n12": {
         "name": "chapter",
         "metrics": f"mean_test_ner_{args.metrics}",
         "report_stdev": True,
@@ -102,11 +123,66 @@ def plot_duo(ax, run_1: dict, run_2: dict, title: str):
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
 
+def plot_multiples(ax, book_runs: List[dict], chapter_runs: List[dict], title: str):
+
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
+    for run in book_runs:
+        run_stdev = run.get("stdev")
+        ax.errorbar(
+            list(range(1, 9)),
+            run["values"][:8],
+            yerr=None if run_stdev is None else run_stdev[:8],
+            # HACK: no label here. We hope that the other plots
+            # already set up labels...
+            # label=run["name"],
+            capsize=3,
+            linewidth=1,
+            marker="x",
+            markersize=4,
+            c=colors[0],
+        )
+
+    for run in chapter_runs:
+        run_stdev = run.get("stdev")
+        ax.errorbar(
+            list(range(1, 9)),
+            run["values"][:8],
+            yerr=None if run_stdev is None else run_stdev[:8],
+            # HACK: no label here. We hope that the other plots
+            # already set up labels...
+            # label=run["name"],
+            capsize=3,
+            linewidth=1,
+            marker="+",
+            markersize=4,
+            c=colors[1],
+        )
+
+    ax.grid()
+    ax.set_ylabel("F1", fontsize=FONTSIZE)
+    ax.set_title(title, fontsize=FONTSIZE)
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+
 plot_duo(axs[0], runs["book_bm25"], runs["chapter_bm25"], "bm25")
 plot_duo(axs[1], runs["book_samenoun"], runs["chapter_samenoun"], "samenoun")
-plot_duo(axs[2], runs["neural_book_s7b_n8"], runs["neural_chapter_s7b_n8"], "neural")
+plot_multiples(
+    axs[2],
+    [
+        runs["neural_book_s7b_n4"],
+        runs["neural_book_s7b_n8"],
+        runs["neural_book_s7b_n12"],
+    ],
+    [
+        runs["neural_chapter_s7b_n4"],
+        runs["neural_chapter_s7b_n8"],
+        runs["neural_chapter_s7b_n12"],
+    ],
+    "neural (our)",
+)
 
-handles, labels = axs[-1].get_legend_handles_labels()
+handles, labels = axs[0].get_legend_handles_labels()
 fig.legend(handles, labels, bbox_to_anchor=(0.4, 1.1), fontsize=FONTSIZE, ncol=2)
 fig.text(
     0.5, -0.05, "Number of retrieved sentences $k$", ha="center", fontsize=FONTSIZE
