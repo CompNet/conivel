@@ -71,7 +71,7 @@ python xp_neural_context_retriever.py with runs/gen/genv3_13b/config.json ner_mo
 ```
 
 
-## Neural Retriever
+## Neural Re-Ranker
 
 ```sh
 # Depending on the context window, the value of n and of the model
@@ -82,15 +82,63 @@ python xp_neural_context_retriever.py with "${NEURAL_CONFIG}" ner_model_paths="$
 ```
 
 
+## Random Re-Rankers
+
+`random re-ranker`:
+
+```sh
+python xp_random_reranker.py with './runs/gen/random_reranker_global/config.json' ner_model_paths="${NER_MODEL_PATHS}"
+```
+
+`bucket random re-ranker`:
+
+```sh
+python xp_random_reranker.py with './runs/gen/random_reranker_bucket/config.json' ner_model_paths="${NER_MODEL_PATHS}"
+```
+
+
+## MonoBERT and MonoT5
+
+First, you need the pygaggle library:
+
+>pip install pygaggle
+
+You can then reproduce the results for the 4 configurations highlighted in the article.
+
+`bm25+monobert`:
+
+```sh
+python xp_monoreranker.py with './runs/gen/monobert_bm25/config.json' ner_model_paths="${NER_MODEL_PATHS}"
+```
+
+`all+monobert`:
+
+```sh
+python xp_monoreranker.py with './runs/gen/monobert_all/config.json' ner_model_paths="${NER_MODEL_PATHS}"
+```
+
+`bm25+monot5`:
+
+```sh
+python xp_monoreranker.py with './runs/gen/monot5_bm25/config.json' ner_model_paths="${NER_MODEL_PATHS}"
+```
+
+`all+monot5`:
+
+```sh
+python xp_monoreranker.py with './runs/gen/monot5_all/config.json' ner_model_paths="${NER_MODEL_PATHS}"
+```
+
+
 # Reproducing Plots
 
 | Figure   | Script                      | Arguments       |
 |----------|-----------------------------|-----------------|
 | Figure 2 | `plot_n_comparison.py`      |                 |
 | Figure 3 | `plot_mean_test_metrics.py` |                 |
-| Figure 7 | `plot_mean_test_metrics.py` | `-m precision`  |
-| Figure 8 | `plot_mean_test_metrics.py` | `-m recall`     |
-| Figure 5 | `plot_mean_test_metrics.py` | `-g supervised` |
+| Figure 5 | `plot_mean_test_metrics.py` | `-g re-rankers` |
 | Figure 4 | `plot_per_book_scores.py`   |                 |
 | Figure 6 | `plot_chapter_vs_book.py`   |                 |
+| Figure 7 | `plot_mean_test_metrics.py` | `-m precision`  |
+| Figure 8 | `plot_mean_test_metrics.py` | `-m recall`     |
 

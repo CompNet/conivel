@@ -965,69 +965,60 @@
   "experiment": {
     "base_dir": "/users/aamalvy/conivel",
     "dependencies": [
-      "nltk==3.7",
       "numpy==1.22.4",
       "sacred==0.8.4",
-      "scikit-learn==1.1.1",
-      "torch==2.0.1",
-      "tqdm==4.64.0",
-      "transformers==4.28.1"
+      "torch==2.0.1"
     ],
-    "mainfile": "xp_neural_context_retriever.py",
-    "name": "xp_neural_context_retriever",
+    "mainfile": "xp_monobert.py",
+    "name": "xp_monobert",
     "repositories": [
       {
-        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "commit": "b7b607b7a90ed34b6eec2d8f5dfb71a73ce86f9a",
         "dirty": true,
         "url": "https://github.com/CompNet/conivel.git"
       },
       {
-        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "commit": "b7b607b7a90ed34b6eec2d8f5dfb71a73ce86f9a",
         "dirty": true,
         "url": "https://github.com/CompNet/conivel.git"
       },
       {
-        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "commit": "b7b607b7a90ed34b6eec2d8f5dfb71a73ce86f9a",
         "dirty": true,
         "url": "https://github.com/CompNet/conivel.git"
       },
       {
-        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "commit": "b7b607b7a90ed34b6eec2d8f5dfb71a73ce86f9a",
         "dirty": true,
         "url": "https://github.com/CompNet/conivel.git"
       },
       {
-        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "commit": "b7b607b7a90ed34b6eec2d8f5dfb71a73ce86f9a",
         "dirty": true,
         "url": "https://github.com/CompNet/conivel.git"
       },
       {
-        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "commit": "b7b607b7a90ed34b6eec2d8f5dfb71a73ce86f9a",
         "dirty": true,
         "url": "https://github.com/CompNet/conivel.git"
       },
       {
-        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "commit": "b7b607b7a90ed34b6eec2d8f5dfb71a73ce86f9a",
         "dirty": true,
         "url": "https://github.com/CompNet/conivel.git"
       },
       {
-        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "commit": "b7b607b7a90ed34b6eec2d8f5dfb71a73ce86f9a",
         "dirty": true,
         "url": "https://github.com/CompNet/conivel.git"
       },
       {
-        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "commit": "b7b607b7a90ed34b6eec2d8f5dfb71a73ce86f9a",
         "dirty": true,
         "url": "https://github.com/CompNet/conivel.git"
       },
       {
-        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
-        "dirty": true,
-        "url": "https://github.com/CompNet/conivel.git"
-      },
-      {
-        "commit": "f4d86a7d39cbef3b069c343ee559661928e61d30",
+        "commit": "b7b607b7a90ed34b6eec2d8f5dfb71a73ce86f9a",
         "dirty": true,
         "url": "https://github.com/CompNet/conivel.git"
       }
@@ -1039,11 +1030,7 @@
       ],
       [
         "conivel/datas/context.py",
-        "_sources/context_a8d3bc7fcd8dd34ddc68aef989d8c6b3.py"
-      ],
-      [
-        "conivel/datas/datas.py",
-        "_sources/datas_0e7a5b0d61cf655ae4efb5d8426d405c.py"
+        "_sources/context_27dfaf14abe835ced52955a05fb73816.py"
       ],
       [
         "conivel/datas/dataset.py",
@@ -1074,12 +1061,12 @@
         "_sources/utils_9720ffdcdfa487c4e880f815e03bc504.py"
       ],
       [
-        "xp_neural_context_retriever.py",
-        "_sources/xp_neural_context_retriever_3c6cbbbb56f207db1c94e8631e6f44e0.py"
+        "xp_monobert.py",
+        "_sources/xp_monobert_682aa0ae1a42d5f7fc946d05e2ffbd6e.py"
       ]
     ]
   },
-  "heartbeat": "2023-06-24T03:50:27.403709",
+  "heartbeat": "2023-08-27T19:52:33.095170",
   "host": {
     "ENV": {},
     "cpu": "Intel(R) Xeon(R) Silver 4210R CPU @ 2.40GHz",
@@ -1088,12 +1075,12 @@
       "gpus": [
         {
           "model": "NVIDIA GeForce RTX 2080 Ti",
-          "persistence_mode": true,
+          "persistence_mode": false,
           "total_memory": 11019
         }
       ]
     },
-    "hostname": "beroe",
+    "hostname": "idyie",
     "os": [
       "Linux",
       "Linux-5.4.0-73-generic-x86_64-with-glibc2.27"
@@ -1104,11 +1091,7 @@
     "command": "main",
     "config_updates": {
       "batch_size": 8,
-      "cr_dropout": 0.1,
-      "cr_epochs_nb": 3,
-      "cr_extended_docs_dir": null,
-      "cr_gen_alpaca_model": "chavinlo/alpaca-13b",
-      "cr_gen_device": "cuda",
+      "cr_extended_docs_dir": "./dekker_full_books",
       "cr_heuristics": [
         "bm25",
         "samenoun",
@@ -1129,35 +1112,7 @@
           "sents_nb": 8
         }
       ],
-      "cr_lr": 2e-05,
-      "cr_sents_nb_list": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8
-      ],
-      "cr_test_dataset_paths": [
-        "./runs/gen/genv3/fold0.cr_test_dataset.json",
-        "./runs/gen/genv3/fold1.cr_test_dataset.json",
-        "./runs/gen/genv3/fold2.cr_test_dataset.json",
-        "./runs/gen/genv3/fold3.cr_test_dataset.json",
-        "./runs/gen/genv3/fold4.cr_test_dataset.json"
-      ],
-      "cr_threshold": 0.0,
-      "cr_train_dataset_paths": [
-        "./runs/gen/genv3/fold0.cr_train_dataset.json",
-        "./runs/gen/genv3/fold1.cr_train_dataset.json",
-        "./runs/gen/genv3/fold2.cr_train_dataset.json",
-        "./runs/gen/genv3/fold3.cr_train_dataset.json",
-        "./runs/gen/genv3/fold4.cr_train_dataset.json"
-      ],
       "k": 5,
-      "ner_epochs_nb": 2,
-      "ner_lr": 2e-05,
       "ner_model_paths": [
         "./runs/gen/gen_base_models/fold0_nermodel",
         "./runs/gen/gen_base_models/fold1_nermodel",
@@ -1167,6 +1122,16 @@
       ],
       "runs_nb": 3,
       "save_models": false,
+      "sents_nb_list": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
       "shuffle_kfolds_seed": 0
     },
     "named_configs": [],
@@ -1198,20 +1163,10 @@
         "batch_size=8",
         "save_models=False",
         "runs_nb=3",
-        "cr_gen_alpaca_model=chavinlo/alpaca-13b",
-        "cr_gen_device=cuda",
-        "cr_train_dataset_paths=[\"./runs/gen/genv3/fold0.cr_train_dataset.json\", \"./runs/gen/genv3/fold1.cr_train_dataset.json\", \"./runs/gen/genv3/fold2.cr_train_dataset.json\", \"./runs/gen/genv3/fold3.cr_train_dataset.json\", \"./runs/gen/genv3/fold4.cr_train_dataset.json\"]",
-        "cr_test_dataset_paths=[\"./runs/gen/genv3/fold0.cr_test_dataset.json\", \"./runs/gen/genv3/fold1.cr_test_dataset.json\", \"./runs/gen/genv3/fold2.cr_test_dataset.json\", \"./runs/gen/genv3/fold3.cr_test_dataset.json\", \"./runs/gen/genv3/fold4.cr_test_dataset.json\"]",
-        "cr_epochs_nb=3",
-        "cr_lr=2e-5",
-        "cr_dropout=0.1",
-        "cr_sents_nb_list=[1, 2, 3, 4, 5, 6, 7, 8]",
         "cr_heuristics=[\"bm25\", \"samenoun\", \"left\", \"right\"]",
         "cr_heuristics_kwargs=[{\"sents_nb\": 8}, {\"sents_nb\": 8}, {\"sents_nb\": 8}, {\"sents_nb\": 8}]",
-        "cr_extended_docs_dir=None",
-        "cr_threshold=0.0",
-        "ner_epochs_nb=2",
-        "ner_lr=2e-5",
+        "cr_extended_docs_dir=./dekker_full_books",
+        "sents_nb_list=[1,2,3,4,5,6,7,8]",
         "ner_model_paths=[\"./runs/gen/gen_base_models/fold0_nermodel\", \"./runs/gen/gen_base_models/fold1_nermodel\", \"./runs/gen/gen_base_models/fold2_nermodel\", \"./runs/gen/gen_base_models/fold3_nermodel\", \"./runs/gen/gen_base_models/fold4_nermodel\"]"
       ],
       "help": false,
@@ -1220,7 +1175,7 @@
   },
   "resources": [],
   "result": null,
-  "start_time": "2023-06-24T02:18:26.554334",
+  "start_time": "2023-08-27T11:15:24.289686",
   "status": "COMPLETED",
-  "stop_time": "2023-06-24T03:50:27.381442"
+  "stop_time": "2023-08-27T19:52:33.074444"
 }

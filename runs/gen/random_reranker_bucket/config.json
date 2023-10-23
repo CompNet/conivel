@@ -3,17 +3,29 @@
     "batch_size": {
       "py/type": "builtins.int"
     },
-    "cr_dropout": {
-      "py/type": "builtins.float"
-    },
-    "cr_epochs_nb": {
-      "py/type": "builtins.int"
-    },
-    "cr_gen_alpaca_model": {
-      "py/type": "builtins.str"
-    },
-    "cr_gen_device": {
-      "py/type": "builtins.str"
+    "book_group": {
+      "py/reduce": [
+        {
+          "py/function": "_operator.getitem"
+        },
+        {
+          "py/tuple": [
+            {
+              "py/id": 1
+            },
+            {
+              "py/tuple": [
+                {
+                  "py/type": "builtins.str"
+                },
+                {
+                  "py/type": "builtins.NoneType"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
     "cr_heuristics": {
       "py/type": "builtins.list"
@@ -21,14 +33,8 @@
     "cr_heuristics_kwargs": {
       "py/type": "builtins.list"
     },
-    "cr_lr": {
-      "py/type": "builtins.float"
-    },
-    "cr_sents_nb_list": {
-      "py/type": "builtins.list"
-    },
-    "cr_threshold": {
-      "py/type": "builtins.float"
+    "cr_mode": {
+      "py/type": "builtins.str"
     },
     "k": {
       "py/type": "builtins.int"
@@ -38,6 +44,9 @@
     },
     "ner_lr": {
       "py/type": "builtins.float"
+    },
+    "ner_model_id": {
+      "py/type": "builtins.str"
     },
     "ner_model_paths": {
       "py/reduce": [
@@ -69,6 +78,9 @@
     "save_models": {
       "py/type": "builtins.bool"
     },
+    "sents_nb_list": {
+      "py/type": "builtins.list"
+    },
     "shuffle_kfolds_seed": {
       "py/reduce": [
         {
@@ -95,11 +107,8 @@
     }
   },
   "batch_size": 8,
-  "cr_dropout": 0.1,
-  "cr_epochs_nb": 3,
-  "cr_extended_docs_dir": null,
-  "cr_gen_alpaca_model": "chavinlo/alpaca-13b",
-  "cr_gen_device": "cuda",
+  "book_group": null,
+  "cr_extended_docs_dir": "./dekker_full_books",
   "cr_heuristics": [
     "bm25",
     "samenoun",
@@ -120,35 +129,11 @@
       "sents_nb": 8
     }
   ],
-  "cr_lr": 2e-05,
-  "cr_sents_nb_list": [
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8
-  ],
-  "cr_test_dataset_paths": [
-    "./runs/gen/genv3/fold0.cr_test_dataset.json",
-    "./runs/gen/genv3/fold1.cr_test_dataset.json",
-    "./runs/gen/genv3/fold2.cr_test_dataset.json",
-    "./runs/gen/genv3/fold3.cr_test_dataset.json",
-    "./runs/gen/genv3/fold4.cr_test_dataset.json"
-  ],
-  "cr_threshold": 0.0,
-  "cr_train_dataset_paths": [
-    "./runs/gen/genv3/fold0.cr_train_dataset.json",
-    "./runs/gen/genv3/fold1.cr_train_dataset.json",
-    "./runs/gen/genv3/fold2.cr_train_dataset.json",
-    "./runs/gen/genv3/fold3.cr_train_dataset.json",
-    "./runs/gen/genv3/fold4.cr_train_dataset.json"
-  ],
+  "cr_mode": "bucket",
   "k": 5,
   "ner_epochs_nb": 2,
   "ner_lr": 2e-05,
+  "ner_model_id": "bert-base-cased",
   "ner_model_paths": [
     "./runs/gen/gen_base_models/fold0_nermodel",
     "./runs/gen/gen_base_models/fold1_nermodel",
@@ -158,6 +143,10 @@
   ],
   "runs_nb": 3,
   "save_models": false,
-  "seed": 664383814,
+  "seed": 837980333,
+  "sents_nb_list": [
+    4,
+    8
+  ],
   "shuffle_kfolds_seed": 0
 }

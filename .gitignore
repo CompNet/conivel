@@ -1,3 +1,12 @@
 *~
 __pycache__
 runs/*
+!runs/gen
+runs/gen/*
+!runs/gen/random_reranker_bucket
+!runs/gen/random_reranker_global
+!runs/gen/monobert_bm25
+!runs/gen/monobert_all
+!runs/gen/monot5_bm25
+!runs/gen/monot5_all
+!runs/gen/neural_book_s7b_n8
