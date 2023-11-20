@@ -481,7 +481,18 @@ def generate_context_dataset(
         preds_ctx = predict(
             ner_model,
             NERDataset(
-                [[NERSentence(sent, [None] * len(sent)) for sent in context_dataset]],
+                [
+                    [
+                        NERSentence(
+                            sent.tokens,
+                            sent.tags,
+                            right_context=[
+                                NERSentence(ctx_sent, [None] * len(ctx_sent))
+                            ],
+                        )
+                        for ctx_sent in context_dataset
+                    ]
+                ],
                 train_dataset.tags,
                 tokenizer=train_dataset.tokenizer,
             ),
