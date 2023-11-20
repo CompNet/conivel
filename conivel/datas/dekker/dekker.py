@@ -1,5 +1,8 @@
 from typing import List, Optional, Set
 import os, glob, re
+from collections import Counter
+import nltk
+import tqdm
 from conivel.datas import NERSentence
 from conivel.datas.dataset import NERDataset
 
@@ -102,7 +105,7 @@ class DekkerDataset(NERDataset):
         if directory is None:
             directory = f"{script_dir}/dataset"
 
-        paths = glob.glob(f"{directory}/*.conll")
+        paths = sorted(glob.glob(f"{directory}/*.conll"))
 
         def book_name(path: str) -> str:
             return re.search(r"[^.]*", (os.path.basename(path))).group(0)  # type: ignore
@@ -122,3 +125,27 @@ class DekkerDataset(NERDataset):
             self.documents_names.append(os.path.basename(book_path))
 
         super().__init__(documents, **kwargs)
+
+
+def load_extended_documents(directory: str) -> List[List[str]]:
+    """Load dekker's dataset full documents.  Use for retrieval
+    purposes only, as tags wont be included.
+
+    :param directory: Directory containing the extended documents.
+        They must have the same name as documents in the dekker
+        dataset, and end in .txt
+    """
+
+    dir_files = sorted(glob.glob(f"{directory}/*.txt"))
+
+    extended_documents = []
+
+    for doc in dir_files:
+
+        with open(doc) as f:
+
+            extended_documents.append(
+                [nltk.word_tokenize(sent) for sent in nltk.sent_tokenize(f.read())]
+            )
+
+    return extended_documents

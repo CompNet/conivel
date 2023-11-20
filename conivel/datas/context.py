@@ -345,13 +345,9 @@ class ContextRetrievalExample:
     sent_tags: List[str]
     #: context to assist during prediction
     context: List[str]
-    #: context NER tags
-    context_tags: List[str]
-    #: context side (doest the context comes from the left or the right of ``sent`` ?)
-    context_side: Literal["left", "right"]
-    #: usefulness of the exemple, either -1, 0 or 1. between -1 and 1. Can be ``None``
-    #: when the usefulness is not known.
-    usefulness: Optional[Literal[-1, 0, 1]] = None
+    #: relevance of the exemple. Can be ``None`` : when the relevance
+    #  is not known.
+    relevance: Optional[float] = None
 
     def __hash__(self) -> int:
         return hash(
@@ -359,9 +355,7 @@ class ContextRetrievalExample:
                 tuple(self.sent),
                 tuple(self.sent_tags),
                 tuple(self.context),
-                tuple(self.context_tags),
-                self.context_side,
-                self.usefulness,
+                self.relevance,
             )
         )
 
@@ -400,102 +394,127 @@ class ContextRetrievalDataset(Dataset):
             max_length=512,
         )
 
-        if not example.usefulness is None:
+        if not example.relevance is None:
             # NOTE: example.usefulness is either -1, 0 or 1.
             #       we shift that to class indices {0, 1, 2}
-            batch["label"] = example.usefulness + 1
+            batch["label"] = example.relevance + 1
 
         return batch
-
-    def augmented(self) -> ContextRetrievalDataset:
-
-        # * all entities in self dataset
-        dataset_entities = flattened(
-            [
-                entities_from_bio_tags(
-                    ex.sent + ex.context, ex.sent_tags + ex.context_tags
-                )
-                for ex in self.examples
-            ]
-        )
-        dataset_entities = [
-            " ".join(entity.tokens)
-            for entity in dataset_entities
-            if entity.tag == "PER"
-        ]
-
-        # * the elder scrolls entities
-        script_dir = os.path.abspath(os.path.dirname(__file__))
-        with open(f"{script_dir}/the_elder_scrolls_names.json") as f:
-            data = json.load(f)
-        tes_entities = [name for name in data["first_names"] + data["last_names"]]
-
-        dataset_names = set(dataset_entities + tes_entities)
-
-        # * augmentation
-        new_examples = []
-        for ex in self.examples:
-            # ** get all PER entities from original sent AND context
-            entities = entities_from_bio_tags(
-                ex.sent + ex.context, ex.sent_tags + ex.context_tags
-            )
-            entities = [ent for ent in entities if ent.tag == "PER"]
-            # ** get an unique name replacement for each entity
-            names_replacement = {
-                tuple(ent.tokens): random.sample(dataset_names, k=1)[0]
-                for ent in entities
-            }
-            # ** augment in original sentence
-            tokens, tags = (ex.sent, ex.sent_tags)
-            for entity in entities:
-                tokens, tags = replace_sent_entity(
-                    tokens,
-                    tags,
-                    entity.tokens,
-                    "PER",
-                    names_replacement[tuple(entity.tokens)].split(),
-                    "PER",
-                )
-            # ** augment in context sentence
-            ctx_tokens, ctx_tags = (ex.context, ex.context_tags)
-            for entity in entities:
-                ctx_tokens, ctx_tags = replace_sent_entity(
-                    ctx_tokens,
-                    ctx_tags,
-                    entity.tokens,
-                    "PER",
-                    names_replacement[tuple(entity.tokens)].split(),
-                    "PER",
-                )
-            # ** create new example
-            new_examples.append(
-                ContextRetrievalExample(
-                    tokens, tags, ctx_tokens, ctx_tags, ex.context_side, ex.usefulness
-                )
-            )
-
-        return ContextRetrievalDataset(new_examples)
 
     def to_jsonifiable(self) -> List[dict]:
         return [vars(example) for example in self.examples]
 
     def labels(self) -> Optional[List[float]]:
-        if any([ex.usefulness is None for ex in self.examples]):
+        if any([ex.relevance is None for ex in self.examples]):
             return None
-        return [ex.usefulness for ex in self.examples]  # type: ignore
+        return [ex.relevance for ex in self.examples]  # type: ignore
 
     def downsampled(self, downsample_ratio: float = 0.05) -> ContextRetrievalDataset:
         """Downsample class '0' for the dataset
 
         :param downsample_ratio:
         """
-        neg_examples = [e for e in self.examples if e.usefulness == -1]
-        pos_examples = [e for e in self.examples if e.usefulness == 1]
-        null_examples = [e for e in self.examples if e.usefulness == 0]
+        neg_examples = [e for e in self.examples if e.relevance == -1]
+        pos_examples = [e for e in self.examples if e.relevance == 1]
+        null_examples = [e for e in self.examples if e.relevance == 0]
         null_examples = null_examples[: int(downsample_ratio * len(null_examples))]
         examples = neg_examples + pos_examples + null_examples
         random.shuffle(examples)
         return ContextRetrievalDataset(examples)
+
+
+def generate_context_dataset(
+    ner_model: BertForTokenClassification,
+    train_dataset: NERDataset,
+    context_dataset: List[List[str]],
+    batch_size: int,
+    quiet: bool = False,
+    _run: Optional[Run] = None,
+) -> ContextRetrievalDataset:
+    """Generate a context selection training dataset.
+
+    The process is as follows :
+
+        1. Make predictions for a NER dataset using an already trained
+           NER model.
+
+        2. For each prediction, sample a bunch of possible context
+           sentences using some heuristic, and retry predictions with
+           those context for the sentence.  Then, the difference of
+           errors between the prediction without context and the
+           prediction with context is used to create a sample of
+           context retrieval.
+
+    :param ner_model: an already trained NER model used to generate
+        initial predictions
+    :param train_dataset: NER dataset, with input sentence
+    :param context_dataset: dataset from which to sample candidate
+        contexts
+    :param batch_size: batch size used for NER inference
+    :param _run: The current sacred run.  If not ``None``, will be
+        used to record generation metrics.
+
+    :return: a ``ContextSelectionDataset`` that can be used to train a
+             context selector.
+    """
+    preds = predict(
+        ner_model,
+        train_dataset,
+        batch_size=batch_size,
+        quiet=quiet,
+        additional_outputs={"scores"},
+    )
+    assert not preds.scores is None
+
+    ctx_selection_examples = []
+    for sent_i, (sent, pred_scores) in tqdm(
+        enumerate(zip(train_dataset.sents(), preds.scores)),
+        total=len(preds.tags),
+        disable=quiet,
+    ):
+        pred_error = NeuralContextRetriever._pred_error(
+            sent.tags, pred_scores, train_dataset.tag_to_id
+        )
+
+        # generate examples by making new predictions with context
+        # sentences
+        preds_ctx = predict(
+            ner_model,
+            NERDataset(
+                [[NERSentence(sent, [None] * len(sent)) for sent in context_dataset]],
+                train_dataset.tags,
+                tokenizer=train_dataset.tokenizer,
+            ),
+            quiet=True,
+            batch_size=batch_size,
+            additional_outputs={"scores"},
+        )
+        assert not preds_ctx.scores is None
+
+        for ctx_sent, ctx_scores in zip(context_dataset, preds_ctx.scores):
+            pred_ctx_error = NeuralContextRetriever._pred_error(
+                sent.tags, ctx_scores, train_dataset.tag_to_id
+            )
+            relevance = pred_ctx_error - pred_error
+            ctx_selection_examples.append(
+                ContextRetrievalExample(
+                    sent.tokens,
+                    sent.tags,
+                    ctx_sent,
+                    relevance,
+                )
+            )
+
+    # logging
+    if not _run is None:
+        _run.log_scalar(
+            "context_dataset_generation.examples_nb", len(ctx_selection_examples)
+        )
+
+        for ex in ctx_selection_examples:
+            _run.log_scalar("context_dataset_generation.usefulness", ex.usefulness)
+
+    return ContextRetrievalDataset(ctx_selection_examples)
 
 
 class NeuralContextRetriever(ContextRetriever):
@@ -665,129 +684,6 @@ class NeuralContextRetriever(ContextRetriever):
                 for i, tag in enumerate(sent_tags)
             ]
         )
-
-    @staticmethod
-    def generate_context_dataset(
-        ner_model: BertForTokenClassification,
-        train_dataset: NERDataset,
-        batch_size: int,
-        heuristic_context_selector: str,
-        heuristic_context_selector_kwargs: Dict[str, Any],
-        score_diff_threshold: float,
-        quiet: bool = False,
-        _run: Optional[Run] = None,
-    ) -> ContextRetrievalDataset:
-        """Generate a context selection training dataset.
-
-        The process is as follows :
-
-            1. Make predictions for a NER dataset using an already
-               trained NER model.
-
-            2. For each prediction, sample a bunch of possible context
-               sentences using some heuristic, and retry predictions
-               with those context for the sentence.  Then, the
-               difference of errors between the prediction without
-               context and the prediction with context is used to
-               create a sample of context retrieval.
-
-        :todo: make a choice on heuristic
-
-        :param ner_model: an already trained NER model used to
-            generate initial predictions
-        :param train_dataset: NER dataset used to extract examples
-        :param batch_size: batch size used for NER inference
-        :param heuristic_context_selector: name of the context
-            selector to use as retrieval heuristic, from
-            ``context_selector_name_to_class``
-        :param heuristic_context_selector_kwargs: kwargs to pass the
-            heuristic context retriever at instantiation time
-        :param score_diff_threshold: score difference threshold needed
-            to consider an example as positive / negative
-        :param _run: The current sacred run.  If not ``None``, will be
-            used to record generation metrics.
-
-        :return: a ``ContextSelectionDataset`` that can be used to
-                 train a context selector.
-        """
-        preds = predict(
-            ner_model,
-            train_dataset,
-            batch_size=batch_size,
-            quiet=quiet,
-            additional_outputs={"scores"},
-        )
-        assert not preds.scores is None
-
-        ctx_selector_class = context_retriever_name_to_class[heuristic_context_selector]
-        preliminary_ctx_selector = ctx_selector_class(
-            **heuristic_context_selector_kwargs
-        )
-
-        ctx_selection_examples = []
-        for sent_i, (sent, pred_tags, pred_scores) in tqdm(
-            enumerate(zip(train_dataset.sents(), preds.tags, preds.scores)),
-            total=len(preds.tags),
-            disable=quiet,
-        ):
-            document = train_dataset.document_for_sent(sent_i)
-
-            pred_error = NeuralContextRetriever._pred_error(
-                sent.tags, pred_scores, train_dataset.tag_to_id
-            )
-
-            # retrieve n context sentences
-            index_in_doc = train_dataset.sent_document_index(sent_i)
-            ctx_matchs = preliminary_ctx_selector.retrieve(index_in_doc, document)
-            ctx_sents = sent_with_ctx_from_matchs(sent, ctx_matchs)
-
-            # generate examples by making new predictions with context
-            # sentences
-            preds_ctx = predict(
-                ner_model,
-                NERDataset(
-                    [ctx_sents],
-                    train_dataset.tags,
-                    tokenizer=train_dataset.tokenizer,
-                ),
-                quiet=True,
-                batch_size=batch_size,
-                additional_outputs={"scores"},
-            )
-            assert not preds_ctx.scores is None
-
-            for ctx_match, ctx_scores in zip(ctx_matchs, preds_ctx.scores):
-                pred_ctx_error = NeuralContextRetriever._pred_error(
-                    sent.tags, ctx_scores, train_dataset.tag_to_id
-                )
-                diff = pred_ctx_error - pred_error
-                if diff <= -score_diff_threshold:
-                    usefulness = -1
-                elif diff >= score_diff_threshold:
-                    usefulness = 1
-                else:
-                    usefulness = 0
-                ctx_selection_examples.append(
-                    ContextRetrievalExample(
-                        sent.tokens,
-                        sent.tags,
-                        ctx_match.sentence.tokens,
-                        ctx_match.sentence.tags,
-                        ctx_match.side,
-                        usefulness,
-                    )
-                )
-
-        # logging
-        if not _run is None:
-            _run.log_scalar(
-                "context_dataset_generation.examples_nb", len(ctx_selection_examples)
-            )
-
-            for ex in ctx_selection_examples:
-                _run.log_scalar("context_dataset_generation.usefulness", ex.usefulness)
-
-        return ContextRetrievalDataset(ctx_selection_examples)
 
     @staticmethod
     def train_context_selector(
